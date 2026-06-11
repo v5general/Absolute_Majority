@@ -39,7 +39,7 @@ export const initialRelations: RelationEntry[] = [
   },
   {
     from: 'progressive',
-    to: 'green',
+    to: 'solidarity',
     score: 70,
     type: 'alliance',
     description: '天然盟友，在福利扩张和社会正义议题上高度一致，经常联合行动',
@@ -76,7 +76,7 @@ export const initialRelations: RelationEntry[] = [
   },
   {
     from: 'reform',
-    to: 'green',
+    to: 'solidarity',
     score: -10,
     type: 'neutral',
     description: '认可部分劳工诉求但认为其反资本立场过于激进',
@@ -113,7 +113,7 @@ export const initialRelations: RelationEntry[] = [
   },
   {
     from: 'conservative',
-    to: 'green',
+    to: 'solidarity',
     score: -65,
     type: 'hostile',
     description: '全面反对其反资本立场和阶级斗争叙事，视其为制度威胁',
@@ -150,7 +150,7 @@ export const initialRelations: RelationEntry[] = [
   },
   {
     from: 'liberty',
-    to: 'green',
+    to: 'solidarity',
     score: -40,
     type: 'tense',
     description: '对其反资本和反自由市场立场强烈不满，减税主张是唯一微弱交集',
@@ -163,37 +163,37 @@ export const initialRelations: RelationEntry[] = [
     description: '坚决反对贸易保护主义和排外政策，在经济全球化上完全对立',
   },
 
-  // ===== 联合劳工党 (green) 对其他派系 =====
+  // ===== 联合劳工党 (solidarity) 对其他派系 =====
   {
-    from: 'green',
+    from: 'solidarity',
     to: 'progressive',
     score: 60,
     type: 'alliance',
     description: '最亲密的政治盟友，但嫌社会联盟不够激进，时有摩擦',
   },
   {
-    from: 'green',
+    from: 'solidarity',
     to: 'reform',
     score: -15,
     type: 'neutral',
     description: '认为改革派是维护资本秩序的改良主义者，难以真正信任',
   },
   {
-    from: 'green',
+    from: 'solidarity',
     to: 'conservative',
     score: -65,
     type: 'hostile',
     description: '将保守党视为资产阶级代理人，阶级立场根本对立',
   },
   {
-    from: 'green',
+    from: 'solidarity',
     to: 'liberty',
     score: -45,
     type: 'tense',
     description: '视自由党为资本剥削的辩护士，减税共同点不足以弥合根本分歧',
   },
   {
-    from: 'green',
+    from: 'solidarity',
     to: 'populist',
     score: -70,
     type: 'hostile',
@@ -231,7 +231,7 @@ export const initialRelations: RelationEntry[] = [
   },
   {
     from: 'populist',
-    to: 'green',
+    to: 'solidarity',
     score: -65,
     type: 'hostile',
     description: '视劳工党为过时势力，双方在工人阶级选票上激烈争夺',

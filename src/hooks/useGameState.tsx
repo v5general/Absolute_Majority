@@ -434,16 +434,25 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const userPrompt = `玩家${playerName}说：\n\n"${playerText}"`;
 
         console.log('[FreeText] Calling LLM...');
-        const result = await askLLMJSON<FreeTextResponse>(
-          systemPrompt,
-          userPrompt,
-          {
-            reply: '...你的发言引起了在场人的注意，但似乎没有人明确表态。',
-            narration: '你的发言在会场中回荡，各方反应不一。',
-            effects: { supportDelta: {}, metricsDelta: { mediaAttention: 2 } },
-          },
-          { maxTokens: 400, temperature: 0.7, responseFormat: null },
-        );
+
+        // 添加超时处理：30秒超时
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          setTimeout(() => reject(new Error('LLM request timeout')), 30000);
+        });
+
+        const result = await Promise.race([
+          askLLMJSON<FreeTextResponse>(
+            systemPrompt,
+            userPrompt,
+            {
+              reply: '...你的发言引起了在场人的注意，但似乎没有人明确表态。',
+              narration: '你的发言在会场中回荡，各方反应不一。',
+              effects: { supportDelta: {}, metricsDelta: { mediaAttention: 2 } },
+            },
+            { maxTokens: 400, temperature: 0.7, responseFormat: null },
+          ),
+          timeoutPromise,
+        ]);
 
         console.log('[FreeText] LLM result:', result);
 
@@ -469,13 +478,19 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
         setIsPaused(true);
       } catch (err) {
-        console.error('[Game] Free text LLM call failed:', err);
+        const errorMsg = err instanceof Error ? err.message : String(err);
+        console.error('[Game] Free text LLM call failed:', errorMsg);
+
         // 无论是否出错，都必须解除 isWaitingFreeText 状态
         setActiveEvent((prev) => {
           if (!prev) return null;
           const fallbackResponse: FreeTextResponse = {
-            reply: '你的发言在会场中引起了一阵窃窃私语，但没有得到正式回应。',
-            narration: '你的发言产生了些许影响，但大多数人选择保持沉默。',
+            reply: errorMsg.includes('timeout')
+              ? '对方似乎在思考你的发言，但一时没有回应。'
+              : '你的发言在会场中引起了一阵窃窃私语，但没有得到正式回应。',
+            narration: errorMsg.includes('timeout')
+              ? '你的发言让现场陷入短暂沉默。'
+              : '你的发言产生了些许影响，但大多数人选择保持沉默。',
             effects: { supportDelta: {}, metricsDelta: { mediaAttention: 1 } },
           };
           // 构建虚拟 choice，延迟结算 effects（与正常情况一致）
