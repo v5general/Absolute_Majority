@@ -87,6 +87,8 @@ export interface ActiveEvent {
   resolved: boolean;
   /** 玩家选择的选项ID */
   chosenId?: string;
+  /** 待结算的选择（effects将在下一回合开始时结算） */
+  pendingChoice?: EventChoice;
   /** 自由文本回应（LLM 返回） */
   freeTextResponse?: FreeTextResponse;
   /** 是否正在等待 LLM 回应自由文本 */

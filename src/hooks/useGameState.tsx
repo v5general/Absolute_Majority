@@ -228,6 +228,13 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // 0. 回合开始：推进法案决策链、处理过期法案
           let turnState = { ...oldState };
 
+          // 0.1 结算上一回合的 pendingChoice effects（如果有）
+          const pendingChoice = activeEvent?.pendingChoice;
+          if (pendingChoice) {
+            console.log('[Game] Settling pending choice effects:', pendingChoice);
+            turnState = applyChoice(turnState, pendingChoice);
+          }
+
           // 处理过期法案
           try {
             const updatedBills = turnState.bills.map(bill => {
@@ -378,8 +385,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const choice = prev.event.choices.find((c) => c.id === choiceId);
       if (!choice) return prev;
 
-      setState((oldState) => applyChoice(oldState, choice));
-      return { ...prev, resolved: true, chosenId: choiceId, showChoices: false };
+      // 暂时不结算 effects，只存储 choice
+      // effects 将在下一回合开始时结算
+      return { ...prev, resolved: true, chosenId: choiceId, showChoices: false, pendingChoice: choice };
     });
     setIsPaused(true);
   }, []);
@@ -425,6 +433,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         const userPrompt = `玩家${playerName}说：\n\n"${playerText}"`;
 
+        console.log('[FreeText] Calling LLM...');
         const result = await askLLMJSON<FreeTextResponse>(
           systemPrompt,
           userPrompt,
@@ -433,10 +442,12 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
             narration: '你的发言在会场中回荡，各方反应不一。',
             effects: { supportDelta: {}, metricsDelta: { mediaAttention: 2 } },
           },
-          { maxTokens: 400, temperature: 0.7 },
+          { maxTokens: 400, temperature: 0.7, responseFormat: null },
         );
 
-        // 应用效果并更新事件
+        console.log('[FreeText] LLM result:', result);
+
+        // 构建虚拟 choice，延迟结算 effects
         const fakeChoice: EventChoice = {
           id: 'free_text',
           text: playerText,
@@ -444,8 +455,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           effects: result.effects,
         };
 
-        setState((oldState) => applyChoice(oldState, fakeChoice));
-
+        // 暂时不结算 effects，只存储到 pendingChoice（与固定选项行为一致）
         setActiveEvent((prev) => {
           if (!prev) return null;
           return {
@@ -454,6 +464,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
             isWaitingFreeText: false,
             freeTextResponse: result,
             showChoices: false,
+            pendingChoice: fakeChoice,
           };
         });
         setIsPaused(true);
@@ -467,20 +478,20 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
             narration: '你的发言产生了些许影响，但大多数人选择保持沉默。',
             effects: { supportDelta: {}, metricsDelta: { mediaAttention: 1 } },
           };
-          // 应用 fallback 效果
+          // 构建虚拟 choice，延迟结算 effects（与正常情况一致）
           const fakeChoice: EventChoice = {
             id: 'free_text_fallback',
             text: playerText,
             consequence: fallbackResponse.narration,
             effects: fallbackResponse.effects,
           };
-          setState((oldState) => applyChoice(oldState, fakeChoice));
           return {
             ...prev,
             resolved: true,
             isWaitingFreeText: false,
             freeTextResponse: fallbackResponse,
             showChoices: false,
+            pendingChoice: fakeChoice,
           };
         });
         setIsPaused(true);
