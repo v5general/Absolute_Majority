@@ -26,7 +26,7 @@ const ORIGIN_LABELS: Record<string, string> = {
 };
 
 const EDUCATION_LABELS: Record<string, string> = {
-  top_university: '东京大学级别', private_elite: '早稻田/庆应级别',
+  top_university: '顶尖国立大学', private_elite: '知名私立大学',
   national_university: '国立大学', regional_university: '地方大学', other: '其他',
 };
 

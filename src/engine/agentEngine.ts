@@ -182,15 +182,15 @@ const FACTION_REASONS = [
 ];
 
 const MEDIA_REASONS_POSITIVE = [
-  (partyName: string, summary: string) => `《全国新闻》发表社论称赞${partyName}的政策方案具有前瞻性。${summary}`,
-  (partyName: string, summary: string) => `公共广播专题节目深入报道${partyName}的改革举措，公众反响热烈。${summary}`,
-  (partyName: string, summary: string) => `多家主流媒体转载了${partyName}党首的最新政策演讲，舆论评价积极。${summary}`,
+  (partyName: string, summary: string) => `《中央时事新闻》发表社论称赞${partyName}的政策方案具有前瞻性。${summary}`,
+  (partyName: string, summary: string) => `《革新民报》深度报道${partyName}的改革举措，进步阵营反响热烈。${summary}`,
+  (partyName: string, summary: string) => `《经合新闻》从经济角度肯定${partyName}的政策方向，商界评价积极。${summary}`,
 ];
 
 const MEDIA_REASONS_NEGATIVE = [
-  (partyName: string, summary: string) => `《每日新闻》头版曝光${partyName}内部文件，揭示政策承诺与实际执行之间存在巨大差距。${summary}`,
-  (partyName: string, summary: string) => `网络媒体爆出${partyName}候选人财务申报疑云，在野党要求彻查。${summary}`,
-  (partyName: string, summary: string) => `一档调查类节目深挖${partyName}与特定利益团体的暧昧关系，引发社会热议。${summary}`,
+  (partyName: string, summary: string) => `《中央时事新闻》头版曝光${partyName}内部文件，揭示政策承诺与实际执行之间存在巨大差距。${summary}`,
+  (partyName: string, summary: string) => `《革新民报》尖锐批评${partyName}的立场违背劳工利益，引发左翼阵营强烈反弹。${summary}`,
+  (partyName: string, summary: string) => `《经合新闻》质疑${partyName}的经济政策可能损害市场信心，工商界表示担忧。${summary}`,
 ];
 
 const LOBBY_REASONS = [
@@ -316,10 +316,23 @@ ${partyIds}
 ## 禁止现实政治元素（严格遵守）
 - 禁止使用任何现实日本派阀名称（清和会、平成会、宏池会、志帅会等）
 - 禁止使用任何现实日本媒体名称（NHK、朝日新闻、读卖新闻、每日新闻、产经新闻、文春等）
+- 禁止使用任何现实日本大学名称（东京大学、京都大学、早稻田、庆应等）
 - 派阀命名必须使用虚构名称（如：至誠会、創志会、新政会等）
-- 媒体报道必须使用虚构媒体名称（如：全国新闻、公共广播、每日新闻等）
+- 媒体报道必须使用固定的三家媒体：
+  * 中央时事新闻（中间派立场）
+  * 革新民报（左翼立场）
+  * 经合新闻（右翼立场）
+- 学历必须使用虚构描述（顶尖国立大学、知名私立大学等）
 - 政党和政治人物必须完全虚构，不得映射现实人物或政党
 - 违反此规则的内容将被拒绝
+
+## 媒体系统规则（严格遵守）
+- 游戏中只有三家媒体，不可添加或修改：
+  1. 中央时事新闻（中时）：中间派立场，影响中产阶层、公务员
+  2. 革新民报（革新）：左翼立场，影响工会、进步阵营
+  3. 经合新闻（经合）：右翼立场，影响企业家、工商界
+- 所有媒体相关内容必须使用这三家媒体之一
+- 不得创建或使用其他媒体名称
 
 ## 政治体系参考（AI演算依赖规则）
 ### 议会结构
