@@ -178,9 +178,14 @@ export const CharacterCreation: React.FC<CharacterCreationProps> = ({ onComplete
 
   /** AI 生成背景故事 */
   const handleAIGenerate = async () => {
+    console.log('[AI Background] Starting generation...');
     setGenerating(true);
     const party = initialParties.find(p => p.id === partyId);
-    if (!party) { setGenerating(false); return; }
+    if (!party) {
+      console.error('[AI Background] Party not found:', partyId);
+      setGenerating(false);
+      return;
+    }
 
     // 先保存当前 LLM 配置（确保用户已输入的 key 生效）
     setLLMConfig({ baseUrl, apiKey, model });
@@ -202,11 +207,18 @@ export const CharacterCreation: React.FC<CharacterCreationProps> = ({ onComplete
 
 请生成这段背景故事。`;
 
+    console.log('[AI Background] Calling askLLMText...');
+    console.log('[AI Background] LLM available:', isLLMAvailable());
+    console.log('[AI Background] Config:', { baseUrl, model: model || '(empty)', apiKey: apiKey ? '(set)' : '(empty)' });
+
     const result = await askLLMText(systemPrompt, userPrompt);
+
+    console.log('[AI Background] Result:', result);
 
     if (result) {
       setBackground(result);
     } else {
+      console.log('[AI Background] Using fallback template');
       // Fallback：无 API 时生成模板背景
       const genderNoun = gender === 'male' ? '他' : '她';
       const templates: Record<string, string> = {
@@ -215,7 +227,7 @@ export const CharacterCreation: React.FC<CharacterCreationProps> = ({ onComplete
         conservative: `${lastName.trim() || '佐藤'} ${firstName.trim() || '太郎'}，${age}岁，出身地方政治世家。从地方议会起步，深耕基层多年，始终坚守传统价值观。${genderNoun}关注农村发展和国家安全问题，在保守派选民中有较高声望，本次代表国民保守党当选众议院议员。`,
         progressive: `${lastName.trim() || '佐藤'} ${firstName.trim() || '太郎'}，${age}岁，社会运动出身的政治人物。曾在环保组织和社会福利机构工作，长期关注弱势群体权益。${genderNoun}以改善民生和推动社会公平为己任，代表社会联盟竞选并成功当选。`,
         populist: `${lastName.trim() || '佐藤'} ${firstName.trim() || '太郎'}，${age}岁，媒体人出身。曾在地方电视台担任新闻主播，因公开批评精英政治而获得大量基层支持者。${genderNoun}主张将普通公民的利益置于首位，以犀利的言辞和鲜明的立场在第一公民阵线中崭露头角。`,
-        green: `${lastName.trim() || '佐藤'} ${firstName.trim() || '太郎'}，${age}岁，工会活动家出身。在工厂工作期间参与劳工权益运动，逐步走上从政道路。${genderNoun}深切了解劳动者的困境，加入联合劳工党后致力于维护工人权益、推动社会公平，在本次选举中成功当选。`,
+        solidarity: `${lastName.trim() || '佐藤'} ${firstName.trim() || '太郎'}，${age}岁，工会活动家出身。在工厂工作期间参与劳工权益运动，逐步走上从政道路。${genderNoun}深切了解劳动者的困境，加入联合劳工党后致力于维护工人权益、推动社会公平，在本次选举中成功当选。`,
       };
       setBackground(templates[partyId] || templates.reform);
     }
