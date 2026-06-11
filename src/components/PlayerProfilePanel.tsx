@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import type { PlayerConfig, Party } from '../types';
 import { PERSONALITY_TRAIT_LABELS, POLITICAL_IDEOLOGY_LABELS, derivePlayerAbilities } from '../types';
 
@@ -41,6 +41,39 @@ const getSocialLabel = (v: number) => {
   return '激进自由';
 };
 
+/** 可展开文本行：截断显示 + 右侧下拉箭头，点击弹出完整内容 */
+const ExpandableText: React.FC<{
+  title: string;
+  text: string;
+  maxLen: number;
+}> = ({ title, text, maxLen }) => {
+  const [expanded, setExpanded] = useState(false);
+  if (!text) return null;
+  const truncated = text.length > maxLen ? text.slice(0, maxLen) + '...' : text;
+
+  return (
+    <>
+      <div style={mpStyles.expandableRow}>
+        <div style={mpStyles.narrative}>{truncated}</div>
+        <button style={mpStyles.expandArrowBtn} onClick={() => setExpanded(true)} title={`展开${title}`}>
+          {'▼'}
+        </button>
+      </div>
+      {expanded && (
+        <div style={mpStyles.popupOverlay} onClick={() => setExpanded(false)}>
+          <div style={mpStyles.popupBox} onClick={(e) => e.stopPropagation()}>
+            <div style={mpStyles.popupHeader}>
+              <span style={mpStyles.popupTitle}>{title}</span>
+              <button style={mpStyles.popupCloseBtn} onClick={() => setExpanded(false)}>✕</button>
+            </div>
+            <div style={mpStyles.popupBody}>{text}</div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+};
+
 export const PlayerProfilePanel: React.FC<PlayerProfilePanelProps> = ({
   playerConfig,
   party,
@@ -51,22 +84,12 @@ export const PlayerProfilePanel: React.FC<PlayerProfilePanelProps> = ({
   const partyColor = party?.color ?? '#5c8aff';
   const abilities = derivePlayerAbilities(playerConfig);
 
-  // 背景超30字简化
-  const shortBackground = playerConfig.background.length > 30
-    ? playerConfig.background.slice(0, 30) + '...'
-    : playerConfig.background;
-
-  // 政治目标超15字简化
-  const shortGoal = playerConfig.politicalGoal.length > 15
-    ? playerConfig.politicalGoal.slice(0, 15) + '...'
-    : playerConfig.politicalGoal;
-
   return (
     <div style={mpStyles.overlay} onClick={onClose}>
       <div style={mpStyles.panel} onClick={(e) => e.stopPropagation()}>
         {/* 头部 */}
         <div style={mpStyles.header}>
-          <div style={{ ...mpStyles.avatar, borderColor: partyColor }}>
+          <div style={{ ...mpStyles.avatar, border: `2px solid ${partyColor}` }}>
             <span style={{ color: partyColor, fontWeight: 800, fontSize: 20 }}>
               {(playerConfig.lastName[0] ?? '') + (playerConfig.firstName[0] ?? '')}
             </span>
@@ -93,12 +116,10 @@ export const PlayerProfilePanel: React.FC<PlayerProfilePanelProps> = ({
         </div>
 
         {/* 背景 */}
-        {shortBackground && (
-          <div style={mpStyles.section}>
-            <div style={mpStyles.sectionTitle}>背景</div>
-            <div style={mpStyles.narrative}>{shortBackground}</div>
-          </div>
-        )}
+        <div style={mpStyles.section}>
+          <div style={mpStyles.sectionTitle}>背景</div>
+          <ExpandableText title="背景" text={playerConfig.background} maxLen={30} />
+        </div>
 
         {/* 履历（简化版） */}
         <div style={mpStyles.section}>
@@ -183,12 +204,10 @@ export const PlayerProfilePanel: React.FC<PlayerProfilePanelProps> = ({
         </div>
 
         {/* 政治目标 */}
-        {shortGoal && (
-          <div style={mpStyles.section}>
-            <div style={mpStyles.sectionTitle}>政治目标</div>
-            <div style={mpStyles.narrative}>{shortGoal}</div>
-          </div>
-        )}
+        <div style={mpStyles.section}>
+          <div style={mpStyles.sectionTitle}>政治目标</div>
+          <ExpandableText title="政治目标" text={playerConfig.politicalGoal} maxLen={15} />
+        </div>
       </div>
     </div>
   );
@@ -205,7 +224,7 @@ const mpStyles: Record<string, React.CSSProperties> = {
   },
   header: { display: 'flex', gap: 14, alignItems: 'center', marginBottom: 12 },
   avatar: {
-    width: 52, height: 52, borderRadius: '50%', border: '2px solid',
+    width: 52, height: 52, borderRadius: '50%',
     display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
     background: 'rgba(0,0,0,0.3)',
   },
@@ -239,5 +258,39 @@ const mpStyles: Record<string, React.CSSProperties> = {
   goalTag: {
     padding: '3px 10px', borderRadius: 4, border: '1px solid #3a4a6a', background: '#1a2540',
     color: '#8ab4ff', fontSize: 11,
+  },
+  // 可展开行
+  expandableRow: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: 6,
+  },
+  expandArrowBtn: {
+    background: 'none', border: 'none', color: '#5c8aff', fontSize: 11, cursor: 'pointer',
+    padding: '8px 4px 8px 0', flexShrink: 0, lineHeight: 1,
+  },
+  // 弹出窗口
+  popupOverlay: {
+    position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex',
+    alignItems: 'center', justifyContent: 'center', zIndex: 2100, backdropFilter: 'blur(2px)',
+  },
+  popupBox: {
+    width: 380, maxHeight: '60vh', background: 'linear-gradient(180deg, #0d1b2a 0%, #1b2838 100%)',
+    borderRadius: 10, border: '1px solid #3a4a6a', overflow: 'hidden',
+    boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+  },
+  popupHeader: {
+    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+    padding: '12px 16px', borderBottom: '1px solid #2a3a5c',
+  },
+  popupTitle: {
+    fontSize: 14, fontWeight: 700, color: '#e0e0e0',
+  },
+  popupCloseBtn: {
+    background: 'none', border: 'none', color: '#666', fontSize: 16, cursor: 'pointer',
+    padding: '2px 6px', borderRadius: 4,
+  },
+  popupBody: {
+    padding: '16px', fontSize: 13, color: '#bbb', lineHeight: 1.8, overflowY: 'auto', maxHeight: '50vh',
   },
 };

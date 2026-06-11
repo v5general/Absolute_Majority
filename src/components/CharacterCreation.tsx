@@ -39,7 +39,40 @@ const PRESETS: Array<{ label: string; baseUrl: string; model: string }> = [
 ];
 
 const ALL_TRAITS = Object.entries(PERSONALITY_TRAIT_LABELS) as [PersonalityTrait, string][];
-const ALL_IDEOLOGIES = Object.entries(POLITICAL_IDEOLOGY_LABELS) as [PoliticalIdeology, string][];
+
+// 意识形态合并映射：多个 key 共用同一标签，选择时任选一个即可
+const MERGED_IDEOLOGIES: Array<{ keys: PoliticalIdeology[]; label: string }> = [
+  { keys: ['socialism', 'communism'], label: '社会主义·共产主义' },
+  { keys: ['democratic_socialism'], label: '民主社会主义' },
+  { keys: ['anarchism'], label: '无政府主义' },
+  { keys: ['syndicalism'], label: '工团主义' },
+  { keys: ['trotskyism'], label: '托洛茨基主义' },
+  { keys: ['maoism'], label: '毛主义' },
+  { keys: ['liberalism'], label: '自由主义' },
+  { keys: ['neoliberalism'], label: '新自由主义' },
+  { keys: ['progressivism'], label: '进步主义' },
+  { keys: ['libertarianism'], label: '自由意志主义' },
+  { keys: ['social_liberalism'], label: '社会自由主义' },
+  { keys: ['conservatism'], label: '保守主义' },
+  { keys: ['neoconservatism'], label: '新保守主义' },
+  { keys: ['liberal_conservatism'], label: '自由保守主义' },
+  { keys: ['traditionalism'], label: '传统主义' },
+  { keys: ['nationalism'], label: '民族主义' },
+  { keys: ['fascism', 'chauvinism'], label: '法西斯主义·沙文主义' },
+  { keys: ['regionalism'], label: '地方主义' },
+  { keys: ['theocracy', 'fundamentalism'], label: '神权政治·原教旨主义' },
+  { keys: ['secularism'], label: '世俗主义' },
+  { keys: ['environmentalism'], label: '环保主义' },
+  { keys: ['feminism'], label: '女权主义' },
+  { keys: ['populism'], label: '民粹主义' },
+  { keys: ['authoritarianism'], label: '威权主义' },
+  { keys: ['technocracy'], label: '技术官僚主义' },
+  { keys: ['corporatism'], label: '统合主义' },
+  { keys: ['militarism'], label: '军国主义' },
+  { keys: ['pacifism'], label: '和平主义' },
+  { keys: ['monarchism'], label: '君主主义' },
+  { keys: ['republicanism'], label: '共和主义' },
+];
 
 /** 政党详情展开卡片 */
 const PartyDetailCard: React.FC<{
@@ -167,9 +200,12 @@ export const CharacterCreation: React.FC<CharacterCreationProps> = ({ onComplete
   const ageError = age !== '' && age < 25 ? '年龄不能小于25岁（众议员年龄下限）' : '';
   const hasBackground = background.trim().length > 0;
   const hasGoal = politicalGoal.trim().length > 0;
-  const canSubmit = lastName.trim().length >= 1 && firstName.trim().length >= 1
-    && age !== '' && age >= 25 && hasBackground
-    && personalityTraits.length >= 1 && politicalIdeology !== '' && hasGoal;
+  // 前置字段是否填写完整（用于 AI 生成按钮的启用判断）
+  const preGoalComplete = lastName.trim().length >= 1 && firstName.trim().length >= 1
+    && age !== '' && age >= 25
+    && personalityTraits.length >= 1 && politicalIdeology !== '';
+  const preBackgroundComplete = preGoalComplete && hasGoal;
+  const canSubmit = preBackgroundComplete && hasBackground;
 
   const handlePreset = (idx: number) => {
     setPresetIdx(idx);
@@ -549,8 +585,8 @@ export const CharacterCreation: React.FC<CharacterCreationProps> = ({ onComplete
             onChange={(e) => setPoliticalIdeology(e.target.value as PoliticalIdeology)}
           >
             <option value="">-- 请选择意识形态 --</option>
-            {ALL_IDEOLOGIES.map(([key, label]) => (
-              <option key={key} value={key}>{label}</option>
+            {MERGED_IDEOLOGIES.map(({ keys, label }) => (
+              <option key={keys[0]} value={keys[0]}>{label}</option>
             ))}
           </select>
         </div>
@@ -606,16 +642,19 @@ export const CharacterCreation: React.FC<CharacterCreationProps> = ({ onComplete
             rows={2}
           />
           <div style={styles.backgroundActions}>
-            {!hasGoal && (
+            {!preGoalComplete && !hasGoal && (
+              <span style={styles.backgroundWarn}>请先填写上方所有选项</span>
+            )}
+            {preGoalComplete && !hasGoal && (
               <span style={styles.backgroundWarn}>请填写政治目标</span>
             )}
             <button
               style={{
                 ...styles.aiGenBtn,
-                opacity: generatingGoal ? 0.5 : 1,
+                opacity: (!preGoalComplete || generatingGoal) ? 0.4 : 1,
               }}
               onClick={handleAIGenerateGoal}
-              disabled={generatingGoal}
+              disabled={!preGoalComplete || generatingGoal}
             >
               {generatingGoal ? 'AI 生成中...' : '✦ AI 一键生成目标'}
             </button>
@@ -655,16 +694,19 @@ export const CharacterCreation: React.FC<CharacterCreationProps> = ({ onComplete
             rows={4}
           />
           <div style={styles.backgroundActions}>
-            {!hasBackground && (
+            {!preBackgroundComplete && !hasBackground && (
+              <span style={styles.backgroundWarn}>请先填写上方所有选项</span>
+            )}
+            {preBackgroundComplete && !hasBackground && (
               <span style={styles.backgroundWarn}>没有背景设定不能进入国会</span>
             )}
             <button
               style={{
                 ...styles.aiGenBtn,
-                opacity: generating ? 0.5 : 1,
+                opacity: (!preBackgroundComplete || generating) ? 0.4 : 1,
               }}
               onClick={handleAIGenerate}
-              disabled={generating}
+              disabled={!preBackgroundComplete || generating}
             >
               {generating ? 'AI 生成中...' : '✦ AI 一键生成背景'}
             </button>
@@ -758,7 +800,7 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: 'pointer',
   },
   presetBtnActive: {
-    borderColor: '#5c8aff',
+    border: '1px solid #5c8aff',
     color: '#fff',
     background: '#1a2540',
   },
@@ -870,7 +912,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 600,
   },
   genderActive: {
-    borderColor: '#5c8aff',
+    border: '1px solid #5c8aff',
     color: '#fff',
     background: '#1a2540',
   },
@@ -897,7 +939,7 @@ const styles: Record<string, React.CSSProperties> = {
     transition: 'all 0.15s',
   },
   traitBtnActive: {
-    borderColor: '#5c8aff',
+    border: '1px solid #5c8aff',
     color: '#fff',
     background: '#1a2540',
     fontWeight: 700,
