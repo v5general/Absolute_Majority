@@ -274,7 +274,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           updatedPersonalities = lifeResult.updatedPersonalities;
 
           // 死亡事件加入 AI 事件队列（高优先级，放在前面）
-          if (lifeResult.politicalEvents.length > 0) {
+          if (lifeResult.politicalEvents && lifeResult.politicalEvents.length > 0) {
             aiEvents = [...lifeResult.politicalEvents, ...aiEvents];
           }
 
@@ -286,7 +286,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
               const postsHeld = ministerNames.filter(name =>
                 faction.members.some(m => {
                   const mp = updatedPersonalities[m];
-                  return mp?.personName === name;
+                  return mp && !mp.deceased && mp.personName === name;
                 })
               ).length;
               return updateFactionLoyalty(faction, false, postsHeld);
@@ -397,7 +397,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 输出严格JSON：
 {"reply":"回应台词","narration":"旁白描述","effects":{"supportDelta":{"党派id":数字},"metricsDelta":{"mediaAttention":数字}}}
 
-规则：发言有力→正面，不当→负面，模糊→中性。supportDelta通常-3到+3。党派ID: reform,liberty,conservative,progressive,populist,green。必须至少有一个非零metricsDelta值。`;
+规则：发言有力→正面，不当→负面，模糊→中性。supportDelta通常-3到+3。党派ID: reform,liberty,conservative,progressive,populist,solidarity。必须至少有一个非零metricsDelta值。`;
 
         const userPrompt = `玩家${playerName}说：\n\n"${playerText}"`;
 
