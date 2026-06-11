@@ -403,7 +403,12 @@ ${partyIds}
 ## 约束
 - 每回合最多生成2个意图，每个意图必须附带event字段
 - 必须符合你的角色身份
-- 如果无事可做，返回空intents数组`;
+- 如果无事可做，返回空intents数组
+
+## JSON 输出格式要求（严格遵守）
+- 直接输出纯 JSON 对象，不要使用 markdown 代码块（不要用 ```json 或 ``` 包裹）
+- 不要添加任何解释性文字、注释或额外说明
+- 确保 JSON 格式完整且正确，所有字符串和括号必须闭合`;
 }
 
 /** 首相 Agent LLM prompt */
@@ -600,6 +605,7 @@ abstract class BaseAgent {
           systemPrompt,
           userPrompt,
           { intents: [] },
+          { maxTokens: 6000, temperature: 0.7, responseFormat: null },
         );
 
         if (result && result.intents && result.intents.length > 0) {

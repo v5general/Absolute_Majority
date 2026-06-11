@@ -189,24 +189,102 @@ export async function askLLMJSON<T>(
     return fallback;
   }
 
+  // 尝试 1: 直接解析
   try {
     const parsed = JSON.parse(raw) as T;
-    console.log('[LLM] JSON parsed successfully, keys:', Object.keys(parsed as any));
+    console.log('[LLM] JSON parsed successfully (direct), keys:', Object.keys(parsed as any));
     return parsed;
   } catch (parseError) {
-    console.error('[LLM] JSON parse failed:', parseError);
-    console.error('[LLM] Raw content that failed to parse:', raw.slice(0, 200));
-    try {
-      const jsonMatch = raw.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
-      if (jsonMatch) {
-        const extracted = JSON.parse(jsonMatch[0]) as T;
-        console.log('[LLM] Extracted and parsed JSON from text');
-        return extracted;
-      }
-    } catch { /* ignore */ }
-    console.warn('[LLM] All parsing attempts failed, using fallback');
-    return fallback;
+    console.log('[LLM] Direct parse failed, trying extraction methods...');
   }
+
+  // 尝试 2: 去除 markdown 代码块标记
+  let cleaned = raw.trim();
+  // 去除 ```json 开头和 ``` 结尾
+  cleaned = cleaned.replace(/^```json\s*/i, '');
+  cleaned = cleaned.replace(/^```\s*/i, '');
+  cleaned = cleaned.replace(/\s*```$/i, '');
+  cleaned = cleaned.trim();
+
+  if (cleaned !== raw) {
+    console.log('[LLM] Removed markdown code blocks');
+    try {
+      const parsed = JSON.parse(cleaned) as T;
+      console.log('[LLM] JSON parsed successfully (after markdown removal), keys:', Object.keys(parsed as any));
+      return parsed;
+    } catch (e) {
+      console.log('[LLM] Still failed after markdown removal');
+    }
+  }
+
+  // 尝试 3: 提取 JSON 对象或数组
+  try {
+    // 匹配完整的 JSON 对象或数组
+    const objectMatch = cleaned.match(/\{[\s\S]*\}/);
+    const arrayMatch = cleaned.match(/\[[\s\S]*\]/);
+    const jsonMatch = objectMatch || arrayMatch;
+
+    if (jsonMatch) {
+      const extracted = jsonMatch[0];
+      console.log('[LLM] Extracted JSON block, length:', extracted.length);
+
+      // 尝试修复不完整的 JSON
+      const repaired = attemptRepairJSON(extracted);
+      if (repaired !== extracted) {
+        console.log('[LLM] Attempted JSON repair');
+      }
+
+      const parsed = JSON.parse(repaired) as T;
+      console.log('[LLM] JSON parsed successfully (extraction), keys:', Object.keys(parsed as any));
+      return parsed;
+    }
+  } catch (repairError) {
+    console.log('[LLM] Extraction/repair failed:', repairError);
+  }
+
+  // 尝试 4: 暴力提取并修复
+  console.error('[LLM] All attempts failed, raw content preview:', raw.slice(0, 300));
+  console.warn('[LLM] Using fallback');
+  return fallback;
+}
+
+/**
+ * 尝试修复不完整的 JSON
+ */
+function attemptRepairJSON(jsonStr: string): string {
+  let repaired = jsonStr.trim();
+
+  // 计算括号平衡
+  const openBraces = (repaired.match(/\{/g) || []).length;
+  const closeBraces = (repaired.match(/\}/g) || []).length;
+  const openBrackets = (repaired.match(/\[/g) || []).length;
+  const closeBrackets = (repaired.match(/\]/g) || []).length;
+
+  // 补全缺失的闭合括号
+  const missingBraces = openBraces - closeBraces;
+  const missingBrackets = openBrackets - closeBrackets;
+
+  if (missingBraces > 0) {
+    repaired += '}'.repeat(missingBraces);
+    console.log(`[LLM] Added ${missingBraces} closing braces`);
+  }
+  if (missingBrackets > 0) {
+    repaired += ']'.repeat(missingBrackets);
+    console.log(`[LLM] Added ${missingBrackets} closing brackets`);
+  }
+
+  // 尝试修复未终止的字符串（简单情况）
+  // 如果最后一个字符是引号，检查字符串是否完整
+  if (repaired.slice(-1) !== '"' && repaired.slice(-1) !== '}' && repaired.slice(-1) !== ']') {
+    // 检查是否有未闭合的字符串
+    const quotes = repaired.match(/"/g);
+    if (quotes && quotes.length % 2 !== 0) {
+      repaired += '"';
+      console.log('[LLM] Added closing quote');
+    }
+  }
+
+  return repaired;
 }
 
 /**
