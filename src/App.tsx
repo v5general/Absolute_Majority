@@ -9,6 +9,28 @@ import { CharacterCreation } from './components/CharacterCreation';
 import { PlayerProfilePanel } from './components/PlayerProfilePanel';
 import type { ThinkingLogEntry } from './types';
 
+/** 根据回合数计算月份标签（回合1=大选后第一个月） */
+const MONTH_NAMES = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+function getMonthLabel(turn: number): string {
+  // 回合1对应2058年4月（大选后的第一个月）
+  const startYear = 2058;
+  const startMonth = 4; // April
+  const totalMonths = startMonth - 1 + (turn - 1);
+  const year = startYear + Math.floor(totalMonths / 12);
+  const month = totalMonths % 12;
+  return `${year}年${MONTH_NAMES[month]}`;
+}
+
+/** 距下次大选剩余时间标签 */
+function getElectionCountdownLabel(turnsLeft: number): string {
+  if (turnsLeft <= 0) return '大选进行中';
+  const years = Math.floor(turnsLeft / 12);
+  const months = turnsLeft % 12;
+  if (years > 0 && months > 0) return `距大选 ${years}年${months}个月`;
+  if (years > 0) return `距大选 ${years}年`;
+  return `距大选 ${months}个月`;
+}
+
 const GameInner: React.FC = () => {
   const { state, setPlayerConfig, nextTurn, isThinking, thinkingLogs } = useGame();
   const [showProfile, setShowProfile] = useState(false);
@@ -36,10 +58,10 @@ const GameInner: React.FC = () => {
       <header style={styles.headerRow}>
         <div style={styles.headerLeft}>
           <h1 style={styles.headerTitle}>绝对多数</h1>
-          <div style={styles.headerSub}>ABSOLUTE MAJORITY · 政治选举模拟 · 2058年</div>
+          <div style={styles.headerSub}>ABSOLUTE MAJORITY · 政治选举模拟</div>
           <div style={styles.headerInfo}>
-            <span style={styles.turnBadge}>第 {state.turn} 回合</span>
-            <span style={styles.dayBadge}>第 {state.currentDay} 日</span>
+            <span style={styles.turnBadge}>{getMonthLabel(state.turn)}</span>
+            <span style={styles.electionBadge}>{getElectionCountdownLabel(state.turnsUntilElection ?? 48)}</span>
             {gov && (
               <span style={{
                 ...styles.coalitionBadge,
@@ -57,7 +79,7 @@ const GameInner: React.FC = () => {
           <button
             style={{
               ...styles.avatarBtn,
-              borderColor: state.parties.find(p => p.id === state.playerConfig?.partyId)?.color ?? '#5c8aff',
+              border: `2px solid ${state.parties.find(p => p.id === state.playerConfig?.partyId)?.color ?? '#5c8aff'}`,
             }}
             onClick={() => setShowProfile(true)}
             title="查看个人资料"
@@ -275,12 +297,12 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 13,
     fontWeight: 700,
   },
-  dayBadge: {
+  electionBadge: {
     padding: '3px 14px',
     borderRadius: 4,
     background: '#1a2540',
-    border: '1px solid #2a3a5c',
-    color: '#aaa',
+    border: '1px solid #3a2a5c',
+    color: '#AB47BC',
     fontSize: 13,
     fontWeight: 600,
   },

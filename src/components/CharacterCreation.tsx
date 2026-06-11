@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { PlayerConfig, Party, Ideology, PersonalityTrait, PoliticalIdeology } from '../types';
 import { PERSONALITY_TRAIT_LABELS, POLITICAL_IDEOLOGY_LABELS } from '../types';
 import { initialParties } from '../data/parties';
@@ -167,6 +167,11 @@ const PartyDetailCard: React.FC<{
 
 export const CharacterCreation: React.FC<CharacterCreationProps> = ({ onComplete }) => {
   const saved = getLLMConfig();
+
+  // 挂载时滚动到页面顶部
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   const [lastName, setLastName] = useState('');
   const [firstName, setFirstName] = useState('');
