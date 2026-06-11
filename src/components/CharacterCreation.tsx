@@ -191,12 +191,20 @@ export const CharacterCreation: React.FC<CharacterCreationProps> = ({ onComplete
     setLLMConfig({ baseUrl, apiKey, model });
 
     const systemPrompt = `你是一个日本政治模拟游戏的角色设定助手。请为玩家生成一段简短的从政背景故事（80-150字）。
+
+重要设定：
+- 这是日本国会众议院（国家议会），不是地方议会
+- 议员是国会议员（众议员），不是都议员或地方议会议员
+- 所有政治活动都在国会进行
+- 称呼为"国会"、"众议院"、"国会议员"
+
 故事需要：
 - 符合该政党的政治立场和选民基础
 - 包含从政动机和简要履历
 - 语气庄重，像真实政治人物传记
 - 用第三人称叙述
-- 不要加引号`;
+- 不要加引号
+- 明确说明是"众议院议员"或"国会议员"`;
 
     const userPrompt = `玩家姓名：${lastName.trim() || '佐藤'} ${firstName.trim() || '太郎'}
 性别：${gender === 'male' ? '男' : '女'}
@@ -204,6 +212,8 @@ export const CharacterCreation: React.FC<CharacterCreationProps> = ({ onComplete
 所属党派：${party.name}（${party.abbreviation}）
 党派理念：${party.description}
 意识形态：${IDEOLOGY_LABELS[party.ideology]}
+
+注意：玩家是国会众议院议员（国家级别），不是地方议会议员。
 
 请生成这段背景故事。`;
 
@@ -223,11 +233,11 @@ export const CharacterCreation: React.FC<CharacterCreationProps> = ({ onComplete
       const genderNoun = gender === 'male' ? '他' : '她';
       const templates: Record<string, string> = {
         reform: `${lastName.trim() || '佐藤'} ${firstName.trim() || '太郎'}，${age}岁，毕业于知名大学法学部。曾在地方政府担任政策顾问多年，因推动行政改革方案而受到关注。${genderNoun}以务实的作风和对制度改革的执着信念获得选民支持，在本次大选中首次当选众议院议员，加入改革民主党。`,
-        liberty: `${lastName.trim() || '佐藤'} ${firstName.trim() || '太郎'}，${age}岁，拥有商学院学位和创业经历。曾在科技行业创办企业，主张通过创新和市场竞争解决社会问题。${genderNoun}相信自由市场是推动社会进步的最大动力，加入自由党后积极推动放松管制和减税政策。`,
-        conservative: `${lastName.trim() || '佐藤'} ${firstName.trim() || '太郎'}，${age}岁，出身地方政治世家。从地方议会起步，深耕基层多年，始终坚守传统价值观。${genderNoun}关注农村发展和国家安全问题，在保守派选民中有较高声望，本次代表国民保守党当选众议院议员。`,
-        progressive: `${lastName.trim() || '佐藤'} ${firstName.trim() || '太郎'}，${age}岁，社会运动出身的政治人物。曾在环保组织和社会福利机构工作，长期关注弱势群体权益。${genderNoun}以改善民生和推动社会公平为己任，代表社会联盟竞选并成功当选。`,
-        populist: `${lastName.trim() || '佐藤'} ${firstName.trim() || '太郎'}，${age}岁，媒体人出身。曾在地方电视台担任新闻主播，因公开批评精英政治而获得大量基层支持者。${genderNoun}主张将普通公民的利益置于首位，以犀利的言辞和鲜明的立场在第一公民阵线中崭露头角。`,
-        solidarity: `${lastName.trim() || '佐藤'} ${firstName.trim() || '太郎'}，${age}岁，工会活动家出身。在工厂工作期间参与劳工权益运动，逐步走上从政道路。${genderNoun}深切了解劳动者的困境，加入联合劳工党后致力于维护工人权益、推动社会公平，在本次选举中成功当选。`,
+        liberty: `${lastName.trim() || '佐藤'} ${firstName.trim() || '太郎'}，${age}岁，拥有商学院学位和创业经历。曾在科技行业创办企业，主张通过创新和市场竞争解决社会问题。${genderNoun}相信自由市场是推动社会进步的最大动力，在本次大选中当选众议院议员，加入自由党后积极推动放松管制和减税政策。`,
+        conservative: `${lastName.trim() || '佐藤'} ${firstName.trim() || '太郎'}，${age}岁，出身地方政治世家。虽从地方议会起步，但深耕基层多年，始终坚守传统价值观。${genderNoun}关注农村发展和国家安全问题，在保守派选民中有较高声望，本次代表国民保守党当选众议院议员。`,
+        progressive: `${lastName.trim() || '佐藤'} ${firstName.trim() || '太郎'}，${age}岁，社会运动出身的政治人物。曾在环保组织和社会福利机构工作，长期关注弱势群体权益。${genderNoun}以改善民生和推动社会公平为己任，在本次大选中当选众议院议员，代表社会联盟进入国会。`,
+        populist: `${lastName.trim() || '佐藤'} ${firstName.trim() || '太郎'}，${age}岁，媒体人出身。曾在地方电视台担任新闻主播，因公开批评精英政治而获得大量基层支持者。${genderNoun}主张将普通公民的利益置于首位，以犀利的言辞和鲜明的立场在第一公民阵线中崭露头角，成功当选众议院议员。`,
+        solidarity: `${lastName.trim() || '佐藤'} ${firstName.trim() || '太郎'}，${age}岁，工会活动家出身。在工厂工作期间参与劳工权益运动，逐步走上从政道路。${genderNoun}深切了解劳动者的困境，加入联合劳工党后致力于维护工人权益、推动社会公平，在本次选举中成功当选众议院议员。`,
       };
       setBackground(templates[partyId] || templates.reform);
     }
