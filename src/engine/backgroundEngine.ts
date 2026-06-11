@@ -246,8 +246,8 @@ export function getBackgroundNarrative(background: MPBackground): string {
     other: '其他背景',
   };
   const eduLabels: Record<string, string> = {
-    top_university: '毕业于顶尖国立大学',
-    private_elite: '毕业于知名私立大学',
+    top_university: '毕业于东京大学级别名校',
+    private_elite: '毕业于早稻田/庆应级别名校',
     national_university: '国立大学毕业',
     regional_university: '地方大学毕业',
     other: '其他学历',
