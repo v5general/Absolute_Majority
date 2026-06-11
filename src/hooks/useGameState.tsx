@@ -269,17 +269,23 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           let updatedPersonalities = updateAllPersonalities(turnState);
 
           // 4.5 生死检查
-          const lifeState: GameState = { ...turnState, mpPersonalities: updatedPersonalities };
-          const lifeResult = processLifeEvents(lifeState);
-          updatedPersonalities = lifeResult.updatedPersonalities;
+          let lifeResult: import('../engine/lifeEngine').LifeEventResult | null = null;
+          try {
+            const lifeState: GameState = { ...turnState, mpPersonalities: updatedPersonalities };
+            lifeResult = processLifeEvents(lifeState);
+            updatedPersonalities = lifeResult.updatedPersonalities;
 
-          // 死亡事件加入 AI 事件队列（高优先级，放在前面）
-          if (lifeResult.politicalEvents && lifeResult.politicalEvents.length > 0) {
-            aiEvents = [...lifeResult.politicalEvents, ...aiEvents];
+            // 死亡事件加入 AI 事件队列（高优先级，放在前面）
+            if (lifeResult.politicalEvents && lifeResult.politicalEvents.length > 0) {
+              aiEvents = [...lifeResult.politicalEvents, ...aiEvents];
+            }
+          } catch (err) {
+            console.error('[Game] Life events processing failed:', err);
+            // 继续执行，不阻塞游戏流程
           }
 
           // 5. 更新派阀忠诚度
-          const updatedParties = lifeResult.updatedParties.map(party => {
+          const updatedParties = (lifeResult?.updatedParties ?? turnState.parties).map(party => {
             if (!party.factions || party.factions.length === 0) return party;
             const ministerNames = turnState.government?.ministers.map(m => m.personName) ?? [];
             const updatedFactions = party.factions.map(faction => {
@@ -304,12 +310,12 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
               ...prev,
               parties: updatedParties,
               mpPersonalities: updatedPersonalities,
-              committees: lifeResult.updatedCommittees,
-              government: lifeResult.updatedGovernment ?? prev.government,
-              playerHealth: lifeResult.updatedPlayerHealth ?? prev.playerHealth,
-              playerStress: lifeResult.updatedPlayerStress ?? prev.playerStress,
-              isPlayerDead: lifeResult.isPlayerDead ?? prev.isPlayerDead,
-              playerDeathCause: lifeResult.playerDeathCause ?? prev.playerDeathCause,
+              committees: lifeResult?.updatedCommittees ?? prev.committees,
+              government: lifeResult?.updatedGovernment ?? prev.government,
+              playerHealth: lifeResult?.updatedPlayerHealth ?? prev.playerHealth,
+              playerStress: lifeResult?.updatedPlayerStress ?? prev.playerStress,
+              isPlayerDead: lifeResult?.isPlayerDead ?? prev.isPlayerDead,
+              playerDeathCause: lifeResult?.playerDeathCause ?? prev.playerDeathCause,
               currentAIEvents: aiEvents,
               pendingIntents: [],
               currentDay: prev.currentDay + 1,
