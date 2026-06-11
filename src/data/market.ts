@@ -41,7 +41,7 @@ export const initialDistricts: District[] = [
       conservative: 400,
       progressive: 600,
       populist: 400,
-      green: 200,
+      solidarity: 200,
     },
   },
   {
@@ -55,7 +55,7 @@ export const initialDistricts: District[] = [
       conservative: 400,
       progressive: 300,
       populist: 300,
-      green: 200,
+      solidarity: 200,
     },
   },
   {
@@ -69,7 +69,7 @@ export const initialDistricts: District[] = [
       conservative: 300,
       progressive: 500,
       populist: 400,
-      green: 200,
+      solidarity: 200,
     },
   },
   {
@@ -83,7 +83,7 @@ export const initialDistricts: District[] = [
       conservative: 500,
       progressive: 500,
       populist: 500,
-      green: 400,
+      solidarity: 400,
     },
   },
   {
@@ -97,7 +97,7 @@ export const initialDistricts: District[] = [
       conservative: 1000,
       progressive: 200,
       populist: 300,
-      green: 200,
+      solidarity: 200,
     },
   },
   {
@@ -111,7 +111,7 @@ export const initialDistricts: District[] = [
       conservative: 800,
       progressive: 300,
       populist: 100,
-      green: 100,
+      solidarity: 100,
     },
   },
   {
@@ -125,7 +125,7 @@ export const initialDistricts: District[] = [
       conservative: 400,
       progressive: 200,
       populist: 200,
-      green: 100,
+      solidarity: 100,
     },
   },
   {
@@ -139,7 +139,7 @@ export const initialDistricts: District[] = [
       conservative: 1,
       progressive: 380,
       populist: 200,
-      green: 1,
+      solidarity: 1,
     },
   },
 ];

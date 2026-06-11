@@ -162,21 +162,19 @@ const MPProfilePanel: React.FC<{
             <div style={mpStyles.detailItem}>
               <span style={mpStyles.detailLabel}>经济立场</span>
               <span style={mpStyles.detailValue}>
-                {personality.politicalIdeology.economicAxis < -40 ? '极左' :
-                 personality.politicalIdeology.economicAxis < -15 ? '左翼' :
-                 personality.politicalIdeology.economicAxis < 15 ? '中间' :
-                 personality.politicalIdeology.economicAxis < 40 ? '右翼' : '极右'}
-                {' '}({personality.politicalIdeology.economicAxis})
+                {personality.politicalIdeology.economicAxis < -50 ? '极左' :
+                 personality.politicalIdeology.economicAxis < -10 ? '左' :
+                 personality.politicalIdeology.economicAxis < 10 ? '中间' :
+                 personality.politicalIdeology.economicAxis < 50 ? '右' : '极右'}
               </span>
             </div>
             <div style={mpStyles.detailItem}>
               <span style={mpStyles.detailLabel}>社会立场</span>
               <span style={mpStyles.detailValue}>
-                {personality.politicalIdeology.socialAxis < -40 ? '威权' :
-                 personality.politicalIdeology.socialAxis < -15 ? '保守' :
-                 personality.politicalIdeology.socialAxis < 15 ? '自由' :
-                 personality.politicalIdeology.socialAxis < 40 ? '进步' : '激进自由'}
-                {' '}({personality.politicalIdeology.socialAxis})
+                {personality.politicalIdeology.socialAxis < -50 ? '威权' :
+                 personality.politicalIdeology.socialAxis < -10 ? '保守' :
+                 personality.politicalIdeology.socialAxis < 10 ? '自由' :
+                 personality.politicalIdeology.socialAxis < 50 ? '进步' : '激进自由'}
               </span>
             </div>
           </div>

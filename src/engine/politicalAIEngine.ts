@@ -396,28 +396,53 @@ function generatePoliticalIdeology(
 
   // 经济轴：基于党派意识形态 + 随机偏移
   // -100 (极左) 到 +100 (极右)
+  // 调整为更符合现实的分布：极端党派内部也有温和派
   let economicAxis = 0;
   switch (party.ideology) {
     case 'far-left':
-      economicAxis = clamp(-80 + rng() * 30, -100, -20); // -80 ~ -50
+      // 60% 左(-80~-50), 30% 中间偏左(-50~-20), 10% 极左(-100~-80)
+      const rollFL = rng();
+      if (rollFL < 0.6) economicAxis = clamp(-80 + rng() * 30, -100, -50);
+      else if (rollFL < 0.9) economicAxis = clamp(-50 + rng() * 30, -60, -20);
+      else economicAxis = clamp(-95 + rng() * 15, -100, -80);
       break;
     case 'left':
-      economicAxis = clamp(-50 + rng() * 30, -80, -10); // -50 ~ -20
+      // 70% 左(-60~-30), 30% 中间偏左(-30~0)
+      economicAxis = rng() < 0.7
+        ? clamp(-60 + rng() * 30, -70, -30)
+        : clamp(-30 + rng() * 30, -40, 0);
       break;
     case 'center-left':
-      economicAxis = clamp(-20 + rng() * 30, -40, 10); // -20 ~ +10
+      // 60% 中间偏左(-20~+10), 40% 左(-40~-20)
+      economicAxis = rng() < 0.6
+        ? clamp(-20 + rng() * 30, -35, 15)
+        : clamp(-40 + rng() * 20, -50, -20);
       break;
     case 'center':
-      economicAxis = clamp(-10 + rng() * 20, -20, 20); // -10 ~ +10
+      // 80% 中间(-15~+15), 20% 略偏左或偏右
+      economicAxis = rng() < 0.8
+        ? clamp(-15 + rng() * 30, -20, 20)
+        : clamp(-10 + rng() * 40, -30, 30);
       break;
     case 'center-right':
-      economicAxis = clamp(10 + rng() * 30, -10, 40); // +10 ~ +40
+      // 60% 中间偏右(0~+30), 40% 右(+30~+50)
+      economicAxis = rng() < 0.6
+        ? clamp(0 + rng() * 30, -10, 35)
+        : clamp(30 + rng() * 20, 20, 55);
       break;
     case 'right':
-      economicAxis = clamp(40 + rng() * 30, 10, 80); // +40 ~ +70
+      // 50% 中间偏右(+10~+35), 35% 右(+35~+50), 15% 极右(+50~+70)
+      const rollR = rng();
+      if (rollR < 0.5) economicAxis = clamp(10 + rng() * 25, 0, 40);
+      else if (rollR < 0.85) economicAxis = clamp(35 + rng() * 15, 30, 55);
+      else economicAxis = clamp(50 + rng() * 20, 45, 70);
       break;
     case 'far-right':
-      economicAxis = clamp(70 + rng() * 30, 50, 100); // +70 ~ +100
+      // 40% 右(+20~+45), 40% 中间偏右(+5~+25), 20% 极右(+55~+80)
+      const rollFR = rng();
+      if (rollFR < 0.4) economicAxis = clamp(20 + rng() * 25, 10, 50);
+      else if (rollFR < 0.8) economicAxis = clamp(5 + rng() * 20, -5, 30);
+      else economicAxis = clamp(55 + rng() * 25, 50, 85);
       break;
   }
 
