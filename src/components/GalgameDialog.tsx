@@ -99,6 +99,15 @@ export const GalgameDialog: React.FC = () => {
     }
   }, [handleFreeTextSubmit]);
 
+  const handleWindowClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation(); // 阻止冒泡到 overlay
+    if (!activeEvent) return;
+    // 等待 LLM 时，点击窗口任意位置也可关闭
+    if (activeEvent.isWaitingFreeText) {
+      dismissEvent();
+    }
+  }, [activeEvent, dismissEvent]);
+
   if (!activeEvent) return null;
 
   const partyMap = new Map(state.parties.map((p) => [p.id, p]));
@@ -123,15 +132,6 @@ export const GalgameDialog: React.FC = () => {
   // 决定显示选项还是自由文本输入
   const showFreeTextInput = hasFreeText && activeEvent.showChoices && !activeEvent.resolved;
   const showFixedChoices = !hasFreeText && activeEvent.showChoices && !activeEvent.resolved;
-
-  const handleWindowClick = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation(); // 阻止冒泡到 overlay
-    if (!activeEvent) return;
-    // 等待 LLM 时，点击窗口任意位置也可关闭
-    if (activeEvent.isWaitingFreeText) {
-      dismissEvent();
-    }
-  }, [activeEvent, dismissEvent]);
 
   return (
     <div style={styles.overlay} onClick={handleOverlayClick}>
