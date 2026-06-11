@@ -602,7 +602,7 @@ abstract class BaseAgent {
           { intents: [] },
         );
 
-        if (result.intents && result.intents.length > 0) {
+        if (result && result.intents && result.intents.length > 0) {
           const intents: AgentIntent[] = [];
           const events: PoliticalEvent[] = [];
 
@@ -625,7 +625,7 @@ abstract class BaseAgent {
             log: {
               role: this.config.role,
               name: this.config.personName ?? this.getRoleLabel(),
-              reasoning: result.intents[0].reasoning,
+              reasoning: result.intents[0]?.reasoning ?? '生成策略意图',
               action: result.intents.map(i => i.intent_type).join(', '),
               timestamp: Date.now(),
             },
