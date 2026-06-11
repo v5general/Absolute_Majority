@@ -21,6 +21,7 @@ function seededRandom(seed: string): () => number {
 export function initializeFactions(
   parties: Party[],
   mpPersonalities: Record<string, MPPersonality>,
+  government: Government | null,
 ): Record<string, Faction[]> {
   const result: Record<string, Faction[]> = {};
 
@@ -39,27 +40,84 @@ export function initializeFactions(
     }
 
     const rng = seededRandom(party.id + '_factions');
-    const factionCount = Math.min(Math.max(2, Math.floor(partyMPs.length / 5)), 4);
+    const isRuling = government?.rulingCoalition.includes(party.id) ?? false;
+
+    // 执政党派阀更多（2-4），在野党更少（0-2）
+    let factionCount: number;
+    if (isRuling) {
+      // 执政党：基于议员数量，最多4个派阀
+      factionCount = Math.min(Math.max(2, Math.floor(partyMPs.length / 8)), 4);
+    } else {
+      // 在野党：基于议员数量，最多2个派阀，且有一定概率无派阀
+      if (rng() < 0.3 && partyMPs.length < 10) {
+        // 小型在野党有30%概率无派阀
+        result[party.id] = [];
+        continue;
+      }
+      factionCount = Math.min(Math.max(0, Math.floor(partyMPs.length / 15)), 2);
+    }
+
+    if (factionCount === 0) {
+      result[party.id] = [];
+      continue;
+    }
+
     const factions: Faction[] = [];
 
     // 按野心排序，最野心的成为派阀领袖候选
     const sorted = [...partyMPs].sort((a, b) => b.ambition - a.ambition);
     const leaders = sorted.slice(0, factionCount);
 
-    // 将成员分配到各派阀
-    const remaining = sorted.slice(factionCount);
-    const memberBuckets: string[][] = leaders.map(l => [l.id]);
+    // 只让40-60%的议员加入派阀
+    const factionMembershipRate = 0.4 + rng() * 0.2; // 40-60%
+    const numMembersInFactions = Math.floor(partyMPs.length * factionMembershipRate);
 
+    // 派阀领袖自动加入
+    const memberBuckets: string[][] = leaders.map(l => [l.id]);
+    let assignedCount = factionCount;
+
+    // 从剩余议员中选择加入派阀的成员（优先选择高野心的）
+    const remaining = sorted.slice(factionCount);
     for (const mp of remaining) {
-      const bucketIdx = Math.floor(rng() * factionCount);
-      memberBuckets[bucketIdx].push(mp.id);
+      if (assignedCount >= numMembersInFactions) break;
+
+      // 野心高的议员更可能加入派阀
+      const joinChance = mp.ambition / 100;
+      if (rng() < joinChance) {
+        const bucketIdx = Math.floor(rng() * factionCount);
+        memberBuckets[bucketIdx].push(mp.id);
+        assignedCount++;
+      }
     }
 
+    // 派阀命名池
     const familyNames = ['清和', '宏池', '平成', '令和', '至高', '新風', '未来', '改革', '創生', '翼賛'];
+    const creativeNames = ['志帥会', '新政', '第三', '国民', '自由', '民主', '進步', '革新', '建設', '草根'];
+    const suffixes = ['派', '会', 'グループ', 'の会'];
+
     for (let i = 0; i < factionCount; i++) {
       const leaderMP = leaders[i];
       const surname = leaderMP.personName.split(' ')[0] || leaderMP.personName;
-      const name = i === 0 ? `${surname}派` : `${familyNames[(i * 3 + Math.floor(rng() * familyNames.length)) % familyNames.length]}会`;
+
+      // 多样化派阀命名
+      let name: string;
+      const namingStyle = Math.floor(rng() * 3);
+
+      if (namingStyle === 0 || i === 0) {
+        // 第一个派阀或 33% 概率：使用领袖姓氏 + 派/会
+        const suffix = rng() < 0.5 ? '派' : '会';
+        name = `${surname}${suffix}`;
+      } else if (namingStyle === 1) {
+        // 33% 概率：使用传统名字 + 会
+        const baseName = familyNames[(i * 3 + Math.floor(rng() * familyNames.length)) % familyNames.length];
+        name = `${baseName}会`;
+      } else {
+        // 34% 概率：使用创意名字
+        const baseName = creativeNames[Math.floor(rng() * creativeNames.length)];
+        const suffix = suffixes[Math.floor(rng() * suffixes.length)];
+        name = `${baseName}${suffix}`;
+      }
+
       const members = memberBuckets[i];
       const share = members.length / partyMPs.length;
 

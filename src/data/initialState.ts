@@ -86,7 +86,7 @@ export function createInitialState(): GameState {
   );
 
   // 5. 初始化派阀系统（除 ULP/solidarity 外）
-  const factionsByParty = initializeFactions(base.parties, base.mpPersonalities);
+  const factionsByParty = initializeFactions(base.parties, base.mpPersonalities, base.government);
 
   // 将派阀数据写入各党
   for (const party of base.parties) {
