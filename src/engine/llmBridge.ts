@@ -114,9 +114,14 @@ export async function askLLM(
 
   const maxTokens = options?.maxTokens ?? 2048;
   const temperature = options?.temperature ?? 0.8;
+
+  // flash 模型不支持 response_format，需要根据模型名称判断
+  const useJSONFormat = options?.responseFormat !== undefined
+    ? options.responseFormat !== null
+    : !config.model.includes('flash');
   const responseFormat = options?.responseFormat !== undefined
     ? options.responseFormat
-    : { type: 'json_object' };
+    : useJSONFormat ? { type: 'json_object' } : null;
 
   try {
     const body: Record<string, unknown> = {
@@ -143,7 +148,18 @@ export async function askLLM(
 
     if (!response.ok) {
       const errText = await response.text().catch(() => '');
-      console.warn(`[LLM] API error: ${response.status} ${response.statusText}`, errText);
+      console.error(`[LLM] API error: ${response.status} ${response.statusText}`);
+      console.error('[LLM] Error details:', errText);
+      console.error('[LLM] Request body:', JSON.stringify({
+        model: config.model,
+        messages: [
+          { role: 'system', content: systemPrompt.slice(0, 100) + '...' },
+          { role: 'user', content: userPrompt.slice(0, 100) + '...' },
+        ],
+        temperature,
+        max_tokens: maxTokens,
+        response_format: responseFormat,
+      }));
       return null;
     }
 
@@ -189,26 +205,45 @@ export async function askLLMText(
   if (!config.apiKey || !config.baseUrl) return null;
 
   try {
+    const requestBody: Record<string, unknown> = {
+      model: config.model,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ],
+      temperature: 0.9,
+      max_tokens: 1500,
+    };
+
+    // 只有非 flash 模型才尝试使用 response_format
+    // flash 模型通常不支持 JSON 模式
+    if (!config.model.includes('flash')) {
+      requestBody.response_format = { type: 'json_object' };
+    }
+
     const response = await fetch(getChatUrl(), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${config.apiKey}`,
       },
-      body: JSON.stringify({
-        model: config.model,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
-        ],
-        temperature: 0.9,
-        max_tokens: 1500,
-        response_format: { type: 'json_object' },
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {
-      console.warn(`[LLM] API error: ${response.status} ${response.statusText}`);
+      const errText = await response.text().catch(() => '');
+      console.error(`[LLM] API error: ${response.status} ${response.statusText}`);
+      console.error('[LLM] Error details:', errText);
+      console.error('[LLM] Request body:', JSON.stringify({
+        model: config.model,
+        messages: [
+          { role: 'system', content: systemPrompt.slice(0, 100) + '...' },
+          { role: 'user', content: userPrompt.slice(0, 100) + '...' },
+        ],
+        temperature,
+        max_tokens: maxTokens,
+        response_format: responseFormat,
+      }));
       return null;
     }
 
