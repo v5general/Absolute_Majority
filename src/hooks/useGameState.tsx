@@ -223,32 +223,50 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // 异步执行 Agent 推演
       (async () => {
         try {
+          console.log('[Game] Starting turn', oldState.turn);
+
           // 0. 回合开始：推进法案决策链、处理过期法案
           let turnState = { ...oldState };
 
           // 处理过期法案
-          const updatedBills = turnState.bills.map(bill => {
-            if (isBillExpired(bill, turnState.turn)) {
-              return autoVoteBill(bill, turnState);
-            }
-            return bill;
-          });
-          turnState.bills = updatedBills;
+          try {
+            const updatedBills = turnState.bills.map(bill => {
+              if (isBillExpired(bill, turnState.turn)) {
+                return autoVoteBill(bill, turnState);
+              }
+              return bill;
+            });
+            turnState.bills = updatedBills;
+          } catch (err) {
+            console.error('[Game] Bill processing failed:', err);
+          }
 
           // 推进未过期法案的决策链
-          turnState.bills = turnState.bills.map(bill => {
-            if (bill.status === 'passed' || bill.status === 'rejected' || bill.status === 'implemented' || bill.status === 'withdrawn') {
+          try {
+            turnState.bills = turnState.bills.map(bill => {
+              if (bill.status === 'passed' || bill.status === 'rejected' || bill.status === 'implemented' || bill.status === 'withdrawn') {
+                return bill;
+              }
+              const committee = turnState.committees.find(c => c.id === bill.committeeId);
+              if (committee) {
+                return advanceBillChain(bill, committee, turnState.parties, turnState.relations, turnState.mpPersonalities);
+              }
               return bill;
-            }
-            const committee = turnState.committees.find(c => c.id === bill.committeeId);
-            if (committee) {
-              return advanceBillChain(bill, committee, turnState.parties, turnState.relations, turnState.mpPersonalities);
-            }
-            return bill;
-          });
+            });
+          } catch (err) {
+            console.error('[Game] Bill chain advancement failed:', err);
+          }
 
           // 1. Agent 推演：收集所有 Agent 意图（会调用 LLM）
-          const agentResult = await runAgentTurn(turnState);
+          console.log('[Game] Running agent turn...');
+          let agentResult;
+          try {
+            agentResult = await runAgentTurn(turnState);
+            console.log('[Game] Agent turn completed:', agentResult);
+          } catch (err) {
+            console.error('[Game] Agent turn failed:', err);
+            agentResult = { intents: [], events: [], logs: [] };
+          }
 
           // 实时推送思考日志
           setThinkingLogs(agentResult.logs);
