@@ -25,13 +25,11 @@ const GameInner: React.FC = () => {
   const { state, setPlayerConfig, nextTurn, isThinking, thinkingLogs } = useGame();
   const [showProfile, setShowProfile] = useState(false);
 
-  // 切换到角色创建界面时滚动到顶部
+  // 任意界面切换时都滚动到顶部
   useEffect(() => {
-    if (!state.playerConfig) {
-      window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
-      document.documentElement.scrollTop = 0;
-      document.body.scrollTop = 0;
-    }
+    window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
   }, [state.playerConfig]);
 
   // 未创建角色时显示角色创建界面
