@@ -5,11 +5,22 @@ interface Props {
   parties: Party[];
   metrics: MarketMetrics;
   districts: District[];
+  turnsUntilElection: number;
 }
 
-export const MarketDashboard: React.FC<Props> = ({ parties, metrics, districts }) => {
+export const MarketDashboard: React.FC<Props> = ({ parties, metrics, districts, turnsUntilElection }) => {
   const sortedParties = [...parties].sort((a, b) => b.projectedSeats - a.projectedSeats || b.currentSupport - a.currentSupport);
   const totalProjected = parties.reduce((s, p) => s + p.projectedSeats, 0);
+
+  // 计算选举倒计时标签
+  const electionLabel = (() => {
+    if (turnsUntilElection <= 0) return '大选进行中';
+    const years = Math.floor(turnsUntilElection / 12);
+    const months = turnsUntilElection % 12;
+    if (years > 0 && months > 0) return `${years}年${months}个月`;
+    if (years > 0) return `${years}年`;
+    return `${months}个月`;
+  })();
 
   return (
     <div style={styles.container}>
@@ -17,7 +28,7 @@ export const MarketDashboard: React.FC<Props> = ({ parties, metrics, districts }
 
       {/* 顶部关键指标 */}
       <div style={styles.kpiRow}>
-        <KpiCard label="选举倒计时" value={`${metrics.daysToElection} 天`} accent="#FF6D00" />
+        <KpiCard label="选举倒计时" value={electionLabel} accent="#FF6D00" />
         <KpiCard label="总席位" value={`${metrics.totalSeats}`} subtitle={`过半需 ${metrics.majorityThreshold} 席`} accent="#FFD600" />
         <KpiCard label="登记选民" value={`${(metrics.totalVoters / 1_000_000).toFixed(1)}M`} subtitle={`投票率 ${metrics.turnoutRate}%`} accent="#00BCD4" />
         <KpiCard label="摇摆选民" value={`${metrics.swingVoterRatio}%`} accent="#AB47BC" />

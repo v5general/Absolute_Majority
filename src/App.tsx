@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { GameProvider, useGame } from './hooks/useGameState';
 import { RelationMatrix } from './components/RelationMatrix';
 import { MarketDashboard } from './components/MarketDashboard';
@@ -21,19 +21,18 @@ function getMonthLabel(turn: number): string {
   return `${year}年${MONTH_NAMES[month]}`;
 }
 
-/** 距下次大选剩余时间标签 */
-function getElectionCountdownLabel(turnsLeft: number): string {
-  if (turnsLeft <= 0) return '大选进行中';
-  const years = Math.floor(turnsLeft / 12);
-  const months = turnsLeft % 12;
-  if (years > 0 && months > 0) return `距大选 ${years}年${months}个月`;
-  if (years > 0) return `距大选 ${years}年`;
-  return `距大选 ${months}个月`;
-}
-
 const GameInner: React.FC = () => {
   const { state, setPlayerConfig, nextTurn, isThinking, thinkingLogs } = useGame();
   const [showProfile, setShowProfile] = useState(false);
+
+  // 切换到角色创建界面时滚动到顶部
+  useEffect(() => {
+    if (!state.playerConfig) {
+      window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    }
+  }, [state.playerConfig]);
 
   // 未创建角色时显示角色创建界面
   if (!state.playerConfig) {
@@ -61,7 +60,7 @@ const GameInner: React.FC = () => {
           <div style={styles.headerSub}>ABSOLUTE MAJORITY · 政治选举模拟</div>
           <div style={styles.headerInfo}>
             <span style={styles.turnBadge}>{getMonthLabel(state.turn)}</span>
-            <span style={styles.electionBadge}>{getElectionCountdownLabel(state.turnsUntilElection ?? 48)}</span>
+            <span style={styles.turnNumBadge}>第 {state.turn} 回合</span>
             {gov && (
               <span style={{
                 ...styles.coalitionBadge,
@@ -175,6 +174,7 @@ const GameInner: React.FC = () => {
             parties={state.parties}
             metrics={state.metrics}
             districts={state.districts}
+            turnsUntilElection={state.turnsUntilElection ?? 48}
           />
         </section>
 
@@ -297,12 +297,12 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 13,
     fontWeight: 700,
   },
-  electionBadge: {
+  turnNumBadge: {
     padding: '3px 14px',
     borderRadius: 4,
     background: '#1a2540',
-    border: '1px solid #3a2a5c',
-    color: '#AB47BC',
+    border: '1px solid #2a3a5c',
+    color: '#aaa',
     fontSize: 13,
     fontWeight: 600,
   },

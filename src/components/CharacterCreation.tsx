@@ -170,7 +170,10 @@ export const CharacterCreation: React.FC<CharacterCreationProps> = ({ onComplete
 
   // 挂载时滚动到页面顶部
   useEffect(() => {
-    window.scrollTo(0, 0);
+    // 多种方式确保滚动到顶部
+    window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
   }, []);
 
   const [lastName, setLastName] = useState('');
