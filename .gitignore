@@ -51,3 +51,6 @@ coverage/
 .cache/
 .parcel-cache/
 .eslintcache
+
+# Project rules (internal)
+rules.txt

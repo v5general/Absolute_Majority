@@ -7,6 +7,7 @@ import { CommitteeDashboard } from './components/CommitteeDashboard';
 import { GalgameDialog } from './components/GalgameDialog';
 import { CharacterCreation } from './components/CharacterCreation';
 import { PlayerProfilePanel } from './components/PlayerProfilePanel';
+import { MainMenu, saveGame, loadGame, hasSave, deleteSave } from './components/MainMenu';
 import type { ThinkingLogEntry } from './types';
 
 /** 根据回合数计算月份标签（回合1=大选后第一个月） */
@@ -21,7 +22,7 @@ function getMonthLabel(turn: number): string {
   return `${year}年${MONTH_NAMES[month]}`;
 }
 
-const GameInner: React.FC = () => {
+const GameInner: React.FC<{ onBackToMenu: () => void }> = ({ onBackToMenu }) => {
   const { state, setPlayerConfig, nextTurn, isThinking, thinkingLogs } = useGame();
   const [showProfile, setShowProfile] = useState(false);
 
@@ -218,11 +219,34 @@ const ACTION_LABELS: Record<string, string> = {
   wait: '按兵不动',
 };
 
-const App: React.FC = () => (
-  <GameProvider>
-    <GameInner />
-  </GameProvider>
-);
+const App: React.FC = () => {
+  const [route, setRoute] = useState<'menu' | 'game'>(() => {
+    // 如果有存档，也先显示主菜单（让用户选择继续或新开）
+    return 'menu';
+  });
+
+  if (route === 'menu') {
+    return (
+      <MainMenu
+        onStartNew={() => {
+          deleteSave();
+          setRoute('game');
+        }}
+        onResume={(save) => {
+          // 恢复存档逻辑：设置 gameState
+          // 目前简化处理——直接进入游戏（存档功能后续完善）
+          setRoute('game');
+        }}
+      />
+    );
+  }
+
+  return (
+    <GameProvider>
+      <GameInner onBackToMenu={() => setRoute('menu')} />
+    </GameProvider>
+  );
+};
 
 const styles: Record<string, React.CSSProperties> = {
   app: {
