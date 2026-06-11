@@ -90,10 +90,10 @@ export function initializeFactions(
       }
     }
 
-    // 派阀命名池
-    const familyNames = ['清和', '宏池', '平成', '令和', '至高', '新風', '未来', '改革', '創生', '翼賛'];
-    const creativeNames = ['志帥会', '新政', '第三', '国民', '自由', '民主', '進步', '革新', '建設', '草根'];
-    const suffixes = ['派', '会', 'グループ', 'の会'];
+    // 派阀命名池（完全虚构，不使用现实政治元素）
+    const familyNames = ['至誠', '創志', '大同', '革新', '新進', '公明', '国民', '民主', '自由', '社会'];
+    const creativeNames = ['新政', '建設', '進歩', '平和', '栄光', '正義', '統一', '独立', '親睦', '团结'];
+    const suffixes = ['派', '会', '連', '团', 'の会'];
 
     for (let i = 0; i < factionCount; i++) {
       const leaderMP = leaders[i];

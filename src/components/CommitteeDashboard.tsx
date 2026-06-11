@@ -97,7 +97,15 @@ const MPProfilePanel: React.FC<{
           {personality.isLeader && <span style={mpStyles.roleBadge}>党首</span>}
           {personality.isMinister && <span style={mpStyles.roleBadge}>内阁大臣</span>}
           {personality.isCommitteeChairman && <span style={mpStyles.roleBadge}>委员长</span>}
-          {personality.factionId && <span style={mpStyles.roleBadge}>派系成员</span>}
+          {personality.factionId && (() => {
+            // 找到对应的派阀名称
+            const faction = party.factions?.find(f => f.id === personality.factionId);
+            return faction ? (
+              <span style={mpStyles.roleBadge}>{faction.name}</span>
+            ) : (
+              <span style={mpStyles.roleBadge}>派系成员</span>
+            );
+          })()}
         </div>
 
         {/* 背景故事 */}

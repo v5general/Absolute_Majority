@@ -182,13 +182,13 @@ const FACTION_REASONS = [
 ];
 
 const MEDIA_REASONS_POSITIVE = [
-  (partyName: string, summary: string) => `《朝日新闻》发表社论称赞${partyName}的政策方案具有前瞻性。${summary}`,
-  (partyName: string, summary: string) => `NHK专题节目深入报道${partyName}的改革举措，公众反响热烈。${summary}`,
+  (partyName: string, summary: string) => `《全国新闻》发表社论称赞${partyName}的政策方案具有前瞻性。${summary}`,
+  (partyName: string, summary: string) => `公共广播专题节目深入报道${partyName}的改革举措，公众反响热烈。${summary}`,
   (partyName: string, summary: string) => `多家主流媒体转载了${partyName}党首的最新政策演讲，舆论评价积极。${summary}`,
 ];
 
 const MEDIA_REASONS_NEGATIVE = [
-  (partyName: string, summary: string) => `《读卖新闻》头版曝光${partyName}内部文件，揭示政策承诺与实际执行之间存在巨大差距。${summary}`,
+  (partyName: string, summary: string) => `《每日新闻》头版曝光${partyName}内部文件，揭示政策承诺与实际执行之间存在巨大差距。${summary}`,
   (partyName: string, summary: string) => `网络媒体爆出${partyName}候选人财务申报疑云，在野党要求彻查。${summary}`,
   (partyName: string, summary: string) => `一档调查类节目深挖${partyName}与特定利益团体的暧昧关系，引发社会热议。${summary}`,
 ];
@@ -312,6 +312,14 @@ ${partyIds}
 - 本作重点是：议会政治、派系斗争、联合组阁、委员会博弈、媒体战、利益集团博弈。不是现实政治映射
 - AI只能提出行动意图，不得直接修改议席、支持率、投票结果或内阁职位
 - 你生成的 effects 数值只是建议，最终结算由规则引擎决定
+
+## 禁止现实政治元素（严格遵守）
+- 禁止使用任何现实日本派阀名称（清和会、平成会、宏池会、志帅会等）
+- 禁止使用任何现实日本媒体名称（NHK、朝日新闻、读卖新闻、每日新闻、产经新闻、文春等）
+- 派阀命名必须使用虚构名称（如：至誠会、創志会、新政会等）
+- 媒体报道必须使用虚构媒体名称（如：全国新闻、公共广播、每日新闻等）
+- 政党和政治人物必须完全虚构，不得映射现实人物或政党
+- 违反此规则的内容将被拒绝
 
 ## 政治体系参考（AI演算依赖规则）
 ### 议会结构

@@ -430,9 +430,34 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           ? `${state.playerConfig.lastName} ${state.playerConfig.firstName}`
           : '议员';
 
+        // 获取对话方的党派信息
+        const party = freeTextConfig.speakerId
+          ? state.parties.find(p => p.id === freeTextConfig.speakerId)
+          : state.parties.find(p => p.id === state.playerConfig?.partyId);
+
+        // 构建当前游戏状态摘要
+        const currentState = `当前政治局势：
+- 执政联盟：${state.government?.rulingCoalition.map(pid => state.parties.find(p => p.id === pid)?.abbreviation).join('、') || '无'}
+- 各党支持率：${state.parties.map(p => `${p.abbreviation}${p.projectedSeats}席`).join('、')}
+- 当前回合：第${state.turn}回合
+- 玩家所属：${state.playerConfig ? state.parties.find(p => p.id === state.playerConfig.partyId)?.name || '未知' : '未知'}（${state.playerConfig ? state.parties.find(p => p.id === state.playerConfig.partyId)?.abbreviation || '' : ''}）
+- 对话方：${freeTextConfig.speakerId ? (state.parties.find(p => p.id === freeTextConfig.speakerId)?.name || '某党') : '旁白'}
+
+主要政治人物：
+${state.parties.map(p => {
+  const leader = state.mpPersonalities[Object.keys(state.mpPersonalities).find(key => state.mpPersonalities[key].isLeader && state.mpPersonalities[key].partyId === p.id) || '';
+  const leaderName = leader ? leader.personName : p.leader;
+  return `- ${p.name}（${p.abbreviation}）：党首 ${leaderName}，${p.projectedSeats}席`;
+}).join('\n')}`;
+
         const systemPrompt = `你是日本议会政治模拟游戏的AI角色扮演系统。
 
+${currentState}
+
 场景：${freeTextConfig.scenePrompt}
+
+对话历史（${currentEvent.conversationHistory?.length || 0}轮）：
+${currentEvent.conversationHistory?.map(h => `你：${h.playerInput}\n对方：${h.npcResponse}`).join('\n\n') || '（开始对话）'}
 
 任务：玩家（议员${playerName}）说了话，你需要：
 1. 以对方身份回应（生动、符合政治人物身份）
@@ -442,7 +467,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 输出严格JSON：
 {"reply":"回应台词","narration":"旁白描述","effects":{"supportDelta":{"党派id":数字},"metricsDelta":{"mediaAttention":数字}}}
 
-规则：发言有力→正面，不当→负面，模糊→中性。supportDelta通常-3到+3。党派ID: reform,liberty,conservative,progressive,populist,solidarity。必须至少有一个非零metricsDelta值。`;
+规则：发言有力→正面，不当→负面，模糊→中性。supportDelta通常-3到+3。党派ID: reform,liberty,conservative,progressive,populist,solidarity。必须至少有一个非零metricsDelta值。回应要基于当前政治局势和对话历史，保持连贯性。`;
 
         const userPrompt = `玩家${playerName}说：\n\n"${playerText}"`;
 
