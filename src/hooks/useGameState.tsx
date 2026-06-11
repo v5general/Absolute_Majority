@@ -68,11 +68,20 @@ function migrateGameState(state: GameState): GameState {
   }
 
   // 如果玩家缺少新字段，添加默认值
-  if (state.playerConfig && (state.playerHealth === undefined || state.playerStress === undefined)) {
+  if (state.playerConfig && (state.playerHealth === undefined || state.playerStress === undefined || !state.playerConfig.personalityTraits)) {
     needsMigration = true;
+    const migratedConfig = state.playerConfig;
     return {
       ...state,
       mpPersonalities: migratedPersonalities,
+      playerConfig: migratedConfig.personalityTraits ? migratedConfig : {
+        ...migratedConfig,
+        personalityTraits: migratedConfig.personalityTraits ?? ['pragmatic'] as PersonalityTrait[],
+        politicalIdeology: migratedConfig.politicalIdeology ?? 'liberalism' as PoliticalIdeology,
+        economicAxis: migratedConfig.economicAxis ?? 0,
+        socialAxis: migratedConfig.socialAxis ?? 0,
+        politicalGoal: migratedConfig.politicalGoal ?? '在国会中为民服务',
+      },
       playerHealth: state.playerHealth ?? 85,
       playerStress: state.playerStress ?? 15,
       isPlayerDead: state.isPlayerDead ?? false,
@@ -436,21 +445,46 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           : state.parties.find(p => p.id === state.playerConfig?.partyId);
 
         // 构建当前游戏状态摘要
+        const coalitionStr = state.government?.rulingCoalition
+          .map(pid => state.parties.find(p => p.id === pid)?.abbreviation)
+          .join('、') || '无';
+        const seatsStr = state.parties.map(p => p.abbreviation + p.projectedSeats + '席').join('、');
+        const playerParty = state.playerConfig
+          ? state.parties.find(p => p.id === state.playerConfig.partyId)
+          : null;
+        const speakerStr = freeTextConfig.speakerId
+          ? (state.parties.find(p => p.id === freeTextConfig.speakerId)?.name || '某党')
+          : '旁白';
+        const leaderLines = state.parties.map(p => {
+          const mpKey = Object.keys(state.mpPersonalities).find(
+            key => state.mpPersonalities[key].isLeader && state.mpPersonalities[key].partyId === p.id
+          ) || '';
+          const leader = mpKey ? state.mpPersonalities[mpKey] : null;
+          const leaderName = leader ? leader.personName : p.leader;
+          return '- ' + p.name + '（' + p.abbreviation + '）：党首 ' + leaderName + '，' + p.projectedSeats + '席';
+        }).join('\n');
+
         const currentState = `当前政治局势：
-- 执政联盟：${state.government?.rulingCoalition.map(pid => state.parties.find(p => p.id === pid)?.abbreviation).join('、') || '无'}
-- 各党支持率：${state.parties.map(p => `${p.abbreviation}${p.projectedSeats}席`).join('、')}
+- 执政联盟：${coalitionStr}
+- 各党支持率：${seatsStr}
 - 当前回合：第${state.turn}回合
-- 玩家所属：${state.playerConfig ? state.parties.find(p => p.id === state.playerConfig.partyId)?.name || '未知' : '未知'}（${state.playerConfig ? state.parties.find(p => p.id === state.playerConfig.partyId)?.abbreviation || '' : ''}）
-- 对话方：${freeTextConfig.speakerId ? (state.parties.find(p => p.id === freeTextConfig.speakerId)?.name || '某党') : '旁白'}
+- 玩家所属：${playerParty?.name || '未知'}（${playerParty?.abbreviation || ''}）
+- 对话方：${speakerStr}
 
 主要政治人物：
-${state.parties.map(p => {
-  const leader = state.mpPersonalities[Object.keys(state.mpPersonalities).find(key => state.mpPersonalities[key].isLeader && state.mpPersonalities[key].partyId === p.id) || '';
-  const leaderName = leader ? leader.personName : p.leader;
-  return `- ${p.name}（${p.abbreviation}）：党首 ${leaderName}，${p.projectedSeats}席`;
-}).join('\n')}`;
+${leaderLines}`;
 
-        const systemPrompt = `你是日本议会政治模拟游戏的AI角色扮演系统。
+        const systemPrompt = `你是架空日本议会政治模拟游戏的AI角色扮演系统。
+
+## 游戏世界观（不可违反）
+- 时间背景：2058年（不是2021年或其他现实年份）
+- 国家：架空日本国，议会内阁制，众议院200席
+- 所有政党为原创虚构，不映射现实日本政党（不存在自民党等）
+- 所有政治人物为原创虚构，不映射现实政治家
+- 允许使用日本姓名、行政区划、政府机构名称
+- 禁止出现现实中任何真实企业或民间团体名称（如日立、丰田、三菱、索尼、软银、经团联等）。如叙事需要涉及企业或团体，请自行创造虚构名称
+- 媒体只有三家：中央时事新闻（中间派）、革新民报（左翼）、经合新闻（右翼）
+- 禁止使用现实媒体名称（NHK、朝日新闻等）
 
 ${currentState}
 

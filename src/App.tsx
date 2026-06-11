@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { GameProvider, useGame } from './hooks/useGameState';
 import { RelationMatrix } from './components/RelationMatrix';
 import { MarketDashboard } from './components/MarketDashboard';
@@ -6,10 +6,12 @@ import { GovernmentPanel } from './components/GovernmentPanel';
 import { CommitteeDashboard } from './components/CommitteeDashboard';
 import { GalgameDialog } from './components/GalgameDialog';
 import { CharacterCreation } from './components/CharacterCreation';
+import { PlayerProfilePanel } from './components/PlayerProfilePanel';
 import type { ThinkingLogEntry } from './types';
 
 const GameInner: React.FC = () => {
   const { state, setPlayerConfig, nextTurn, isThinking, thinkingLogs } = useGame();
+  const [showProfile, setShowProfile] = useState(false);
 
   // 未创建角色时显示角色创建界面
   if (!state.playerConfig) {
@@ -31,25 +33,49 @@ const GameInner: React.FC = () => {
 
   return (
     <div style={styles.app}>
-      <header style={styles.header}>
-        <h1 style={styles.headerTitle}>绝对多数</h1>
-        <div style={styles.headerSub}>ABSOLUTE MAJORITY · 政治选举模拟 · 2058年</div>
-        <div style={styles.headerInfo}>
-          <span style={styles.turnBadge}>第 {state.turn} 回合</span>
-          <span style={styles.dayBadge}>第 {state.currentDay} 日</span>
-          {gov && (
-            <span style={{
-              ...styles.coalitionBadge,
-              ...(hasSupermajority ? styles.supermajorityBadge : isMinority ? styles.minorityHeaderBadge : {}),
-            }}>
-              {hasSupermajority ? `★ 绝对多数 ${coalitionSeats}/200` : `${coalitionSeats}/200 席`}
+      <header style={styles.headerRow}>
+        <div style={styles.headerLeft}>
+          <h1 style={styles.headerTitle}>绝对多数</h1>
+          <div style={styles.headerSub}>ABSOLUTE MAJORITY · 政治选举模拟 · 2058年</div>
+          <div style={styles.headerInfo}>
+            <span style={styles.turnBadge}>第 {state.turn} 回合</span>
+            <span style={styles.dayBadge}>第 {state.currentDay} 日</span>
+            {gov && (
+              <span style={{
+                ...styles.coalitionBadge,
+                ...(hasSupermajority ? styles.supermajorityBadge : isMinority ? styles.minorityHeaderBadge : {}),
+              }}>
+                {hasSupermajority ? `★ 绝对多数 ${coalitionSeats}/200` : `${coalitionSeats}/200 席`}
+              </span>
+            )}
+            <span style={styles.playerBadge}>
+              {state.playerConfig.lastName} {state.playerConfig.firstName} · {state.parties.find(p => p.id === state.playerConfig?.partyId)?.abbreviation ?? ''}
             </span>
-          )}
-          <span style={styles.playerBadge}>
-            {state.playerConfig.lastName} {state.playerConfig.firstName} · {state.parties.find(p => p.id === state.playerConfig?.partyId)?.abbreviation ?? ''}
-          </span>
+          </div>
+        </div>
+        <div style={styles.headerRight}>
+          <button
+            style={{
+              ...styles.avatarBtn,
+              borderColor: state.parties.find(p => p.id === state.playerConfig?.partyId)?.color ?? '#5c8aff',
+            }}
+            onClick={() => setShowProfile(true)}
+            title="查看个人资料"
+          >
+            {state.playerConfig.lastName[0] ?? ''}
+          </button>
         </div>
       </header>
+
+      {showProfile && state.playerConfig && (
+        <PlayerProfilePanel
+          playerConfig={state.playerConfig}
+          party={state.parties.find(p => p.id === state.playerConfig?.partyId)}
+          playerStress={state.playerStress ?? 15}
+          playerHealth={state.playerHealth ?? 85}
+          onClose={() => setShowProfile(false)}
+        />
+      )}
 
       <div style={styles.actionBar}>
         <button
@@ -188,6 +214,37 @@ const styles: Record<string, React.CSSProperties> = {
   header: {
     textAlign: 'center',
     padding: '32px 16px 8px',
+  },
+  headerRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    padding: '24px 16px 8px',
+    maxWidth: 1200,
+    margin: '0 auto',
+  },
+  headerLeft: {
+    flex: 1,
+  },
+  headerRight: {
+    flexShrink: 0,
+    paddingLeft: 16,
+    paddingTop: 8,
+  },
+  avatarBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: '50%',
+    border: '2px solid',
+    background: 'rgba(0,0,0,0.3)',
+    color: '#e0e0e0',
+    fontSize: 18,
+    fontWeight: 800,
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    transition: 'all 0.2s',
   },
   headerTitle: {
     margin: 0,

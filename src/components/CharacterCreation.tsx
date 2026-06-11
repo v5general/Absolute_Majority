@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import type { PlayerConfig, Party, Ideology } from '../types';
+import type { PlayerConfig, Party, Ideology, PersonalityTrait, PoliticalIdeology } from '../types';
+import { PERSONALITY_TRAIT_LABELS, POLITICAL_IDEOLOGY_LABELS } from '../types';
 import { initialParties } from '../data/parties';
 import { getLLMConfig, setLLMConfig, testLLMConnection, askLLMText, isLLMAvailable } from '../engine';
 
@@ -37,6 +38,9 @@ const PRESETS: Array<{ label: string; baseUrl: string; model: string }> = [
   { label: '自定义', baseUrl: '', model: '' },
 ];
 
+const ALL_TRAITS = Object.entries(PERSONALITY_TRAIT_LABELS) as [PersonalityTrait, string][];
+const ALL_IDEOLOGIES = Object.entries(POLITICAL_IDEOLOGY_LABELS) as [PoliticalIdeology, string][];
+
 /** 政党详情展开卡片 */
 const PartyDetailCard: React.FC<{
   party: Party;
@@ -63,7 +67,7 @@ const PartyDetailCard: React.FC<{
               <span style={styles.partyCardAbbr}>({party.abbreviation})</span>
             </div>
             <div style={styles.partyCardSubLine}>
-              <span style={{ ...styles.ideologyTag, color: IDEOLOGY_COLORS[party.ideology], borderColor: IDEOLOGY_COLORS[party.ideology] + '60' }}>
+              <span style={{ ...styles.ideologyTag, color: IDEOLOGY_COLORS[party.ideology], border: `1px solid ${IDEOLOGY_COLORS[party.ideology]}60` }}>
                 {IDEOLOGY_LABELS[party.ideology]}
               </span>
               <span style={styles.partyCardSeats}>{party.projectedSeats} 席 ({seatPercent}%)</span>
@@ -133,13 +137,21 @@ export const CharacterCreation: React.FC<CharacterCreationProps> = ({ onComplete
 
   const [lastName, setLastName] = useState('');
   const [firstName, setFirstName] = useState('');
-  const [age, setAge] = useState(30);
+  const [age, setAge] = useState<number | ''>(30);
   const [gender, setGender] = useState<'male' | 'female'>('male');
   const [partyId, setPartyId] = useState(initialParties[0].id);
   const [background, setBackground] = useState('');
   const [expandedParty, setExpandedParty] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [generatingGoal, setGeneratingGoal] = useState(false);
+
+  // 新增属性
+  const [personalityTraits, setPersonalityTraits] = useState<PersonalityTrait[]>([]);
+  const [politicalIdeology, setPoliticalIdeology] = useState<PoliticalIdeology | ''>('');
+  const [economicAxis, setEconomicAxis] = useState(0);
+  const [socialAxis, setSocialAxis] = useState(0);
+  const [politicalGoal, setPoliticalGoal] = useState('');
 
   // LLM 配置
   const [baseUrl, setBaseUrl] = useState(saved.baseUrl);
@@ -152,9 +164,12 @@ export const CharacterCreation: React.FC<CharacterCreationProps> = ({ onComplete
   const [testResult, setTestResult] = useState<{ ok: boolean; error?: string } | null>(null);
   const [testing, setTesting] = useState(false);
 
-  const ageError = age < 25 ? '年龄不能小于25岁（众议员年龄下限）' : '';
+  const ageError = age !== '' && age < 25 ? '年龄不能小于25岁（众议员年龄下限）' : '';
   const hasBackground = background.trim().length > 0;
-  const canSubmit = lastName.trim().length >= 1 && firstName.trim().length >= 1 && age >= 25 && hasBackground;
+  const hasGoal = politicalGoal.trim().length > 0;
+  const canSubmit = lastName.trim().length >= 1 && firstName.trim().length >= 1
+    && age !== '' && age >= 25 && hasBackground
+    && personalityTraits.length >= 1 && politicalIdeology !== '' && hasGoal;
 
   const handlePreset = (idx: number) => {
     setPresetIdx(idx);
@@ -176,6 +191,66 @@ export const CharacterCreation: React.FC<CharacterCreationProps> = ({ onComplete
     setTesting(false);
   };
 
+  const toggleTrait = (trait: PersonalityTrait) => {
+    setPersonalityTraits(prev => {
+      if (prev.includes(trait)) return prev.filter(t => t !== trait);
+      if (prev.length >= 3) return prev;
+      return [...prev, trait];
+    });
+  };
+
+  const getEconomicLabel = (v: number) => {
+    if (v <= -67) return '极左';
+    if (v <= -20) return '左';
+    if (v <= -5) return '中间偏左';
+    if (v <= 5) return '中间';
+    if (v <= 20) return '中间偏右';
+    if (v <= 67) return '右';
+    return '极右';
+  };
+
+  const getSocialLabel = (v: number) => {
+    if (v <= -60) return '威权';
+    if (v <= -20) return '保守';
+    if (v <= 20) return '自由';
+    if (v <= 60) return '进步';
+    return '激进自由';
+  };
+
+  /** AI 生成政治目标 */
+  const handleAIGenerateGoal = async () => {
+    setGeneratingGoal(true);
+    setLLMConfig({ baseUrl, apiKey, model });
+
+    const party = initialParties.find(p => p.id === partyId);
+    const traitsStr = personalityTraits.map(t => PERSONALITY_TRAIT_LABELS[t]).join('、') || '未选择';
+
+    const systemPrompt = `你是一个架空日本政治模拟游戏的角色设定助手。请为一位新当选的国会议员生成一段简短的政治目标（20-40字）。
+
+要求：
+- 目标要具体且符合该议员的政治立场
+- 语气庄重
+- 不要加引号
+- 20-40个汉字`;
+
+    const userPrompt = `玩家姓名：${lastName.trim() || '佐藤'} ${firstName.trim() || '太郎'}
+所属党派：${party?.name ?? '未知'}
+性格特质：${traitsStr}
+意识形态：${politicalIdeology ? POLITICAL_IDEOLOGY_LABELS[politicalIdeology] : '未选择'}
+经济立场：${getEconomicLabel(economicAxis)}
+社会立场：${getSocialLabel(socialAxis)}
+
+请生成这段政治目标。`;
+
+    const result = await askLLMText(systemPrompt, userPrompt);
+    if (result) {
+      setPoliticalGoal(result);
+    } else {
+      setPoliticalGoal('推动改革，为选民争取更多权益，成为值得信赖的国会议员。');
+    }
+    setGeneratingGoal(false);
+  };
+
   /** AI 生成背景故事 */
   const handleAIGenerate = async () => {
     console.log('[AI Background] Starting generation...');
@@ -190,30 +265,49 @@ export const CharacterCreation: React.FC<CharacterCreationProps> = ({ onComplete
     // 先保存当前 LLM 配置（确保用户已输入的 key 生效）
     setLLMConfig({ baseUrl, apiKey, model });
 
-    const systemPrompt = `你是一个日本政治模拟游戏的角色设定助手。请为玩家生成一段简短的从政背景故事（80-150字）。
+    const traitsStr = personalityTraits.map(t => PERSONALITY_TRAIT_LABELS[t]).join('、') || '未选择';
+    const ideologyStr = politicalIdeology ? POLITICAL_IDEOLOGY_LABELS[politicalIdeology] : '未选择';
 
-重要设定：
-- 这是日本国会众议院（国家议会），不是地方议会
-- 议员是国会议员（众议员），不是都议员或地方议会议员
-- 所有政治活动都在国会进行
-- 称呼为"国会"、"众议院"、"国会议员"
+    const systemPrompt = `你是一个架空日本政治模拟游戏的角色设定助手。请为玩家生成一段简短的从政背景故事（80-150字）。
 
-故事需要：
+## 游戏世界观（必须遵守）
+- 时间背景：2058年（不是2021年、不是2024年、不是任何现实年份，只能是2058年）
+- 国家：架空日本国，议会内阁制
+- 国会：众议院200席（120选区+80比例代表）
+- 所有政党均为原创虚构，不映射任何现实日本政党（不存在自民党、立宪民主党等）
+- 所有政治人物均为原创虚构，不映射任何现实日本政治家
+- 允许使用日本姓名、行政区划、政府机构名称
+- 禁止出现现实中任何真实企业或民间团体名称（如日立、丰田、三菱、索尼、软银、经团联等）。如叙事需要涉及企业或团体，请自行创造虚构名称
+- 这是国会众议院（国家级），不是地方议会
+- 称呼为"国会"、"众议院"、"国会议员"、"众议院议员"
+
+## 故事要求
+- 故事时间线在2050年代，必须明确使用2058年的时代背景
 - 符合该政党的政治立场和选民基础
+- 必须体现玩家选择的性格特质、意识形态、经济社会立场和政治目标
 - 包含从政动机和简要履历
 - 语气庄重，像真实政治人物传记
 - 用第三人称叙述
 - 不要加引号
-- 明确说明是"众议院议员"或"国会议员"`;
+- 明确说明是"众议院议员"或"国会议员"
+- 绝对禁止出现任何现实年份（如2021、2022、2023、2024等）`;
 
-    const userPrompt = `玩家姓名：${lastName.trim() || '佐藤'} ${firstName.trim() || '太郎'}
+    const userPrompt = `当前年份：2058年
+玩家姓名：${lastName.trim() || '佐藤'} ${firstName.trim() || '太郎'}
 性别：${gender === 'male' ? '男' : '女'}
 年龄：${age}岁
 所属党派：${party.name}（${party.abbreviation}）
 党派理念：${party.description}
 意识形态：${IDEOLOGY_LABELS[party.ideology]}
 
-注意：玩家是国会众议院议员（国家级别），不是地方议会议员。
+## 玩家政治属性（背景故事必须基于这些信息）
+性格特质：${traitsStr}
+政治意识形态：${ideologyStr}
+经济立场：${getEconomicLabel(economicAxis)}（${economicAxis}）
+社会立场：${getSocialLabel(socialAxis)}（${socialAxis}）
+政治目标：${politicalGoal.trim() || '未设定'}
+
+注意：玩家是国会众议院议员（国家级别），不是地方议会议员。故事中涉及的年份必须在2050-2058范围内。
 
 请生成这段背景故事。`;
 
@@ -250,12 +344,23 @@ export const CharacterCreation: React.FC<CharacterCreationProps> = ({ onComplete
     onComplete({
       lastName: lastName.trim(),
       firstName: firstName.trim(),
-      age,
+      age: typeof age === 'number' ? age : 30,
       gender,
       partyId,
       background: background.trim(),
+      personalityTraits,
+      politicalIdeology: politicalIdeology as PoliticalIdeology,
+      economicAxis,
+      socialAxis,
+      politicalGoal: politicalGoal.trim(),
     });
   };
+
+  // 性格特质按行分组，每行3个
+  const traitRows: [PersonalityTrait, string][][] = [];
+  for (let i = 0; i < ALL_TRAITS.length; i += 3) {
+    traitRows.push(ALL_TRAITS.slice(i, i + 3));
+  }
 
   return (
     <div style={styles.container}>
@@ -375,7 +480,10 @@ export const CharacterCreation: React.FC<CharacterCreationProps> = ({ onComplete
             style={{ ...styles.input, ...(ageError ? styles.inputError : {}) }}
             type="number"
             value={age}
-            onChange={(e) => setAge(parseInt(e.target.value) || 0)}
+            onChange={(e) => {
+              const v = e.target.value;
+              setAge(v === '' ? '' : parseInt(v) || '');
+            }}
             min={25}
             max={80}
           />
@@ -393,6 +501,124 @@ export const CharacterCreation: React.FC<CharacterCreationProps> = ({ onComplete
               style={{ ...styles.genderBtn, ...(gender === 'female' ? styles.genderActive : {}) }}
               onClick={() => setGender('female')}
             >女</button>
+          </div>
+        </div>
+
+        {/* ===== 性格特质 ===== */}
+        <div style={styles.formGroup}>
+          <label style={styles.label}>
+            性格特质 <span style={styles.requiredMark}>*至少选1个（最多3个）</span>
+          </label>
+          <div style={styles.traitGrid}>
+            {traitRows.map((row, ri) => (
+              <div key={ri} style={styles.traitRow}>
+                {row.map(([trait, label]) => {
+                  const selected = personalityTraits.includes(trait);
+                  return (
+                    <button
+                      key={trait}
+                      style={{
+                        ...styles.traitBtn,
+                        ...(selected ? styles.traitBtnActive : {}),
+                        ...(personalityTraits.length >= 3 && !selected ? styles.traitBtnDisabled : {}),
+                      }}
+                      onClick={() => toggleTrait(trait)}
+                      disabled={personalityTraits.length >= 3 && !selected}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+                {/* Pad the row if less than 3 */}
+                {row.length < 3 && Array.from({ length: 3 - row.length }).map((_, i) => (
+                  <div key={`pad-${i}`} style={{ ...styles.traitBtn, visibility: 'hidden' }} />
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ===== 意识形态 ===== */}
+        <div style={styles.formGroup}>
+          <label style={styles.label}>
+            政治意识形态 <span style={styles.requiredMark}>*必选</span>
+          </label>
+          <select
+            style={styles.select}
+            value={politicalIdeology}
+            onChange={(e) => setPoliticalIdeology(e.target.value as PoliticalIdeology)}
+          >
+            <option value="">-- 请选择意识形态 --</option>
+            {ALL_IDEOLOGIES.map(([key, label]) => (
+              <option key={key} value={key}>{label}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* ===== 经济立场滑块 ===== */}
+        <div style={styles.formGroup}>
+          <label style={styles.label}>
+            经济立场：<span style={styles.sliderValue}>{getEconomicLabel(economicAxis)}（{economicAxis}）</span>
+          </label>
+          <div style={styles.sliderContainer}>
+            <span style={styles.sliderEndLabel}>极左</span>
+            <input
+              type="range"
+              min={-100}
+              max={100}
+              value={economicAxis}
+              onChange={(e) => setEconomicAxis(parseInt(e.target.value))}
+              style={styles.slider}
+            />
+            <span style={styles.sliderEndLabel}>极右</span>
+          </div>
+        </div>
+
+        {/* ===== 社会立场滑块 ===== */}
+        <div style={styles.formGroup}>
+          <label style={styles.label}>
+            社会立场：<span style={styles.sliderValue}>{getSocialLabel(socialAxis)}（{socialAxis}）</span>
+          </label>
+          <div style={styles.sliderContainer}>
+            <span style={styles.sliderEndLabel}>威权</span>
+            <input
+              type="range"
+              min={-100}
+              max={100}
+              value={socialAxis}
+              onChange={(e) => setSocialAxis(parseInt(e.target.value))}
+              style={styles.slider}
+            />
+            <span style={styles.sliderEndLabel}>激进自由</span>
+          </div>
+        </div>
+
+        {/* ===== 政治目标 ===== */}
+        <div style={styles.formGroup}>
+          <label style={styles.label}>
+            政治目标 <span style={styles.requiredMark}>*必填</span>
+          </label>
+          <textarea
+            style={styles.textarea}
+            value={politicalGoal}
+            onChange={(e) => setPoliticalGoal(e.target.value)}
+            placeholder="描述你的政治目标，如：推动教育改革、实现社会公平..."
+            rows={2}
+          />
+          <div style={styles.backgroundActions}>
+            {!hasGoal && (
+              <span style={styles.backgroundWarn}>请填写政治目标</span>
+            )}
+            <button
+              style={{
+                ...styles.aiGenBtn,
+                opacity: generatingGoal ? 0.5 : 1,
+              }}
+              onClick={handleAIGenerateGoal}
+              disabled={generatingGoal}
+            >
+              {generatingGoal ? 'AI 生成中...' : '✦ AI 一键生成目标'}
+            </button>
           </div>
         </div>
 
@@ -454,7 +680,7 @@ export const CharacterCreation: React.FC<CharacterCreationProps> = ({ onComplete
           onClick={handleSubmit}
           disabled={!canSubmit}
         >
-          {!hasBackground ? '请填写背景故事' : '进入国会'}
+          {!hasBackground ? '请填写背景故事' : !hasGoal ? '请填写政治目标' : personalityTraits.length < 1 ? '请选择性格特质' : politicalIdeology === '' ? '请选择意识形态' : '进入国会'}
         </button>
       </div>
     </div>
@@ -621,7 +847,7 @@ const styles: Record<string, React.CSSProperties> = {
     boxSizing: 'border-box' as const,
   },
   inputError: {
-    borderColor: '#E53935',
+    border: '1px solid #E53935',
   },
   error: {
     display: 'block',
@@ -647,6 +873,72 @@ const styles: Record<string, React.CSSProperties> = {
     borderColor: '#5c8aff',
     color: '#fff',
     background: '#1a2540',
+  },
+  // ===== 性格特质 =====
+  traitGrid: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: 4,
+  },
+  traitRow: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr 1fr',
+    gap: 4,
+  },
+  traitBtn: {
+    padding: '5px 8px',
+    borderRadius: 4,
+    border: '1px solid #3a3a5a',
+    background: '#0f0f23',
+    color: '#888',
+    fontSize: 12,
+    cursor: 'pointer',
+    textAlign: 'center' as const,
+    transition: 'all 0.15s',
+  },
+  traitBtnActive: {
+    borderColor: '#5c8aff',
+    color: '#fff',
+    background: '#1a2540',
+    fontWeight: 700,
+  },
+  traitBtnDisabled: {
+    opacity: 0.4,
+    cursor: 'not-allowed',
+  },
+  // ===== 意识形态下拉 =====
+  select: {
+    width: '100%',
+    padding: '10px 14px',
+    borderRadius: 6,
+    border: '1px solid #3a3a5a',
+    background: '#0f0f23',
+    color: '#e0e0e0',
+    fontSize: 14,
+    boxSizing: 'border-box' as const,
+    cursor: 'pointer',
+  },
+  // ===== 滑块 =====
+  sliderContainer: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+  },
+  slider: {
+    flex: 1,
+    accentColor: '#5c8aff',
+    cursor: 'pointer',
+  },
+  sliderEndLabel: {
+    fontSize: 11,
+    color: '#666',
+    fontWeight: 600,
+    whiteSpace: 'nowrap' as const,
+    minWidth: 40,
+  },
+  sliderValue: {
+    color: '#5c8aff',
+    fontWeight: 700,
   },
   // ===== 党派卡片 =====
   partyGrid: {

@@ -25,6 +25,7 @@ import type {
 import type { MPPersonality, HiddenGoal } from '../types';
 import { generateBackground, applyBackgroundToPersonality } from './backgroundEngine';
 import { initializeCareer } from './careerEngine';
+import { findPersonPreset } from '../data/keyPeoplePresets';
 import type { Faction } from '../types/faction';
 
 // ===== 名字性别判断 =====
@@ -206,6 +207,9 @@ export function generatePersonality(
   const seed = seedFromName(personName);
   const rng = seededRandom(seed);
 
+  // 检查是否有预设数据
+  const preset = findPersonPreset(partyId, personName);
+
   let ambition: number;
   let loyalty: number;
   let corruption: number;
@@ -217,10 +221,17 @@ export function generatePersonality(
   let hiddenGoals: HiddenGoal[];
 
   // === 生成性格特质 (1-3个) ===
-  const personalityTraits = generatePersonalityTraits(isLeader, isMinister, isCommitteeChairman, rng);
+  const personalityTraits = preset
+    ? preset.personalityTraits
+    : generatePersonalityTraits(isLeader, isMinister, isCommitteeChairman, rng);
 
   // === 生成政治意识形态 ===
   const politicalIdeology = generatePoliticalIdeology(party, rng);
+
+  // 预设的政治目标优先
+  if (preset) {
+    hiddenGoals = preset.hiddenGoals;
+  }
 
   if (isLeader) {
     // 党首：高野心，由党派魅力驱动
@@ -232,7 +243,7 @@ export function generatePersonality(
     negotiationSkill = clamp(40 + party.organization * 0.2 + rng() * 15);
     stress = clamp(20 + rng() * 20);
     health = clamp(70 + rng() * 20);
-    hiddenGoals = pickGoals(LEADER_GOALS, 2, rng);
+    if (!preset) hiddenGoals = pickGoals(LEADER_GOALS, 2, rng);
   } else if (isMinister) {
     // 大臣：中等野心，高忠诚（已有职位）
     ambition = clamp(40 + rng() * 30);
@@ -243,7 +254,7 @@ export function generatePersonality(
     negotiationSkill = clamp(35 + rng() * 35);
     stress = clamp(25 + rng() * 30);
     health = clamp(65 + rng() * 25);
-    hiddenGoals = pickGoals(MINISTER_GOALS, 2, rng);
+    if (!preset) hiddenGoals = pickGoals(MINISTER_GOALS, 2, rng);
   } else if (isCommitteeChairman) {
     // 委员长：委员会相关目标
     ambition = clamp(35 + rng() * 35);
@@ -254,7 +265,7 @@ export function generatePersonality(
     negotiationSkill = clamp(30 + rng() * 40);
     stress = clamp(20 + rng() * 25);
     health = clamp(70 + rng() * 25);
-    hiddenGoals = pickGoals(CHAIRMAN_GOALS, 2, rng);
+    if (!preset) hiddenGoals = pickGoals(CHAIRMAN_GOALS, 2, rng);
   } else {
     // 后排议员：高方差，5% 概率成为"潜伏者"
     ambition = clamp(10 + rng() * 80);
@@ -270,29 +281,27 @@ export function generatePersonality(
     if (rng() < 0.05) {
       ambition = clamp(85 + rng() * 15);
       popularity = clamp(30 + rng() * 25);
-      hiddenGoals = pickGoals(
+      if (!preset) hiddenGoals = pickGoals(
         ['become_prime_minister', 'destroy_rival_faction', 'seek_cabinet'] as HiddenGoal[],
         2,
         rng,
       );
     } else {
-      hiddenGoals = pickGoals(BACKBENCHER_GOALS, rng() < 0.5 ? 1 : 2, rng);
+      if (!preset) hiddenGoals = pickGoals(BACKBENCHER_GOALS, rng() < 0.5 ? 1 : 2, rng);
     }
   }
 
-  // 年龄和性别：基于种子确定性生成
-  // 后排议员：25 + floor(rng * rng * 55)，偏年轻，极少数 >70
-  // 党首：40 + floor(rng * 30)，大部分 50-65
-  // 大臣：38 + floor(rng * 30)，大部分 45-60
-  // 委员长：35 + floor(rng * 35)，大部分 40-60
-  const age = isLeader
-    ? 40 + Math.floor(rng() * 30)            // 党首 40-70
-    : isMinister
-      ? 38 + Math.floor(rng() * 30)          // 大臣 38-68
-      : isCommitteeChairman
-        ? 35 + Math.floor(rng() * 35)        // 委员长 35-70
-        : Math.max(25, Math.floor(rng() * rng() * 55) + 25); // 后排 25-80，偏年轻
-  // 性别基于名字判断，而不是随机分配
+  // 年龄：预设优先，否则基于种子确定性生成
+  const age = preset
+    ? preset.age
+    : isLeader
+      ? 40 + Math.floor(rng() * 30)            // 党首 40-70
+      : isMinister
+        ? 38 + Math.floor(rng() * 30)          // 大臣 38-68
+        : isCommitteeChairman
+          ? 35 + Math.floor(rng() * 35)        // 委员长 35-70
+          : Math.max(25, Math.floor(rng() * rng() * 55) + 25); // 后排 25-80，偏年轻
+  // 性别：始终基于名字判断
   const gender: 'male' | 'female' = inferGenderFromName(personName);
 
   return {

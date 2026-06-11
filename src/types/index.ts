@@ -40,7 +40,11 @@ export type {
 export type {
   HiddenGoal,
   MPPersonality,
+  PersonalityTrait,
+  PoliticalIdeology,
 } from './mp';
+
+export { PERSONALITY_TRAIT_LABELS, POLITICAL_IDEOLOGY_LABELS } from './mp';
 
 export type {
   AgentIntent,
@@ -50,7 +54,7 @@ export type {
   PlayerConfig,
 } from './agent';
 
-export { getPlayerFullName, getPlayerFormalAddress, getPlayerTitle } from './agent';
+export { getPlayerFullName, getPlayerFormalAddress, getPlayerTitle, derivePlayerAbilities } from './agent';
 
 export type {
   FactionIdeology,

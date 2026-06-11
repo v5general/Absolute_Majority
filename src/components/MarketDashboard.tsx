@@ -8,7 +8,7 @@ interface Props {
 }
 
 export const MarketDashboard: React.FC<Props> = ({ parties, metrics, districts }) => {
-  const sortedParties = [...parties].sort((a, b) => b.currentSupport - a.currentSupport);
+  const sortedParties = [...parties].sort((a, b) => b.projectedSeats - a.projectedSeats || b.currentSupport - a.currentSupport);
   const totalProjected = parties.reduce((s, p) => s + p.projectedSeats, 0);
 
   return (

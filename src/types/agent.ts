@@ -76,6 +76,16 @@ export interface PlayerConfig {
   partyId: string;
   /** 简短背景 */
   background: string;
+  /** 性格特质（1-3个） */
+  personalityTraits: import('./mp').PersonalityTrait[];
+  /** 主要意识形态 */
+  politicalIdeology: import('./mp').PoliticalIdeology;
+  /** 经济立场 (-100 极左 ~ +100 极右) */
+  economicAxis: number;
+  /** 社会立场 (-100 威权 ~ +100 自由) */
+  socialAxis: number;
+  /** 政治目标（自由文本） */
+  politicalGoal: string;
 }
 
 /** 获取玩家全名 */
@@ -91,4 +101,76 @@ export function getPlayerFormalAddress(config: PlayerConfig): string {
 /** 获取议员称呼（姓氏+议员） */
 export function getPlayerTitle(config: PlayerConfig): string {
   return `${config.lastName}议员`;
+}
+
+/** 根据玩家初始选项计算6项政治能力 (0-100) */
+export function derivePlayerAbilities(config: PlayerConfig): {
+  ambition: number;
+  loyalty: number;
+  corruption: number;
+  popularity: number;
+  mediaSkill: number;
+  negotiationSkill: number;
+} {
+  const traits = config.personalityTraits;
+  const has = (t: import('./mp').PersonalityTrait) => traits.includes(t);
+
+  // 基础值
+  let ambition = 35;
+  let loyalty = 50;
+  let corruption = 15;
+  let popularity = 30;
+  let mediaSkill = 35;
+  let negotiationSkill = 35;
+
+  // 性格特质修正
+  if (has('ambitious_trait')) ambition += 15;
+  if (has('idealistic')) ambition += 5;
+  if (has('aggressive')) ambition += 10;
+  if (has('cautious')) ambition -= 5;
+
+  if (has('conformist')) loyalty += 15;
+  if (has('independent')) loyalty -= 10;
+  if (has('honest')) loyalty += 5;
+
+  if (has('greedy')) corruption += 20;
+  if (has('deceitful')) corruption += 15;
+  if (has('generous')) corruption -= 10;
+  if (has('honest')) corruption -= 10;
+
+  if (has('charismatic')) popularity += 15;
+  if (has('gregarious')) popularity += 10;
+  if (has('withdrawn')) popularity -= 10;
+
+  if (has('charismatic')) mediaSkill += 10;
+  if (has('analytical')) mediaSkill += 5;
+  if (has('impulsive')) mediaSkill -= 5;
+
+  if (has('diplomatic')) negotiationSkill += 15;
+  if (has('stubborn')) negotiationSkill -= 10;
+  if (has('analytical')) negotiationSkill += 5;
+  if (has('aggressive')) negotiationSkill -= 5;
+
+  // 意识形态修正
+  const ideology = config.politicalIdeology;
+  const leftWingIdeologies = ['socialism', 'communism', 'democratic_socialism', 'syndicalism', 'trotskyism', 'maoism', 'anarchism'];
+  const rightWingIdeologies = ['neoliberalism', 'conservatism', 'neoconservatism', 'nationalism', 'fascism', 'chauvinism'];
+  const authoritarianIdeologies = ['authoritarianism', 'fascism', 'theocracy', 'militarism', 'neoconservatism'];
+  const libertarianIdeologies = ['libertarianism', 'anarchism', 'liberalism', 'progressivism'];
+
+  if (leftWingIdeologies.includes(ideology)) corruption -= 5;
+  if (rightWingIdeologies.includes(ideology)) ambition += 5;
+  if (authoritarianIdeologies.includes(ideology)) loyalty += 5;
+  if (libertarianIdeologies.includes(ideology)) mediaSkill += 5;
+
+  // Clamp to 0-100
+  const clamp = (v: number) => Math.max(0, Math.min(100, Math.round(v)));
+  return {
+    ambition: clamp(ambition),
+    loyalty: clamp(loyalty),
+    corruption: clamp(corruption),
+    popularity: clamp(popularity),
+    mediaSkill: clamp(mediaSkill),
+    negotiationSkill: clamp(negotiationSkill),
+  };
 }

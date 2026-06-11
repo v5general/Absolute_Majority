@@ -11,6 +11,7 @@ import type {
   RelationEntry,
   ElectionResult,
 } from '../types';
+import { PARLIAMENT_RULES, RELATION_THRESHOLDS } from '../config/ruleConfig';
 
 /**
  * 规则引擎 — 全局约束校验与核心数值结算
@@ -24,13 +25,13 @@ import type {
  * 6. 不得直接修改议席、支持率或投票结果
  */
 
-// ===== 常量 =====
+// ===== 常量（从配置派生） =====
 
 /** 不信任案联署最低门槛 */
-export const NO_CONFIDENCE_THRESHOLD = 20;
+export const NO_CONFIDENCE_THRESHOLD = PARLIAMENT_RULES.noConfidenceThreshold;
 
 /** 委员会法定人数比例（超过半数） */
-export const QUORUM_RATIO = 0.5;
+export const QUORUM_RATIO = PARLIAMENT_RULES.quorumRatio;
 
 // ===== 不信任案规则 =====
 
@@ -590,10 +591,10 @@ export function recalcSeats(state: GameState): void {
 // ===== 工具函数 =====
 
 function scoreToType(score: number): 'alliance' | 'friendly' | 'neutral' | 'tense' | 'hostile' {
-  if (score >= 60) return 'alliance';
-  if (score >= 20) return 'friendly';
-  if (score >= -20) return 'neutral';
-  if (score >= -50) return 'tense';
+  if (score >= RELATION_THRESHOLDS.alliance) return 'alliance';
+  if (score >= RELATION_THRESHOLDS.friendly) return 'friendly';
+  if (score >= RELATION_THRESHOLDS.neutral_low) return 'neutral';
+  if (score >= RELATION_THRESHOLDS.tense) return 'tense';
   return 'hostile';
 }
 

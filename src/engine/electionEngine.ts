@@ -1,5 +1,6 @@
 import type { Party, District, ElectionResult, PartyElectionResult, GameState } from '../types';
 import type { MPPersonality } from '../types/mp';
+import { ELECTION_CONFIG } from '../config/electionConfig';
 
 /**
  * 选举引擎
@@ -11,14 +12,14 @@ import type { MPPersonality } from '../types/mp';
  * 选区总席位 = 199 NPC + 1 玩家 = 200
  */
 
-/** 选区总席位数 (NPC) */
-export const CONSTITUENCY_SEATS = 199;
+/** 选区总席位数 (NPC) — 从配置派生 */
+export const CONSTITUENCY_SEATS = ELECTION_CONFIG.constituencySeats;
 /** 比例代表席位数（已整合入选区，保留常量兼容） */
-export const PROPORTIONAL_SEATS = 0;
+export const PROPORTIONAL_SEATS = ELECTION_CONFIG.proportionalSeats;
 
-/** 选举竞选期间倍率 */
-export const CAMPAIGN_MEDIA_MULTIPLIER = 2.0;
-export const CAMPAIGN_VOLATILITY_MULTIPLIER = 1.5;
+/** 选举竞选期间倍率 — 从配置派生 */
+export const CAMPAIGN_MEDIA_MULTIPLIER = ELECTION_CONFIG.campaignMediaMultiplier;
+export const CAMPAIGN_VOLATILITY_MULTIPLIER = ELECTION_CONFIG.campaignVolatilityMultiplier;
 
 /** 竞选行动类型 */
 export type CampaignAction = 'campaign' | 'media_attack' | 'policy_announcement' | 'coalition_signal' | 'debate';
@@ -84,11 +85,13 @@ export function runElectionV2(
   for (const p of parties) seatTotals[p.id] = 0;
 
   // 确定性随机：固定种子保证每次初始化结果相同
-  let _seed = 20258; // 固定初始种子
+  let _seed = ELECTION_CONFIG.electionSeed;
   const deterministicRandom = () => {
     _seed = (_seed * 1103515245 + 12345) & 0x7fffffff;
     return _seed / 0x7fffffff;
   };
+
+  const weights = ELECTION_CONFIG.electionWeights;
 
   // === 选区选举: V2 公式计算得分 + D'Hondt 分配席位 ===
   for (const district of districts) {
@@ -103,7 +106,11 @@ export function runElectionV2(
       // 用确定性随机替代 Math.random()
       const randomFactor = deterministicRandom() * 10;
 
-      scoresByParty[party.id] = partySupport * 0.4 + candidateScore * 0.3 + districtLeaning * 0.2 + randomFactor;
+      scoresByParty[party.id] =
+        partySupport * weights.partySupport +
+        candidateScore * weights.candidateScore +
+        districtLeaning * weights.districtLeaning +
+        randomFactor * weights.randomFactor;
     }
 
     // 用 D'Hondt 法按得分分配该选区的全部席位
@@ -165,7 +172,7 @@ function getCandidateScoreForDistrict(
   let score = basePopularity;
   if (isCampaign) {
     // 竞选期间候选人曝光度提升
-    score *= CAMPAIGN_MEDIA_MULTIPLIER * 0.5;
+    score *= CAMPAIGN_MEDIA_MULTIPLIER * ELECTION_CONFIG.campaignExposureBoost;
   }
   return score;
 }

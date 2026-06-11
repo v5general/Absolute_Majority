@@ -2,9 +2,7 @@ import React from 'react';
 import type { Government, Party, ElectionResult, CoalitionOffer, RelationEntry, CabinetPost } from '../types';
 import { CABINET_POST_LABELS } from '../types';
 import { calcCoalitionWillingness } from '../engine/governmentEngine';
-
-/** 绝对多数门槛：200席的2/3 = 134席 */
-const CONSTITUTIONAL_MAJORITY = 134;
+import { PARLIAMENT_RULES } from '../config/ruleConfig';
 
 interface Props {
   government: Government;
@@ -25,12 +23,22 @@ export const GovernmentPanel: React.FC<Props> = ({ government, parties, relation
   const partyMap = new Map(parties.map((p) => [p.id, p]));
 
   const pmParty = partyMap.get(government.primeMinisterPartyId);
-  const rulingParties = government.rulingCoalition
+  const rulingParties = (government.rulingCoalition
     .map((pid) => partyMap.get(pid))
-    .filter(Boolean) as Party[];
-  const oppositionParties = government.opposition
+    .filter(Boolean) as Party[])
+    .sort((a, b) => {
+      const sa = government.electionResult.partyResults.find((r) => r.partyId === a.id)?.seats ?? 0;
+      const sb = government.electionResult.partyResults.find((r) => r.partyId === b.id)?.seats ?? 0;
+      return sb - sa;
+    });
+  const oppositionParties = (government.opposition
     .map((pid) => partyMap.get(pid))
-    .filter(Boolean) as Party[];
+    .filter(Boolean) as Party[])
+    .sort((a, b) => {
+      const sa = government.electionResult.partyResults.find((r) => r.partyId === a.id)?.seats ?? 0;
+      const sb = government.electionResult.partyResults.find((r) => r.partyId === b.id)?.seats ?? 0;
+      return sb - sa;
+    });
 
   const coalitionSeats = government.rulingCoalition.reduce((sum, pid) => {
     const r = government.electionResult.partyResults.find((er) => er.partyId === pid);
@@ -64,7 +72,7 @@ export const GovernmentPanel: React.FC<Props> = ({ government, parties, relation
       {/* 标题行 */}
       <div style={styles.titleRow}>
         <h2 style={styles.title}>政府 &amp; 内阁</h2>
-        {coalitionSeats >= CONSTITUTIONAL_MAJORITY && (
+        {coalitionSeats >= PARLIAMENT_RULES.constitutionalMajorityThreshold && (
           <span style={styles.supermajorityBadge}>绝对多数</span>
         )}
         {government.isMinority && (
@@ -101,7 +109,7 @@ export const GovernmentPanel: React.FC<Props> = ({ government, parties, relation
           <div style={{ fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: 1 }}>执政联盟</div>
           <div style={{
             ...styles.seatsValue,
-            color: coalitionSeats >= CONSTITUTIONAL_MAJORITY
+            color: coalitionSeats >= PARLIAMENT_RULES.constitutionalMajorityThreshold
               ? '#FFD600'
               : coalitionSeats >= government.electionResult.majorityThreshold
                 ? '#66BB6A'
@@ -109,9 +117,9 @@ export const GovernmentPanel: React.FC<Props> = ({ government, parties, relation
           }}>
             {coalitionSeats} / {government.electionResult.totalSeats}
           </div>
-          <div style={{ fontSize: 11, color: coalitionSeats >= CONSTITUTIONAL_MAJORITY ? '#FFD600' : '#888' }}>
-            {coalitionSeats >= CONSTITUTIONAL_MAJORITY
-              ? `绝对多数 (≥${CONSTITUTIONAL_MAJORITY})`
+          <div style={{ fontSize: 11, color: coalitionSeats >= PARLIAMENT_RULES.constitutionalMajorityThreshold ? '#FFD600' : '#888' }}>
+            {coalitionSeats >= PARLIAMENT_RULES.constitutionalMajorityThreshold
+              ? `绝对多数 (≥${PARLIAMENT_RULES.constitutionalMajorityThreshold})`
               : `过半需 ${government.electionResult.majorityThreshold}`}
           </div>
         </div>
@@ -319,7 +327,7 @@ const SeatComparisonBar: React.FC<{
   const coalitionSeats = rulingParties.reduce((sum, p) => {
     return sum + (electionResult.partyResults.find((r) => r.partyId === p.id)?.seats ?? 0);
   }, 0);
-  const hasSupermajority = coalitionSeats >= CONSTITUTIONAL_MAJORITY;
+  const hasSupermajority = coalitionSeats >= PARLIAMENT_RULES.constitutionalMajorityThreshold;
 
   return (
     <div>
@@ -393,7 +401,7 @@ const SeatComparisonBar: React.FC<{
         {/* 绝对多数线 (紫色，2/3=134) */}
         <div style={{
           position: 'absolute',
-          left: `${(CONSTITUTIONAL_MAJORITY / totalSeats) * 100}%`,
+          left: `${(PARLIAMENT_RULES.constitutionalMajorityThreshold / totalSeats) * 100}%`,
           top: -4,
           width: 2,
           height: 10,
@@ -401,14 +409,14 @@ const SeatComparisonBar: React.FC<{
         }} />
         <div style={{
           position: 'absolute',
-          left: `${(CONSTITUTIONAL_MAJORITY / totalSeats) * 100}%`,
+          left: `${(PARLIAMENT_RULES.constitutionalMajorityThreshold / totalSeats) * 100}%`,
           top: 24,
           transform: 'translateX(-50%)',
           fontSize: 10,
           color: '#CE93D8',
           fontWeight: 600,
         }}>
-          绝对多数 {CONSTITUTIONAL_MAJORITY}
+          绝对多数 {PARLIAMENT_RULES.constitutionalMajorityThreshold}
         </div>
       </div>
       <div style={{ display: 'flex', gap: 16, marginTop: 26, fontSize: 11 }}>

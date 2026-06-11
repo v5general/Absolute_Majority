@@ -13,7 +13,11 @@
  * - 游戏重点是议会政治、派系斗争、联合组阁、
  *   委员会博弈、媒体战、利益集团博弈
  * - 不是现实政治映射
+ *
+ * 选区划分基于现实日本众议院比例代表 11 区块
  */
+
+import { PROPORTIONAL_BLOCKS, PREFECTURE_TO_BLOCK } from '../config/districtConfig';
 
 export const WORLD_CONFIG = {
   /** 国家名称 */
@@ -51,56 +55,23 @@ export const WORLD_CONFIG = {
     '利益集团博弈',
   ],
 
-  /** 日本行政区划 - 47都道府县（游戏中使用） */
-  prefectures: [
-    '北海道',
-    '青森',
-    '岩手',
-    '宫城',
-    '秋田',
-    '山形',
-    '福岛',
-    '茨城',
-    '栃木',
-    '群马',
-    '埼玉',
-    '千叶',
-    '东京',
-    '神奈川',
-    '新潟',
-    '富山',
-    '石川',
-    '福井',
-    '山梨',
-    '长野',
-    '岐阜',
-    '静冈',
-    '爱知',
-    '三重',
-    '滋贺',
-    '京都',
-    '大阪',
-    '兵库',
-    '奈良',
-    '和歌山',
-    '鸟取',
-    '岛根',
-    '冈山',
-    '广岛',
-    '山口',
-    '德岛',
-    '香川',
-    '爱媛',
-    '高知',
-    '福冈',
-    '佐贺',
-    '长崎',
-    '熊本',
-    '大分',
-    '宫崎',
-    '鹿儿岛',
-    '冲绳',
-  ],
+  /** 日本行政区划 - 47都道府县（从选区配置自动收集） */
+  get prefectures() {
+    return PROPORTIONAL_BLOCKS.flatMap(b => b.prefectures);
+  },
+
+  /** 比例代表区块定义（11 区块） */
+  proportionalBlocks: PROPORTIONAL_BLOCKS.map(b => ({
+    id: b.id,
+    name: b.name,
+    nameEn: b.nameEn,
+    prefectures: b.prefectures,
+    totalSeats: b.totalSeats,
+    politicalTraits: b.politicalTraits,
+  })),
+
+  /** 都道府县 -> 所属比例代表区块 ID 映射 */
+  prefectureToBlock: PREFECTURE_TO_BLOCK,
 
   /** 日本政府机构（游戏中使用） */
   governmentAgencies: [
