@@ -434,27 +434,36 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const userPrompt = `玩家${playerName}说：\n\n"${playerText}"`;
 
         console.log('[FreeText] Calling LLM...');
+        console.log('[FreeText] System prompt length:', systemPrompt.length);
+        console.log('[FreeText] User prompt:', userPrompt);
 
         // 添加超时处理：30秒超时
         const timeoutPromise = new Promise<never>((_, reject) => {
           setTimeout(() => reject(new Error('LLM request timeout')), 30000);
         });
 
-        const result = await Promise.race([
-          askLLMJSON<FreeTextResponse>(
-            systemPrompt,
-            userPrompt,
-            {
-              reply: '...你的发言引起了在场人的注意，但似乎没有人明确表态。',
-              narration: '你的发言在会场中回荡，各方反应不一。',
-              effects: { supportDelta: {}, metricsDelta: { mediaAttention: 2 } },
-            },
-            { maxTokens: 400, temperature: 0.7, responseFormat: null },
-          ),
-          timeoutPromise,
-        ]);
+        let result: FreeTextResponse;
+        try {
+          result = await Promise.race([
+            askLLMJSON<FreeTextResponse>(
+              systemPrompt,
+              userPrompt,
+              {
+                reply: '...你的发言引起了在场人的注意，但似乎没有人明确表态。',
+                narration: '你的发言在会场中回荡，各方反应不一。',
+                effects: { supportDelta: {}, metricsDelta: { mediaAttention: 2 } },
+              },
+              { maxTokens: 400, temperature: 0.7, responseFormat: null },
+            ),
+            timeoutPromise,
+          ]);
+        } catch (raceError) {
+          console.error('[FreeText] Promise.race error:', raceError);
+          throw raceError; // Re-throw to be caught by outer catch
+        }
 
         console.log('[FreeText] LLM result:', result);
+        console.log('[FreeText] Result keys:', result ? Object.keys(result) : 'null');
 
         // 构建虚拟 choice，延迟结算 effects
         const fakeChoice: EventChoice = {
@@ -467,7 +476,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // 暂时不结算 effects，只存储到 pendingChoice（与固定选项行为一致）
         setActiveEvent((prev) => {
           if (!prev) return null;
-          return {
+          const updated = {
             ...prev,
             resolved: true,
             isWaitingFreeText: false,
@@ -475,6 +484,14 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
             showChoices: false,
             pendingChoice: fakeChoice,
           };
+          console.log('[FreeText] Updated activeEvent:', {
+            resolved: updated.resolved,
+            isWaitingFreeText: updated.isWaitingFreeText,
+            hasFreeTextResponse: !!updated.freeTextResponse,
+            reply: updated.freeTextResponse?.reply,
+            narration: updated.freeTextResponse?.narration,
+          });
+          return updated;
         });
         setIsPaused(true);
       } catch (err) {

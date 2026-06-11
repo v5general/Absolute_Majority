@@ -180,16 +180,31 @@ export async function askLLMJSON<T>(
   fallback: T,
   options?: LLMOptions,
 ): Promise<T> {
+  console.log('[LLM] askLLMJSON called, options:', options);
   const raw = await askLLM(systemPrompt, userPrompt, options);
-  if (!raw) return fallback;
+  console.log('[LLM] Raw response:', raw ? `(length: ${raw.length})` : 'null');
+
+  if (!raw) {
+    console.warn('[LLM] No raw response, using fallback');
+    return fallback;
+  }
 
   try {
-    return JSON.parse(raw) as T;
-  } catch {
+    const parsed = JSON.parse(raw) as T;
+    console.log('[LLM] JSON parsed successfully, keys:', Object.keys(parsed as any));
+    return parsed;
+  } catch (parseError) {
+    console.error('[LLM] JSON parse failed:', parseError);
+    console.error('[LLM] Raw content that failed to parse:', raw.slice(0, 200));
     try {
       const jsonMatch = raw.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
-      if (jsonMatch) return JSON.parse(jsonMatch[0]) as T;
+      if (jsonMatch) {
+        const extracted = JSON.parse(jsonMatch[0]) as T;
+        console.log('[LLM] Extracted and parsed JSON from text');
+        return extracted;
+      }
     } catch { /* ignore */ }
+    console.warn('[LLM] All parsing attempts failed, using fallback');
     return fallback;
   }
 }

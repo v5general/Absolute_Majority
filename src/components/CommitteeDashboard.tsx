@@ -76,7 +76,7 @@ const MPProfilePanel: React.FC<{
         {/* 头部 */}
         <div style={mpStyles.header}>
           <div style={{ ...mpStyles.avatar, borderColor: party.color }}>
-            <span style={{ color: party.color, fontWeight: 800, fontSize: 20 }}>{personName}</span>
+            <span style={{ color: party.color, fontWeight: 800, fontSize: 20 }}>{personName(personality)}</span>
           </div>
           <div style={mpStyles.headerInfo}>
             <div style={{ fontSize: 20, fontWeight: 800, color: '#e0e0e0' }}>{personality.personName}</div>
