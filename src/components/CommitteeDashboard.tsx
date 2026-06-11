@@ -191,6 +191,7 @@ const MPProfilePanel: React.FC<{
                 <span key={i} style={{
                   ...mpStyles.goalTag,
                   background: ['#4CAF50', '#2196F3', '#FF9800', '#9C27B0', '#F44336'][i % 5],
+                  color: 'white',
                 }}>
                   {PERSONALITY_TRAIT_LABELS[t] ?? t}
                 </span>
