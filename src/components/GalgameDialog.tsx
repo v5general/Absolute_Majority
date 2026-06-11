@@ -88,7 +88,12 @@ export const GalgameDialog: React.FC = () => {
   }, [makeChoice]);
 
   const handleFreeTextSubmit = useCallback(() => {
-    if (!freeTextInput.trim()) return;
+    console.log('[GalgameDialog] handleFreeTextSubmit called, input:', freeTextInput);
+    if (!freeTextInput.trim()) {
+      console.log('[GalgameDialog] Empty input, ignoring');
+      return;
+    }
+    console.log('[GalgameDialog] Calling submitFreeText with:', freeTextInput.trim());
     submitFreeText(freeTextInput.trim());
   }, [freeTextInput, submitFreeText]);
 
@@ -259,6 +264,45 @@ export const GalgameDialog: React.FC = () => {
                   {choice.text}
                 </button>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* 多轮对话继续选项 */}
+        {activeEvent.isConversationActive && activeEvent.freeTextResponse && !activeEvent.isWaitingFreeText && (
+          <div style={styles.multiRoundArea}>
+            <div style={styles.conversationHistory}>
+              <div style={styles.historyLabel}>对话记录（{activeEvent.conversationHistory?.length || 0} 轮）</div>
+              {activeEvent.conversationHistory?.slice(-2).map((h, i) => (
+                <div key={i} style={styles.historyItem}>
+                  <div style={styles.playerInput}>你：{h.playerInput}</div>
+                  <div style={styles.npcResponse}>对方：{h.npcResponse}</div>
+                </div>
+              ))}
+            </div>
+            <div style={styles.continueOptions}>
+              <button
+                style={styles.continueBtn}
+                onClick={() => {
+                  setFreeTextInput('');
+                  setActiveEvent((prev) => ({
+                    ...prev!,
+                    showChoices: false,
+                    freeTextResponse: undefined,
+                  }));
+                }}
+              >
+                继续对话
+              </button>
+              <button
+                style={styles.endConversationBtn}
+                onClick={() => {
+                  // 结束对话，结算累积的效果
+                  makeChoice('end_conversation');
+                }}
+              >
+                结束对话
+              </button>
             </div>
           </div>
         )}
@@ -635,5 +679,69 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     gap: 8,
     fontSize: 13,
+  },
+  // 多轮对话
+  multiRoundArea: {
+    padding: '12px 16px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 12,
+  },
+  conversationHistory: {
+    maxHeight: 120,
+    overflowY: 'auto' as const,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 8,
+  },
+  historyLabel: {
+    fontSize: 11,
+    color: '#666',
+    marginBottom: 4,
+  },
+  historyItem: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 4,
+    padding: '8px 12px',
+    background: 'rgba(0,0,0,0.2)',
+    borderRadius: 4,
+    border: '1px solid #2a3a5c',
+  },
+  playerInput: {
+    fontSize: 12,
+    color: '#8aff5c',
+  },
+  npcResponse: {
+    fontSize: 12,
+    color: '#ddd',
+  },
+  continueOptions: {
+    display: 'flex',
+    gap: 8,
+  },
+  continueBtn: {
+    flex: 1,
+    padding: '10px 20px',
+    borderRadius: 6,
+    background: 'linear-gradient(135deg, #43A047, #66BB6A)',
+    border: 'none',
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 700,
+    cursor: 'pointer',
+    letterSpacing: 2,
+  },
+  endConversationBtn: {
+    flex: 1,
+    padding: '10px 20px',
+    borderRadius: 6,
+    background: 'linear-gradient(135deg, #EF5350, #E57373)',
+    border: 'none',
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 700,
+    cursor: 'pointer',
+    letterSpacing: 2,
   },
 };

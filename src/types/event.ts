@@ -23,6 +23,8 @@ export interface EventChoice {
   /** 选项后的追加旁白 */
   consequence?: string;
   effects: ChoiceEffect;
+  /** 特殊选项类型：'continue' 表示继续对话，'end' 表示结束对话 */
+  specialType?: 'continue' | 'end' | 'normal';
 }
 
 /** 事件中的一个对话段落 */
@@ -93,6 +95,17 @@ export interface ActiveEvent {
   freeTextResponse?: FreeTextResponse;
   /** 是否正在等待 LLM 回应自由文本 */
   isWaitingFreeText?: boolean;
+  /** 对话轮次记录（用于多轮对话） */
+  conversationHistory?: {
+    round: number;
+    playerInput: string; // 玩家输入的文本或选择的选项
+    npcResponse: string; // NPC 回应
+    timestamp: number;
+  }[];
+  /** 累积的效果（多轮对话的影响累积） */
+  accumulatedEffects?: ChoiceEffect;
+  /** 对话是否仍在进行（可继续对话） */
+  isConversationActive?: boolean;
 }
 
 /** Agent 推演日志条目 */

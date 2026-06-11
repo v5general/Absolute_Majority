@@ -382,6 +382,19 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const makeChoice = useCallback((choiceId: string) => {
     setActiveEvent((prev) => {
       if (!prev) return null;
+
+      // 处理"结束对话"的特殊情况
+      if (choiceId === 'end_conversation' && prev.accumulatedEffects) {
+        // 使用累积的效果
+        const endChoice: EventChoice = {
+          id: 'end_conversation',
+          text: '结束对话',
+          consequence: '对话结束',
+          effects: prev.accumulatedEffects,
+        };
+        return { ...prev, resolved: true, chosenId: choiceId, showChoices: false, pendingChoice: endChoice };
+      }
+
       const choice = prev.event.choices.find((c) => c.id === choiceId);
       if (!choice) return prev;
 
@@ -476,24 +489,67 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // 暂时不结算 effects，只存储到 pendingChoice（与固定选项行为一致）
         setActiveEvent((prev) => {
           if (!prev) return null;
+
+          // 累积 effects
+          const currentEffects = prev.accumulatedEffects || {
+            supportDelta: {},
+            fundsDelta: {},
+            relationDelta: {},
+            metricsDelta: {},
+          };
+
+          // 累积新的 effects
+          Object.entries(result.effects.supportDelta || {}).forEach(([party, delta]) => {
+            currentEffects.supportDelta![party] = (currentEffects.supportDelta![party] || 0) + delta;
+          });
+          Object.entries(result.effects.fundsDelta || {}).forEach(([party, delta]) => {
+            currentEffects.fundsDelta![party] = (currentEffects.fundsDelta![party] || 0) + delta;
+          });
+          Object.entries(result.effects.relationDelta || {}).forEach(([relation, delta]) => {
+            currentEffects.relationDelta![relation] = (currentEffects.relationDelta![relation] || 0) + delta;
+          });
+          if (result.effects.metricsDelta) {
+            currentEffects.metricsDelta = {
+              ...currentEffects.metricsDelta,
+              ...result.effects.metricsDelta,
+            };
+            // 累积 metricsDelta 的数值
+            Object.entries(result.effects.metricsDelta).forEach(([key, value]) => {
+              const currentValue = (currentEffects.metricsDelta as any)[key] || 0;
+              (currentEffects.metricsDelta as any)[key] = currentValue + value;
+            });
+          }
+
+          // 记录对话历史
+          const history = prev.conversationHistory || [];
+          history.push({
+            round: history.length + 1,
+            playerInput: playerText,
+            npcResponse: result.reply,
+            timestamp: Date.now(),
+          });
+
           const updated = {
             ...prev,
-            resolved: true,
+            resolved: false, // 不结束事件，允许继续对话
             isWaitingFreeText: false,
             freeTextResponse: result,
-            showChoices: false,
+            showChoices: true, // 显示"继续对话"/"结束对话"选项
             pendingChoice: fakeChoice,
+            conversationHistory: history,
+            accumulatedEffects: currentEffects,
+            isConversationActive: true,
           };
-          console.log('[FreeText] Updated activeEvent:', {
+          console.log('[FreeText] Updated activeEvent (multi-round):', {
             resolved: updated.resolved,
             isWaitingFreeText: updated.isWaitingFreeText,
             hasFreeTextResponse: !!updated.freeTextResponse,
-            reply: updated.freeTextResponse?.reply,
-            narration: updated.freeTextResponse?.narration,
+            conversationRound: history.length,
+            accumulatedEffects: currentEffects,
           });
           return updated;
         });
-        setIsPaused(true);
+        // 不设置 isPaused，允许继续对话
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : String(err);
         console.error('[Game] Free text LLM call failed:', errorMsg);
