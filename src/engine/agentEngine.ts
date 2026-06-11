@@ -1132,13 +1132,29 @@ export class AgentScheduler {
   async runTurn(state: GameState): Promise<AgentTurnResult> {
     this.buildAgents(state);
 
-    // 并行执行所有 Agent 的 LLM 调用
+    // 并行执行所有 Agent 的 LLM 调用，每个Agent独立失败不影响其他
     const results = await Promise.all(
-      this.agents.map(agent => agent.generateIntent(state)),
+      this.agents.map(agent =>
+        agent.generateIntent(state).catch(err => {
+          console.error(`[Agent] ${agent.config.actor_id} crashed:`, err);
+          // 返回安全的fallback结果
+          return {
+            intents: [],
+            events: [],
+            log: {
+              role: agent.config.role,
+              name: agent.config.personName ?? agent.getRoleLabel(),
+              reasoning: '系统错误，暂停行动',
+              action: 'error',
+              timestamp: Date.now(),
+            },
+          };
+        })
+      ),
     );
 
-    const allIntents = results.flatMap(r => r.intents);
-    const allEvents = results.flatMap(r => r.events);
+    const allIntents = results.flatMap(r => r.intents ?? []);
+    const allEvents = results.flatMap(r => r.events ?? []);
     const logs = results.map(r => r.log).filter((l): l is ThinkingLogEntry => l !== null);
 
     // 对事件去重：同 intent_type 同 target 只保留一个
