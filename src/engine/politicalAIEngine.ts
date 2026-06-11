@@ -27,6 +27,27 @@ import { generateBackground, applyBackgroundToPersonality } from './backgroundEn
 import { initializeCareer } from './careerEngine';
 import type { Faction } from '../types/faction';
 
+// ===== 名字性别判断 =====
+
+/**
+ * 根据名字判断性别
+ * 基于名字最后一个字来判断（日本名字习惯）
+ */
+function inferGenderFromName(name: string): 'male' | 'female' {
+  const lastChar = name.slice(-1);
+
+  // 常见女性名字结尾字
+  const femaleEndings = ['咲', '纪', '美', '惠', '京', '奈', '菜', '花', '枝', '纱', '子', '由', '代', '实', '里', '洋'];
+
+  // 如果最后一个字是女性名字结尾，则判断为女性
+  if (femaleEndings.includes(lastChar)) {
+    return 'female';
+  }
+
+  // 否则默认为男性
+  return 'male';
+}
+
 // ===== 确定性随机数生成器 =====
 
 /** 基于字符串的哈希种子 */
@@ -271,7 +292,8 @@ export function generatePersonality(
       : isCommitteeChairman
         ? 35 + Math.floor(rng() * 35)        // 委员长 35-70
         : Math.max(25, Math.floor(rng() * rng() * 55) + 25); // 后排 25-80，偏年轻
-  const gender: 'male' | 'female' = rng() < 0.25 ? 'female' : 'male'; // 25% 女性
+  // 性别基于名字判断，而不是随机分配
+  const gender: 'male' | 'female' = inferGenderFromName(personName);
 
   return {
     id: `${partyId}:${personName}`,
@@ -357,33 +379,45 @@ function generatePoliticalIdeology(
   // 将党派意识形态映射到详细的意识形态
   const primaryIdeology = mapPartyIdeologyToDetailed(party.ideology, rng);
 
-  // 30% 概率有次要意识形态
-  const secondaryIdeology = rng() < 0.3 ? mapPartyIdeologyToDetailed(party.ideology, rng) : undefined;
+  // 次要意识形态：30% 概率有，但必须与主要意识形态不同
+  let secondaryIdeology: import('../types/mp').PoliticalIdeology | undefined = undefined;
+  if (rng() < 0.3) {
+    // 尝试生成不同的次要意识形态
+    let attempts = 0;
+    while (attempts < 10) {
+      const candidate = mapPartyIdeologyToDetailed(party.ideology, rng);
+      if (candidate !== primaryIdeology) {
+        secondaryIdeology = candidate;
+        break;
+      }
+      attempts++;
+    }
+  }
 
   // 经济轴：基于党派意识形态 + 随机偏移
   // -100 (极左) 到 +100 (极右)
   let economicAxis = 0;
   switch (party.ideology) {
     case 'far-left':
-      economicAxis = clamp(-80 + rng() * 30, -100, 100);
+      economicAxis = clamp(-80 + rng() * 30, -100, -20); // -80 ~ -50
       break;
     case 'left':
-      economicAxis = clamp(-50 + rng() * 30, -100, 100);
+      economicAxis = clamp(-50 + rng() * 30, -80, -10); // -50 ~ -20
       break;
     case 'center-left':
-      economicAxis = clamp(-20 + rng() * 30, -100, 100);
+      economicAxis = clamp(-20 + rng() * 30, -40, 10); // -20 ~ +10
       break;
     case 'center':
-      economicAxis = clamp(-10 + rng() * 20, -100, 100);
+      economicAxis = clamp(-10 + rng() * 20, -20, 20); // -10 ~ +10
       break;
     case 'center-right':
-      economicAxis = clamp(10 + rng() * 30, -100, 100);
+      economicAxis = clamp(10 + rng() * 30, -10, 40); // +10 ~ +40
       break;
     case 'right':
-      economicAxis = clamp(40 + rng() * 30, -100, 100);
+      economicAxis = clamp(40 + rng() * 30, 10, 80); // +40 ~ +70
       break;
     case 'far-right':
-      economicAxis = clamp(70 + rng() * 30, -100, 100);
+      economicAxis = clamp(70 + rng() * 30, 50, 100); // +70 ~ +100
       break;
   }
 
@@ -392,11 +426,11 @@ function generatePoliticalIdeology(
   // 极端倾向威权，温和倾向自由
   let socialAxis = 0;
   if (['far-left', 'far-right'].includes(party.ideology)) {
-    socialAxis = clamp(-30 + rng() * 80, -100, 100); // 倾向威权
+    socialAxis = clamp(-30 + rng() * 80, -100, 0); // 倾向威权: -100 ~ 0
   } else if (['center-left', 'center', 'center-right'].includes(party.ideology)) {
-    socialAxis = clamp(20 + rng() * 60, -100, 100); // 倾向自由
+    socialAxis = clamp(20 + rng() * 60, -20, 100); // 倾向自由: -20 ~ +100
   } else {
-    socialAxis = clamp(-10 + rng() * 80, -100, 100);
+    socialAxis = clamp(-10 + rng() * 80, -50, 50); // 中间: -50 ~ +50
   }
 
   return {
@@ -409,45 +443,37 @@ function generatePoliticalIdeology(
 
 /**
  * 将党派意识形态映射到详细意识形态
+ * 确保意识形态在正确的光谱内
  */
 function mapPartyIdeologyToDetailed(
   partyIdeology: import('../types').Ideology,
   rng: () => number,
 ): import('../types/mp').PoliticalIdeology {
-  const ideologies: import('../types/mp').PoliticalIdeology[] = [
-    'socialism', 'communism', 'anarchism', 'syndicalism', 'trotskyism', 'maoism', 'democratic_socialism',
-    'liberalism', 'neoliberalism', 'progressivism', 'libertarianism', 'social_liberalism',
-    'conservatism', 'neoconservatism', 'liberal_conservatism', 'traditionalism',
-    'nationalism', 'fascism', 'chauvinism', 'regionalism',
-    'theocracy', 'fundamentalism', 'secularism',
-    'environmentalism', 'feminism', 'populism', 'authoritarianism', 'technocracy', 'corporatism',
-    'militarism', 'pacifism', 'monarchism', 'republicanism',
-  ];
-
   switch (partyIdeology) {
     case 'far-left':
-      const farLeftOptions = ['socialism', 'communism', 'anarchism', 'syndicalism', 'trotskyism', 'maoism'];
+      const farLeftOptions = ['socialism', 'communism', 'syndicalism', 'trotskyism', 'maoism'];
       return farLeftOptions[Math.floor(rng() * farLeftOptions.length)] as import('../types/mp').PoliticalIdeology;
     case 'left':
-      const leftOptions = ['democratic_socialism', 'socialism', 'progressivism', 'environmentalism', 'feminism'];
+      const leftOptions = ['democratic_socialism', 'socialism', 'progressivism', 'environmentalism'];
       return leftOptions[Math.floor(rng() * leftOptions.length)] as import('../types/mp').PoliticalIdeology;
     case 'center-left':
-      const centerLeftOptions = ['social_liberalism', 'progressivism', 'liberalism', 'environmentalism', 'feminism'];
+      const centerLeftOptions = ['social_liberalism', 'progressivism', 'liberalism', 'environmentalism'];
       return centerLeftOptions[Math.floor(rng() * centerLeftOptions.length)] as import('../types/mp').PoliticalIdeology;
     case 'center':
-      const centerOptions = ['liberalism', 'pragmatic', 'moderate', 'secularism', 'technocracy'];
+      const centerOptions = ['liberalism', 'secularism', 'technocracy', 'progressivism'];
       return centerOptions[Math.floor(rng() * centerOptions.length)] as import('../types/mp').PoliticalIdeology;
     case 'center-right':
-      const centerRightOptions = ['liberal_conservatism', 'conservatism', 'liberalism', 'secularism'];
+      const centerRightOptions = ['liberal_conservatism', 'conservatism', 'secularism'];
       return centerRightOptions[Math.floor(rng() * centerRightOptions.length)] as import('../types/mp').PoliticalIdeology;
     case 'right':
-      const rightOptions = ['conservatism', 'neoconservatism', 'traditionalism', 'nationalism', 'corporatism'];
+      const rightOptions = ['conservatism', 'neoconservatism', 'traditionalism', 'nationalism'];
       return rightOptions[Math.floor(rng() * rightOptions.length)] as import('../types/mp').PoliticalIdeology;
     case 'far-right':
-      const farRightOptions = ['nationalism', 'fascism', 'chauvinism', 'authoritarianism', 'traditionalism', 'theocracy'];
+      const farRightOptions = ['nationalism', 'authoritarianism', 'traditionalism', 'theocracy'];
       return farRightOptions[Math.floor(rng() * farRightOptions.length)] as import('../types/mp').PoliticalIdeology;
     default:
-      return ideologies[Math.floor(rng() * ideologies.length)] as import('../types/mp').PoliticalIdeology;
+      const allOptions = ['liberalism', 'conservatism', 'progressivism', 'secularism'];
+      return allOptions[Math.floor(rng() * allOptions.length)] as import('../types/mp').PoliticalIdeology;
   }
 }
 

@@ -98,7 +98,7 @@ export const initialParties: Party[] = [
     charisma: 74,
   },
   {
-    id: 'green',
+    id: 'solidarity',
     name: '联合劳工党',
     abbreviation: 'ULP',
     color: '#E53935',
