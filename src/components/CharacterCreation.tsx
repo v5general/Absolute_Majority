@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import type { PlayerConfig, Party, Ideology, PersonalityTrait, PoliticalIdeology } from '../types';
+import './CharacterCreation.css';
 import { PERSONALITY_TRAIT_LABELS, POLITICAL_IDEOLOGY_LABELS } from '../types';
 import { initialParties } from '../data/parties';
 import { getLLMConfig, setLLMConfig, testLLMConnection, askLLMText, isLLMAvailable } from '../engine';
@@ -85,33 +86,38 @@ const PartyDetailCard: React.FC<{
   const seatPercent = ((party.projectedSeats / 200) * 100).toFixed(1);
 
   return (
-    <div style={{
-      ...styles.partyCard,
-      borderColor: isSelected ? party.color : 'rgba(192, 168, 130, 0.15)',
-      boxShadow: isSelected ? `0 0 16px ${party.color}30` : 'none',
-    }}>
+    <div
+      className="charCreate-partyCard"
+      style={{
+        borderColor: isSelected ? party.color : 'rgba(192, 168, 130, 0.15)',
+        boxShadow: isSelected ? `0 0 16px ${party.color}30` : 'none',
+      }}
+    >
       {/* 头部：点击选择 + 展开 */}
-      <div style={styles.partyCardHeader} onClick={onSelect}>
-        <div style={styles.partyCardLeft}>
-          <span style={{ ...styles.partyDot, background: party.color }} />
+      <div className="charCreate-partyCardHeader" onClick={onSelect}>
+        <div className="charCreate-partyCardLeft">
+          <span className="charCreate-partyDot" style={{ background: party.color }} />
           <div>
-            <div style={styles.partyCardName}>
+            <div className="charCreate-partyCardName">
               {party.name}
-              <span style={styles.partyCardAbbr}>({party.abbreviation})</span>
+              <span className="charCreate-partyCardAbbr">({party.abbreviation})</span>
             </div>
-            <div style={styles.partyCardSubLine}>
-              <span style={{ ...styles.ideologyTag, color: IDEOLOGY_COLORS[party.ideology], border: `1px solid ${IDEOLOGY_COLORS[party.ideology]}60` }}>
+            <div className="charCreate-partyCardSubLine">
+              <span
+                className="charCreate-ideologyTag"
+                style={{ color: IDEOLOGY_COLORS[party.ideology], border: `1px solid ${IDEOLOGY_COLORS[party.ideology]}60` }}
+              >
                 {IDEOLOGY_LABELS[party.ideology]}
               </span>
-              <span style={styles.partyCardSeats}>{party.projectedSeats} 席 ({seatPercent}%)</span>
-              <span style={styles.partyCardLeader}>党首: {party.leader}</span>
+              <span className="charCreate-partyCardSeats">{party.projectedSeats} 席 ({seatPercent}%)</span>
+              <span className="charCreate-partyCardLeader">党首: {party.leader}</span>
             </div>
           </div>
         </div>
-        <div style={styles.partyCardRight}>
-          {isSelected && <span style={{ ...styles.selectedBadge, background: party.color }}>已选择</span>}
+        <div className="charCreate-partyCardRight">
+          {isSelected && <span className="charCreate-selectedBadge" style={{ background: party.color }}>已选择</span>}
           <button
-            style={styles.expandBtn}
+            className="charCreate-btn charCreate-expandBtn"
             onClick={(e) => { e.stopPropagation(); onToggle(); }}
           >
             {isExpanded ? '▲' : '▼'}
@@ -121,42 +127,42 @@ const PartyDetailCard: React.FC<{
 
       {/* 展开详情 */}
       {isExpanded && (
-        <div style={styles.partyDetail}>
-          <div style={styles.partyDesc}>{party.description}</div>
+        <div className="charCreate-partyDetail">
+          <div className="charCreate-partyDesc">{party.description}</div>
 
-          <div style={styles.partyStats}>
-            <div style={styles.statItem}>
-              <span style={styles.statLabel}>支持率</span>
-              <div style={styles.statBarWrap}>
-                <div style={{ ...styles.statBar, width: `${party.currentSupport}%`, background: party.color }} />
+          <div className="charCreate-partyStats">
+            <div className="charCreate-statItem">
+              <span className="charCreate-statLabel">支持率</span>
+              <div className="charCreate-statBarWrap">
+                <div className="charCreate-statBar" style={{ width: `${party.currentSupport}%`, background: party.color }} />
               </div>
-              <span style={styles.statValue}>{party.currentSupport}%</span>
+              <span className="charCreate-statValue">{party.currentSupport}%</span>
             </div>
-            <div style={styles.statItem}>
-              <span style={styles.statLabel}>组织力</span>
-              <div style={styles.statBarWrap}>
-                <div style={{ ...styles.statBar, width: `${party.organization}%`, background: party.color }} />
+            <div className="charCreate-statItem">
+              <span className="charCreate-statLabel">组织力</span>
+              <div className="charCreate-statBarWrap">
+                <div className="charCreate-statBar" style={{ width: `${party.organization}%`, background: party.color }} />
               </div>
-              <span style={styles.statValue}>{party.organization}</span>
+              <span className="charCreate-statValue">{party.organization}</span>
             </div>
-            <div style={styles.statItem}>
-              <span style={styles.statLabel}>魅力</span>
-              <div style={styles.statBarWrap}>
-                <div style={{ ...styles.statBar, width: `${party.charisma}%`, background: party.color }} />
+            <div className="charCreate-statItem">
+              <span className="charCreate-statLabel">魅力</span>
+              <div className="charCreate-statBarWrap">
+                <div className="charCreate-statBar" style={{ width: `${party.charisma}%`, background: party.color }} />
               </div>
-              <span style={styles.statValue}>{party.charisma}</span>
+              <span className="charCreate-statValue">{party.charisma}</span>
             </div>
-            <div style={styles.statRow}>
-              <span style={styles.statLabel}>资金</span>
-              <span style={styles.statMoney}>{party.funds} 百万</span>
+            <div className="charCreate-statRow">
+              <span className="charCreate-statLabel">资金</span>
+              <span className="charCreate-statMoney">{party.funds} 百万</span>
             </div>
-            <div style={styles.statRow}>
-              <span style={styles.statLabel}>席位数</span>
-              <span style={styles.statSeats}>{party.projectedSeats} / 200</span>
+            <div className="charCreate-statRow">
+              <span className="charCreate-statLabel">席位数</span>
+              <span className="charCreate-statSeats">{party.projectedSeats} / 200</span>
             </div>
-            <div style={styles.statRow}>
-              <span style={styles.statLabel}>主要成员</span>
-              <span style={styles.statMembers}>{party.members.join('、')}</span>
+            <div className="charCreate-statRow">
+              <span className="charCreate-statLabel">主要成员</span>
+              <span className="charCreate-statMembers">{party.members.join('、')}</span>
             </div>
           </div>
         </div>
@@ -408,37 +414,36 @@ export const CharacterCreation: React.FC<CharacterCreationProps> = ({ onComplete
   }
 
   return (
-    <div style={styles.container}>
+    <div className="charCreate-container">
       {/* 全屏背景图 */}
-      <div style={styles.bgImage} />
+      <div className="charCreate-bgImage" />
       {/* 暗角渐变遮罩 */}
-      <div style={styles.vignette} />
-      <div style={styles.card}>
-        <h2 style={styles.title}>创建你的角色</h2>
-        <p style={styles.subtitle}>你是一名新当选的众议院议员。2058年，日本政坛正处于十字路口。</p>
+      <div className="charCreate-vignette" />
+      <div className="charCreate-card">
+        {/* 顶部金色装饰线 */}
+        <div className="charCreate-decorLineTop" />
+        <h2 className="charCreate-title" data-text="创建你的角色">创建你的角色</h2>
+        <p className="charCreate-subtitle">你是一名新当选的众议院议员。2058年，日本政坛正处于十字路口。</p>
 
         {/* ===== 全局设定 ===== */}
-        <button style={styles.settingsToggle} onClick={() => setShowSettings(s => !s)}>
+        <button className="charCreate-btn charCreate-settingsToggle" onClick={() => setShowSettings(s => !s)}>
           {showSettings ? '▼ 全局设定（API 配置）' : '▶ 全局设定（API 配置）'}
         </button>
 
         {showSettings && (
-          <div style={styles.settingsPanel}>
-            <div style={styles.settingsHint}>
+          <div className="charCreate-settingsPanel">
+            <div className="charCreate-settingsHint">
               配置任意 OpenAI 兼容 API 以启用 AI 推演。所有请求直接从浏览器发出，需 API 服务商允许跨域（CORS）。
               没有配置时将使用规则引擎 fallback。
             </div>
 
-            <div style={styles.formGroup}>
-              <label style={styles.label}>服务商预设</label>
-              <div style={styles.presetRow}>
+            <div className="charCreate-formGroup">
+              <label className="charCreate-label">服务商预设</label>
+              <div className="charCreate-presetRow">
                 {PRESETS.map((p, i) => (
                   <button
                     key={i}
-                    style={{
-                      ...styles.presetBtn,
-                      ...(presetIdx === i ? styles.presetBtnActive : {}),
-                    }}
+                    className={`charCreate-btn charCreate-presetBtn ${presetIdx === i ? 'charCreate-presetBtnActive' : ''}`}
                     onClick={() => handlePreset(i)}
                   >
                     {p.label}
@@ -447,20 +452,20 @@ export const CharacterCreation: React.FC<CharacterCreationProps> = ({ onComplete
               </div>
             </div>
 
-            <div style={styles.formGroup}>
-              <label style={styles.label}>API Base URL</label>
+            <div className="charCreate-formGroup">
+              <label className="charCreate-label">API Base URL</label>
               <input
-                style={styles.input}
+                className="charCreate-input"
                 value={baseUrl}
                 onChange={(e) => { setBaseUrl(e.target.value); setPresetIdx(PRESETS.length - 1); }}
                 placeholder="https://api.xxx.com/v1"
               />
             </div>
 
-            <div style={styles.formGroup}>
-              <label style={styles.label}>API Key</label>
+            <div className="charCreate-formGroup">
+              <label className="charCreate-label">API Key</label>
               <input
-                style={styles.input}
+                className="charCreate-input"
                 type="password"
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
@@ -468,22 +473,20 @@ export const CharacterCreation: React.FC<CharacterCreationProps> = ({ onComplete
               />
             </div>
 
-            <div style={styles.formGroup}>
-              <label style={styles.label}>模型名称</label>
+            <div className="charCreate-formGroup">
+              <label className="charCreate-label">模型名称</label>
               <input
-                style={styles.input}
+                className="charCreate-input"
                 value={model}
                 onChange={(e) => { setModel(e.target.value); setPresetIdx(PRESETS.length - 1); }}
                 placeholder="deepseek-chat / gpt-4o-mini / ..."
               />
             </div>
 
-            <div style={styles.testRow}>
+            <div className="charCreate-testRow">
               <button
-                style={{
-                  ...styles.testBtn,
-                  opacity: (baseUrl && apiKey && model && !testing) ? 1 : 0.4,
-                }}
+                className="charCreate-btn charCreate-testBtn"
+                style={{ opacity: (baseUrl && apiKey && model && !testing) ? 1 : 0.4 }}
                 onClick={handleTest}
                 disabled={!baseUrl || !apiKey || !model || testing}
               >
@@ -491,31 +494,31 @@ export const CharacterCreation: React.FC<CharacterCreationProps> = ({ onComplete
               </button>
             </div>
             {testResult?.ok && (
-              <div style={styles.statusOk}>连接成功！模型可用。</div>
+              <div className="charCreate-statusOk">连接成功！模型可用。</div>
             )}
             {testResult && !testResult.ok && (
-              <div style={styles.statusFailBox}>
+              <div className="charCreate-statusFailBox">
                 <div style={{ fontWeight: 700, marginBottom: 4, color: '#e0e0e0' }}>连接失败</div>
-                <div style={styles.statusFailDetail}>{testResult.error}</div>
+                <div className="charCreate-statusFailDetail">{testResult.error}</div>
               </div>
             )}
           </div>
         )}
 
-        <div style={styles.divider} />
+        <div className="charCreate-divider" />
 
         {/* ===== 角色创建 ===== */}
-        <div style={styles.formGroup}>
-          <label style={styles.label}>姓名</label>
-          <div style={styles.nameRow}>
+        <div className="charCreate-formGroup">
+          <label className="charCreate-label">姓名</label>
+          <div className="charCreate-nameRow">
             <input
-              style={{ ...styles.input, ...styles.nameInput }}
+              className="charCreate-input charCreate-nameInput"
               value={lastName}
               onChange={(e) => setLastName(e.target.value)}
               placeholder="姓氏"
             />
             <input
-              style={{ ...styles.input, ...styles.nameInput }}
+              className="charCreate-input charCreate-nameInput"
               value={firstName}
               onChange={(e) => setFirstName(e.target.value)}
               placeholder="名字"
@@ -523,10 +526,10 @@ export const CharacterCreation: React.FC<CharacterCreationProps> = ({ onComplete
           </div>
         </div>
 
-        <div style={styles.formGroup}>
-          <label style={styles.label}>年龄</label>
+        <div className="charCreate-formGroup">
+          <label className="charCreate-label">年龄</label>
           <input
-            style={{ ...styles.input, ...(ageError ? styles.inputError : {}) }}
+            className={`charCreate-input ${ageError ? 'charCreate-inputError' : ''}`}
             type="text"
             inputMode="numeric"
             value={age}
@@ -536,41 +539,37 @@ export const CharacterCreation: React.FC<CharacterCreationProps> = ({ onComplete
             }}
             placeholder="请输入年龄（25-80）"
           />
-          {ageError && <span style={styles.error}>{ageError}</span>}
+          {ageError && <span className="charCreate-error">{ageError}</span>}
         </div>
 
-        <div style={styles.formGroup}>
-          <label style={styles.label}>性别</label>
-          <div style={styles.genderRow}>
+        <div className="charCreate-formGroup">
+          <label className="charCreate-label">性别</label>
+          <div className="charCreate-genderRow">
             <button
-              style={{ ...styles.genderBtn, ...(gender === 'male' ? styles.genderActive : {}) }}
+              className={`charCreate-btn charCreate-genderBtn ${gender === 'male' ? 'charCreate-genderActive' : ''}`}
               onClick={() => setGender('male')}
             >男</button>
             <button
-              style={{ ...styles.genderBtn, ...(gender === 'female' ? styles.genderActive : {}) }}
+              className={`charCreate-btn charCreate-genderBtn ${gender === 'female' ? 'charCreate-genderActive' : ''}`}
               onClick={() => setGender('female')}
             >女</button>
           </div>
         </div>
 
         {/* ===== 性格特质 ===== */}
-        <div style={styles.formGroup}>
-          <label style={styles.label}>
-            性格特质 <span style={styles.requiredMark}>*至少选1个（最多3个）</span>
+        <div className="charCreate-formGroup">
+          <label className="charCreate-label">
+            性格特质 <span className="charCreate-requiredMark">*至少选1个（最多3个）</span>
           </label>
-          <div style={styles.traitGrid}>
+          <div className="charCreate-traitGrid">
             {traitRows.map((row, ri) => (
-              <div key={ri} style={styles.traitRow}>
+              <div key={ri} className="charCreate-traitRow">
                 {row.map(([trait, label]) => {
                   const selected = personalityTraits.includes(trait);
                   return (
                     <button
                       key={trait}
-                      style={{
-                        ...styles.traitBtn,
-                        ...(selected ? styles.traitBtnActive : {}),
-                        ...(personalityTraits.length >= 3 && !selected ? styles.traitBtnDisabled : {}),
-                      }}
+                      className={`charCreate-btn charCreate-traitBtn ${selected ? 'charCreate-traitBtnActive' : ''} ${personalityTraits.length >= 3 && !selected ? 'charCreate-traitBtnDisabled' : ''}`}
                       onClick={() => toggleTrait(trait)}
                       disabled={personalityTraits.length >= 3 && !selected}
                     >
@@ -580,7 +579,7 @@ export const CharacterCreation: React.FC<CharacterCreationProps> = ({ onComplete
                 })}
                 {/* Pad the row if less than 3 */}
                 {row.length < 3 && Array.from({ length: 3 - row.length }).map((_, i) => (
-                  <div key={`pad-${i}`} style={{ ...styles.traitBtn, visibility: 'hidden' }} />
+                  <div key={`pad-${i}`} className="charCreate-traitBtn" style={{ visibility: 'hidden' }} />
                 ))}
               </div>
             ))}
@@ -588,16 +587,13 @@ export const CharacterCreation: React.FC<CharacterCreationProps> = ({ onComplete
         </div>
 
         {/* ===== 意识形态 ===== */}
-        <div style={styles.formGroup}>
-          <label style={styles.label}>
+        <div className="charCreate-formGroup">
+          <label className="charCreate-label">
             政治意识形态
           </label>
           <div style={{ position: 'relative' }}>
             <button
-              style={{
-                ...styles.selectTrigger,
-                ...(ideologyOpen ? styles.selectTriggerOpen : {}),
-              }}
+              className={`charCreate-btn charCreate-selectTrigger ${ideologyOpen ? 'charCreate-selectTriggerOpen' : ''}`}
               onClick={() => setIdeologyOpen(v => !v)}
               type="button"
             >
@@ -608,19 +604,16 @@ export const CharacterCreation: React.FC<CharacterCreationProps> = ({ onComplete
                   ? MERGED_IDEOLOGIES.find(m => m.keys.includes(politicalIdeology))?.label ?? ''
                   : '-- 请选择意识形态 --'}
               </span>
-              <span style={styles.selectArrow}>{ideologyOpen ? '▲' : '▼'}</span>
+              <span className="charCreate-selectArrow">{ideologyOpen ? '▲' : '▼'}</span>
             </button>
             {ideologyOpen && (
-              <div style={styles.selectDropdown}>
+              <div className="charCreate-selectDropdown">
                 {MERGED_IDEOLOGIES.map(({ keys, label }) => {
                   const selected = politicalIdeology !== '' && keys.includes(politicalIdeology);
                   return (
                     <button
                       key={keys[0]}
-                      style={{
-                        ...styles.selectOption,
-                        ...(selected ? styles.selectOptionActive : {}),
-                      }}
+                      className={`charCreate-btn charCreate-selectOption ${selected ? 'charCreate-selectOptionActive' : ''}`}
                       onClick={() => {
                         setPoliticalIdeology(keys[0]);
                         setIdeologyOpen(false);
@@ -637,65 +630,65 @@ export const CharacterCreation: React.FC<CharacterCreationProps> = ({ onComplete
         </div>
 
         {/* ===== 经济立场滑块 ===== */}
-        <div style={styles.formGroup}>
-          <label style={styles.label}>
-            经济立场：<span style={styles.sliderValue}>{getEconomicLabel(economicAxis)}（{economicAxis}）</span>
+        <div className="charCreate-formGroup">
+          <label className="charCreate-label">
+            经济立场：<span className="charCreate-sliderValue">{getEconomicLabel(economicAxis)}（{economicAxis}）</span>
           </label>
-          <div style={styles.sliderContainer}>
-            <span style={styles.sliderEndLabel}>极左</span>
+          <div className="charCreate-sliderContainer">
+            <span className="charCreate-sliderEndLabel">极左</span>
             <input
               type="range"
               min={-100}
               max={100}
               value={economicAxis}
               onChange={(e) => setEconomicAxis(parseInt(e.target.value))}
-              style={styles.slider}
+              className="charCreate-slider"
             />
-            <span style={styles.sliderEndLabel}>极右</span>
+            <span className="charCreate-sliderEndLabel">极右</span>
           </div>
         </div>
 
         {/* ===== 社会立场滑块 ===== */}
-        <div style={styles.formGroup}>
-          <label style={styles.label}>
-            社会立场：<span style={styles.sliderValue}>{getSocialLabel(socialAxis)}（{socialAxis}）</span>
+        <div className="charCreate-formGroup">
+          <label className="charCreate-label">
+            社会立场：<span className="charCreate-sliderValue">{getSocialLabel(socialAxis)}（{socialAxis}）</span>
           </label>
-          <div style={styles.sliderContainer}>
-            <span style={styles.sliderEndLabel}>威权</span>
+          <div className="charCreate-sliderContainer">
+            <span className="charCreate-sliderEndLabel">威权</span>
             <input
               type="range"
               min={-100}
               max={100}
               value={socialAxis}
               onChange={(e) => setSocialAxis(parseInt(e.target.value))}
-              style={styles.slider}
+              className="charCreate-slider"
             />
-            <span style={styles.sliderEndLabel}>激进自由</span>
+            <span className="charCreate-sliderEndLabel">激进自由</span>
           </div>
         </div>
 
         {/* ===== 政治目标 ===== */}
-        <div style={styles.formGroup}>
-          <label style={styles.label}>
+        <div className="charCreate-formGroup">
+          <label className="charCreate-label">
             政治目标
           </label>
           <textarea
-            style={styles.textarea}
+            className="charCreate-textarea"
             value={politicalGoal}
             onChange={(e) => setPoliticalGoal(e.target.value)}
             placeholder="描述你的政治目标，如：推动教育改革、实现社会公平..."
             rows={2}
           />
-          <div style={styles.backgroundActions}>
+          <div className="charCreate-backgroundActions">
             {!preGoalComplete && !hasGoal && (
-              <span style={styles.backgroundWarn}>请先填写上方所有选项</span>
+              <span className="charCreate-backgroundWarn">请先填写上方所有选项</span>
             )}
             {preGoalComplete && !hasGoal && (
-              <span style={styles.backgroundWarn}>请填写政治目标</span>
+              <span className="charCreate-backgroundWarn">请填写政治目标</span>
             )}
             <button
+              className="charCreate-btn charCreate-aiGenBtn"
               style={{
-                ...styles.aiGenBtn,
                 opacity: (!preGoalComplete || generatingGoal) ? 0.4 : 1,
               }}
               onClick={handleAIGenerateGoal}
@@ -707,9 +700,9 @@ export const CharacterCreation: React.FC<CharacterCreationProps> = ({ onComplete
         </div>
 
         {/* ===== 党派选择（可展开详情） ===== */}
-        <div style={styles.formGroup}>
-          <label style={styles.label}>所属党派 <span style={styles.labelHint}>点击选中，点击 ▼ 查看详情</span></label>
-          <div style={styles.partyGrid}>
+        <div className="charCreate-formGroup">
+          <label className="charCreate-label">所属党派 <span className="charCreate-labelHint">点击选中，点击 ▼ 查看详情</span></label>
+          <div className="charCreate-partyGrid">
             {initialParties.map((party) => (
               <PartyDetailCard
                 key={party.id}
@@ -724,30 +717,27 @@ export const CharacterCreation: React.FC<CharacterCreationProps> = ({ onComplete
         </div>
 
         {/* ===== 背景故事（必填） ===== */}
-        <div style={styles.formGroup}>
-          <label style={styles.label}>
+        <div className="charCreate-formGroup">
+          <label className="charCreate-label">
             背景故事
           </label>
           <textarea
-            style={{
-              ...styles.textarea,
-              ...(!hasBackground && background.trim().length === 0 && background.length > 0 ? styles.inputError : {}),
-            }}
+            className="charCreate-textarea"
             value={background}
             onChange={(e) => setBackground(e.target.value)}
             placeholder="简述你的从政经历和从政动机（必须填写才能进入国会）..."
             rows={4}
           />
-          <div style={styles.backgroundActions}>
+          <div className="charCreate-backgroundActions">
             {!preBackgroundComplete && !hasBackground && (
-              <span style={styles.backgroundWarn}>请先填写上方所有选项</span>
+              <span className="charCreate-backgroundWarn">请先填写上方所有选项</span>
             )}
             {preBackgroundComplete && !hasBackground && (
-              <span style={styles.backgroundWarn}>没有背景设定不能进入国会</span>
+              <span className="charCreate-backgroundWarn">没有背景设定不能进入国会</span>
             )}
             <button
+              className="charCreate-btn charCreate-aiGenBtn"
               style={{
-                ...styles.aiGenBtn,
                 opacity: (!preBackgroundComplete || generating) ? 0.4 : 1,
               }}
               onClick={handleAIGenerate}
@@ -759,14 +749,13 @@ export const CharacterCreation: React.FC<CharacterCreationProps> = ({ onComplete
         </div>
 
         <button
-          style={{
-            ...styles.submitBtn,
-            ...(canSubmit ? {} : styles.submitDisabled),
-            ...(canSubmit ? {
+          className={`charCreate-btn charCreate-submitBtn ${canSubmit ? '' : 'charCreate-submitDisabled'}`}
+          style={
+            canSubmit ? {
               border: `1px solid rgba(192, 168, 130, 0.55)`,
               boxShadow: `0 0 16px rgba(192, 168, 130, 0.15)`,
-            } : {}),
-          }}
+            } : {}
+          }
           onClick={handleSubmit}
           disabled={!canSubmit}
         >

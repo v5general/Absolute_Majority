@@ -1,0 +1,844 @@
+/* ===== 角色创建界面 - 启动界面风格 ===== */
+
+/* 字体引入 */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700;900&family=Cinzel:wght@400;700&display=swap');
+
+/* ===== 全局容器 ===== */
+.charCreate-container {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+  padding: 24px;
+  font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", "SimSun", serif;
+  overflow-y: scroll;
+}
+
+/* ===== 背景图 - 入场缩放动画 ===== */
+.charCreate-bgImage {
+  position: fixed;
+  inset: 0;
+  background-image: url(/character-create-bg.png);
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  z-index: 0;
+  transform: scale(1.06);
+  animation: charCreateBgZoomIn 1.2s ease-out forwards;
+  animation-delay: 0.3s;
+}
+
+@keyframes charCreateBgZoomIn {
+  to {
+    transform: scale(1);
+  }
+}
+
+/* ===== 暗角渐变遮罩 ===== */
+.charCreate-vignette {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.12) 0%, rgba(0, 0, 0, 0.35) 80%, rgba(0, 0, 0, 0.6) 100%);
+  pointer-events: none;
+}
+
+/* ===== 主卡片 ===== */
+.charCreate-card {
+  position: relative;
+  z-index: 1;
+  max-width: 640px;
+  width: 100%;
+  background: linear-gradient(135deg, rgba(5, 8, 14, 0.72), rgba(20, 18, 14, 0.85));
+  border-radius: 4px;
+  border: 1px solid rgba(192, 168, 130, 0.35);
+  padding: 32px 28px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6),
+              inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  animation: charCreateCardFadeIn 0.8s ease-out forwards;
+  animation-delay: 0.4s;
+  opacity: 0;
+  transform: none !important;
+}
+
+@keyframes charCreateCardFadeIn {
+  to {
+    opacity: 1;
+  }
+}
+
+/* 确保卡片在任何情况下都不缩放 */
+.charCreate-card:hover,
+.charCreate-card:active {
+  transform: none !important;
+}
+
+/* ===== 标题区域 ===== */
+.charCreate-title {
+  margin: 0;
+  font-size: 32px;
+  font-weight: 900;
+  font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", "SimSun", serif;
+  background: linear-gradient(180deg, #E8D9B0 0%, #D4C5A0 30%, #A08B6B 70%, #8B7355 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-align: center;
+  letter-spacing: 0.3em;
+  line-height: 1.2;
+  position: relative;
+}
+
+/* 标题外发光 */
+.charCreate-title::after {
+  content: attr(data-text);
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: -1;
+  background: linear-gradient(180deg, #E8D9B0, #A08B6B);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: blur(6px);
+  opacity: 0.3;
+}
+
+.charCreate-subtitle {
+  font-size: 15px;
+  color: rgba(212, 197, 160, 0.65);
+  text-align: center;
+  margin: 10px 0 28px;
+  letter-spacing: 0.2em;
+  font-family: "Noto Serif SC", "Source Han Serif SC", serif;
+  font-weight: 400;
+}
+
+/* ===== 顶部金色装饰线 ===== */
+.charCreate-decorLineTop {
+  width: 25%;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(192, 168, 130, 0.6), rgba(192, 168, 130, 0.2), transparent);
+  margin: 0 auto 24px;
+  box-shadow: 0 0 6px rgba(192, 168, 130, 0.2);
+}
+
+/* ===== 表单组 ===== */
+.charCreate-formGroup {
+  margin-bottom: 20px;
+}
+
+.charCreate-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(212, 197, 160, 0.75);
+  margin-bottom: 8px;
+  font-family: "Noto Serif SC", "Source Han Serif SC", serif;
+  letter-spacing: 0.1em;
+}
+
+.charCreate-labelHint {
+  font-size: 11px;
+  color: rgba(192, 168, 130, 0.4);
+  font-weight: 400;
+  margin-left: 6px;
+}
+
+.charCreate-requiredMark {
+  color: #EF9A9A;
+  font-size: 11px;
+  font-weight: 400;
+}
+
+/* ===== 输入框 ===== */
+.charCreate-input {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 4px;
+  border: 1px solid rgba(192, 168, 130, 0.25);
+  background: rgba(0, 0, 0, 0.45);
+  color: #e0e0e0;
+  font-size: 15px;
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.26s ease, box-shadow 0.26s ease;
+  font-family: "Noto Serif SC", serif;
+}
+
+.charCreate-input:focus {
+  border-color: rgba(212, 197, 160, 0.6);
+  box-shadow: 0 0 12px rgba(212, 197, 160, 0.15);
+}
+
+.charCreate-input::placeholder {
+  color: rgba(192, 168, 130, 0.3);
+}
+
+.charCreate-inputError {
+  border: 1px solid rgba(239, 83, 80, 0.6);
+  box-shadow: 0 0 12px rgba(239, 83, 80, 0.2);
+}
+
+.charCreate-error {
+  display: block;
+  font-size: 12px;
+  color: #EF9A9A;
+  margin-top: 6px;
+}
+
+/* ===== Textarea ===== */
+.charCreate-textarea {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 4px;
+  border: 1px solid rgba(192, 168, 130, 0.25);
+  background: rgba(0, 0, 0, 0.45);
+  color: #e0e0e0;
+  font-size: 15px;
+  resize: vertical;
+  box-sizing: border-box;
+  font-family: "Noto Serif SC", serif;
+  line-height: 1.7;
+  outline: none;
+  transition: border-color 0.26s ease, box-shadow 0.26s ease;
+}
+
+.charCreate-textarea:focus {
+  border-color: rgba(212, 197, 160, 0.6);
+  box-shadow: 0 0 12px rgba(212, 197, 160, 0.15);
+}
+
+.charCreate-textarea::placeholder {
+  color: rgba(192, 168, 130, 0.3);
+}
+
+/* ===== 按钮基础样式 ===== */
+.charCreate-btn {
+  border-radius: 4px;
+  border: 1px solid rgba(192, 168, 130, 0.3);
+  background: rgba(0, 0, 0, 0.5);
+  color: rgba(212, 197, 160, 0.7);
+  font-size: 14px;
+  font-family: "Noto Serif SC", serif;
+  cursor: pointer;
+  transition: transform 0.26s ease, border-color 0.26s ease, background 0.26s ease, box-shadow 0.26s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.charCreate-btn:hover {
+  border-color: rgba(192, 168, 130, 0.55);
+  background: rgba(0, 0, 0, 0.65);
+  transform: scale(1.05);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.charCreate-btn:active {
+  transform: scale(1.02);
+}
+
+/* 按钮扫光效果 */
+.charCreate-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(192, 168, 130, 0.12),
+    rgba(212, 197, 160, 0.2),
+    rgba(192, 168, 130, 0.12),
+    transparent
+  );
+  transform: skewX(-20deg);
+  transition: left 0.5s ease;
+  pointer-events: none;
+}
+
+.charCreate-btn:hover::before {
+  left: 150%;
+  transition: left 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* ===== 特定按钮样式 ===== */
+.charCreate-settingsToggle {
+  width: 100%;
+  padding: 12px 16px;
+  text-align: left;
+  margin-bottom: 12px;
+}
+
+.charCreate-settingsPanel {
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 4px;
+  padding: 16px;
+  margin-bottom: 20px;
+  border: 1px solid rgba(192, 168, 130, 0.2);
+}
+
+.charCreate-settingsHint {
+  font-size: 12px;
+  color: rgba(192, 168, 130, 0.5);
+  margin-bottom: 16px;
+  line-height: 1.6;
+}
+
+/* ===== 预设按钮组 ===== */
+.charCreate-presetRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.charCreate-presetBtn {
+  padding: 6px 14px;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.35);
+  color: rgba(192, 168, 130, 0.55);
+  font-size: 12px;
+}
+
+.charCreate-presetBtn:hover {
+  border-color: rgba(192, 168, 130, 0.45);
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.charCreate-presetBtnActive {
+  border-color: rgba(212, 197, 160, 0.6);
+  color: rgba(212, 197, 160, 0.85);
+  background: rgba(212, 197, 160, 0.1);
+}
+
+/* ===== 测试按钮 ===== */
+.charCreate-testRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.charCreate-testBtn {
+  padding: 10px 24px;
+  border-radius: 3px;
+  border-color: rgba(212, 197, 160, 0.5);
+  background: rgba(0, 0, 0, 0.5);
+  color: rgba(212, 197, 160, 0.8);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.charCreate-statusOk {
+  font-size: 12px;
+  color: #81C784;
+  font-weight: 700;
+  margin-top: 10px;
+  padding: 8px 12px;
+  background: rgba(129, 199, 132, 0.12);
+  border-radius: 4px;
+  border: 1px solid rgba(129, 199, 132, 0.25);
+  font-family: "Noto Serif SC", serif;
+}
+
+.charCreate-statusFailBox {
+  margin-top: 10px;
+  padding: 10px 12px;
+  background: rgba(239, 83, 80, 0.12);
+  border-radius: 4px;
+  border: 1px solid rgba(239, 83, 80, 0.3);
+}
+
+.charCreate-statusFailDetail {
+  font-size: 11px;
+  color: #EF9A9A;
+  word-break: break-all;
+  line-height: 1.5;
+  font-family: monospace;
+  margin-top: 4px;
+}
+
+/* ===== 分割线 ===== */
+.charCreate-divider {
+  border-bottom: 1px solid rgba(192, 168, 130, 0.2);
+  margin: 20px 0;
+}
+
+/* ===== 姓名输入 ===== */
+.charCreate-nameRow {
+  display: flex;
+  gap: 12px;
+}
+
+.charCreate-nameInput {
+  flex: 1;
+}
+
+/* ===== 性别选择 ===== */
+.charCreate-genderRow {
+  display: flex;
+  gap: 12px;
+}
+
+.charCreate-genderBtn {
+  padding: 10px 28px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.45);
+  color: rgba(192, 168, 130, 0.55);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.charCreate-genderBtn:hover {
+  border-color: rgba(192, 168, 130, 0.4);
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.charCreate-genderActive {
+  border-color: rgba(212, 197, 160, 0.6);
+  color: rgba(212, 197, 160, 0.85);
+  background: rgba(212, 197, 160, 0.12);
+}
+
+/* ===== 性格特质网格 ===== */
+.charCreate-traitGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.charCreate-traitRow {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.charCreate-traitBtn {
+  padding: 8px 10px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.35);
+  color: rgba(192, 168, 130, 0.6);
+  font-size: 13px;
+  text-align: center;
+}
+
+.charCreate-traitBtn:hover:not(:disabled) {
+  border-color: rgba(192, 168, 130, 0.4);
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.charCreate-traitBtnActive {
+  border-color: rgba(212, 197, 160, 0.6);
+  color: rgba(212, 197, 160, 0.85);
+  background: rgba(212, 197, 160, 0.12);
+  font-weight: 700;
+}
+
+.charCreate-traitBtnDisabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* ===== 自定义下拉框 ===== */
+.charCreate-selectTrigger {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 4px;
+  border: 1px solid rgba(192, 168, 130, 0.25);
+  background: rgba(0, 0, 0, 0.45);
+  color: #e0e0e0;
+  font-size: 15px;
+  box-sizing: border-box;
+  cursor: pointer;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: "Noto Serif SC", serif;
+  transition: border-color 0.26s ease, background 0.26s ease, box-shadow 0.26s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.charCreate-selectTrigger:hover {
+  border-color: rgba(192, 168, 130, 0.35);
+  background: rgba(0, 0, 0, 0.5);
+  transform: none !important;
+}
+
+.charCreate-selectTriggerOpen {
+  border-color: rgba(212, 197, 160, 0.6);
+  border-radius: 4px 4px 0 0;
+  box-shadow: 0 0 12px rgba(212, 197, 160, 0.15);
+}
+
+.charCreate-selectArrow {
+  font-size: 11px;
+  color: rgba(212, 197, 160, 0.5);
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+.charCreate-selectDropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  max-height: 260px;
+  overflow-y: auto;
+  background: rgba(0, 0, 0, 0.85);
+  border: 1px solid rgba(212, 197, 160, 0.5);
+  border-top: none;
+  border-radius: 0 0 4px 4px;
+  z-index: 100;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.charCreate-selectOption {
+  width: 100%;
+  padding: 10px 16px;
+  border: none;
+  background: transparent;
+  color: rgba(212, 197, 160, 0.7);
+  font-size: 14px;
+  cursor: pointer;
+  text-align: left;
+  font-family: "Noto Serif SC", serif;
+  transition: all 0.15s;
+  letter-spacing: 0.1em;
+}
+
+.charCreate-selectOption:hover {
+  color: rgba(212, 197, 160, 0.9);
+  background: rgba(212, 197, 160, 0.1);
+  transform: none !important;
+}
+
+.charCreate-selectOptionActive {
+  color: rgba(212, 197, 160, 0.95);
+  background: rgba(212, 197, 160, 0.15);
+  font-weight: 700;
+}
+
+/* 禁用下拉框的扫光效果和缩放 */
+.charCreate-selectTrigger::before,
+.charCreate-selectOption::before {
+  display: none;
+}
+
+.charCreate-selectTrigger:active,
+.charCreate-selectOption:active {
+  transform: none !important;
+}
+
+/* ===== 滑块 ===== */
+.charCreate-sliderContainer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.charCreate-slider {
+  flex: 1;
+  cursor: pointer;
+  accent-color: #C0A882;
+}
+
+.charCreate-sliderEndLabel {
+  font-size: 11px;
+  color: rgba(192, 168, 130, 0.5);
+  font-weight: 600;
+  white-space: nowrap;
+  min-width: 50px;
+}
+
+.charCreate-sliderValue {
+  color: rgba(212, 197, 160, 0.85);
+  font-weight: 700;
+}
+
+/* ===== 党派卡片 ===== */
+.charCreate-partyGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.charCreate-partyCard {
+  border-radius: 4px;
+  border: 1px solid rgba(192, 168, 130, 0.2);
+  background: rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+  transition: all 0.26s ease;
+}
+
+.charCreate-partyCard:hover {
+  border-color: rgba(192, 168, 130, 0.3);
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.charCreate-partyCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.charCreate-partyCardHeader:hover {
+  background: rgba(212, 197, 160, 0.06);
+}
+
+.charCreate-partyCardLeft {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.charCreate-partyCardRight {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.charCreate-partyDot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 8px currentColor;
+}
+
+.charCreate-partyCardName {
+  font-size: 16px;
+  font-weight: 700;
+  color: #e8e8e8;
+}
+
+.charCreate-partyCardAbbr {
+  font-size: 12px;
+  color: rgba(192, 168, 130, 0.45);
+  margin-left: 6px;
+  font-weight: 400;
+}
+
+.charCreate-partyCardSubLine {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+
+.charCreate-ideologyTag {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 10px;
+  border-radius: 3px;
+  border: 1px solid;
+  line-height: 20px;
+}
+
+.charCreate-partyCardSeats {
+  font-size: 12px;
+  color: rgba(212, 197, 160, 0.6);
+  font-weight: 600;
+}
+
+.charCreate-partyCardLeader {
+  font-size: 11px;
+  color: rgba(192, 168, 130, 0.4);
+}
+
+.charCreate-selectedBadge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 12px;
+  border-radius: 3px;
+  color: #fff;
+  letter-spacing: 0.1em;
+}
+
+.charCreate-expandBtn {
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  border: 1px solid rgba(192, 168, 130, 0.25);
+  background: rgba(0, 0, 0, 0.35);
+  color: rgba(212, 197, 160, 0.5);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+}
+
+.charCreate-expandBtn:hover {
+  border-color: rgba(192, 168, 130, 0.4);
+  background: rgba(0, 0, 0, 0.45);
+  color: rgba(212, 197, 160, 0.7);
+}
+
+/* ===== 党派详情 ===== */
+.charCreate-partyDetail {
+  padding: 0 16px 16px;
+  border-top: 1px solid rgba(192, 168, 130, 0.15);
+}
+
+.charCreate-partyDesc {
+  font-size: 13px;
+  color: rgba(212, 197, 160, 0.7);
+  line-height: 1.7;
+  margin-top: 14px;
+  margin-bottom: 16px;
+}
+
+.charCreate-partyStats {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.charCreate-statItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.charCreate-statLabel {
+  font-size: 12px;
+  color: rgba(212, 197, 160, 0.5);
+  font-weight: 600;
+  width: 60px;
+  flex-shrink: 0;
+}
+
+.charCreate-statBarWrap {
+  flex: 1;
+  height: 6px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.charCreate-statBar {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s;
+  opacity: 0.85;
+}
+
+.charCreate-statValue {
+  font-size: 12px;
+  color: rgba(212, 197, 160, 0.75);
+  font-weight: 700;
+  width: 36px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.charCreate-statRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.charCreate-statMoney {
+  font-size: 13px;
+  color: #FFD54F;
+  font-weight: 700;
+}
+
+.charCreate-statSeats {
+  font-size: 13px;
+  color: rgba(212, 197, 160, 0.85);
+  font-weight: 700;
+}
+
+.charCreate-statMembers {
+  font-size: 12px;
+  color: rgba(192, 168, 130, 0.5);
+  line-height: 1.5;
+}
+
+/* ===== 背景故事操作 ===== */
+.charCreate-backgroundActions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.charCreate-backgroundWarn {
+  font-size: 12px;
+  color: #EF9A9A;
+  font-weight: 600;
+}
+
+.charCreate-aiGenBtn {
+  padding: 9px 18px;
+  border-radius: 4px;
+  border-color: rgba(212, 197, 160, 0.55);
+  background: rgba(0, 0, 0, 0.55);
+  color: rgba(212, 197, 160, 0.85);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.charCreate-aiGenBtn:hover:not(:disabled) {
+  border-color: rgba(212, 197, 160, 0.7);
+  background: rgba(0, 0, 0, 0.65);
+}
+
+/* ===== 提交按钮 ===== */
+.charCreate-submitBtn {
+  width: 100%;
+  padding: 16px 0;
+  border-radius: 4px;
+  border: 1px solid rgba(192, 168, 130, 0.4);
+  background: linear-gradient(135deg, rgba(5, 8, 14, 0.65), rgba(20, 18, 14, 0.75));
+  color: rgba(212, 197, 160, 0.85);
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 0.4em;
+  margin-top: 12px;
+  font-family: "Noto Serif SC", "Source Han Serif SC", serif;
+}
+
+.charCreate-submitBtn:hover:not(:disabled) {
+  border-color: rgba(212, 197, 160, 0.7);
+  background: linear-gradient(135deg, rgba(5, 8, 14, 0.75), rgba(20, 18, 14, 0.85));
+  box-shadow: 0 0 20px rgba(212, 197, 160, 0.2);
+}
+
+.charCreate-submitDisabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ===== 响应式 ===== */
+@media (max-width: 768px) {
+  .charCreate-card {
+    padding: 24px 20px;
+  }
+
+  .charCreate-title {
+    font-size: 26px;
+  }
+
+  .charCreate-traitRow {
+    grid-template-columns: 1fr 1fr;
+  }
+}
