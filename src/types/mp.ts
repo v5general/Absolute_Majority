@@ -96,7 +96,7 @@ export type PoliticalIdeology =
   | 'syndicalism'      // 工团主义 - 工人自治，工会掌权
   | 'trotskyism'       // 托洛茨基主义 - 世界革命，不断革命
   | 'maoism'          // 毛主义 - 农村包围城市，人民战争
-  | 'democratic_socialism'  // 民主社会主义 - 民主框架内实现社会主义
+  | 'democratic_socialism'  // 社会民主主义 - 民主框架内实现社会主义
   // 自由主义意识形态
   | 'liberalism'       // 自由主义 - 个人自由，市场经济
   | 'neoliberalism'    // 新自由主义 - 经济自由化，私有化
@@ -133,7 +133,7 @@ export type PoliticalIdeology =
 export const POLITICAL_IDEOLOGY_LABELS: Record<PoliticalIdeology, string> = {
   socialism: '社会主义', communism: '共产主义', anarchism: '无政府主义',
   syndicalism: '工团主义', trotskyism: '托洛茨基主义', maoism: '毛主义',
-  democratic_socialism: '民主社会主义',
+  democratic_socialism: '社会民主主义',
   liberalism: '自由主义', neoliberalism: '新自由主义', progressivism: '进步主义',
   libertarianism: '自由意志主义', social_liberalism: '社会自由主义',
   conservatism: '保守主义', neoconservatism: '新保守主义',

@@ -44,7 +44,7 @@ const ALL_TRAITS = Object.entries(PERSONALITY_TRAIT_LABELS) as [PersonalityTrait
 // 意识形态合并映射：多个 key 共用同一标签，选择时任选一个即可
 const MERGED_IDEOLOGIES: Array<{ keys: PoliticalIdeology[]; label: string }> = [
   { keys: ['socialism', 'communism'], label: '社会主义·共产主义' },
-  { keys: ['democratic_socialism'], label: '民主社会主义' },
+  { keys: ['democratic_socialism'], label: '社会民主主义' },
   { keys: ['anarchism'], label: '无政府主义' },
   { keys: ['syndicalism'], label: '工团主义' },
   { keys: ['trotskyism'], label: '托洛茨基主义' },
