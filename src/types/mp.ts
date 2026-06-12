@@ -110,7 +110,7 @@ export type PoliticalIdeology =
   | 'traditionalism'   // 传统主义 - 宗教/文化传统至上
   // 民族主义意识形态
   | 'nationalism'     // 民族主义 - 民族利益至上
-  | 'fascism'         // 法西斯主义 - 极端民族主义，威权统治
+  | 'fascism'         // 法西斯主义 - 极端民族主义，极权统治
   | 'chauvinism'      // 沙文主义 - 极端民族优越感
   | 'regionalism'     // 地方主义 - 地方自治，区域利益
   // 宗教意识形态
