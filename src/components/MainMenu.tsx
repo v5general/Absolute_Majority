@@ -145,14 +145,17 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartNew, onResume }) => {
     if (!el || !entranceDone) return;
 
     const onWheel = (e: WheelEvent) => {
-      const step = Math.sign(e.deltaY) * Math.min(Math.abs(e.deltaY) * 0.3, 10);
+      const absDelta = Math.abs(e.deltaY);
+      const step = Math.sign(e.deltaY) * Math.min(absDelta * 0.4, 12);
       setBouncing(false);
       setBounceOffset(prev => Math.max(-MAX_BOUNCE, Math.min(MAX_BOUNCE, prev - step)));
       if (bounceTimerRef.current) clearTimeout(bounceTimerRef.current);
+      // 惯性衰减（deltaY 变小）时缩短等待，快速弹回
+      const debounceMs = absDelta < 3 ? 30 : absDelta < 10 ? 50 : 80;
       bounceTimerRef.current = setTimeout(() => {
         setBounceOffset(0);
         setBouncing(true);
-      }, 120);
+      }, debounceMs);
     };
 
     el.addEventListener('wheel', onWheel, { passive: true });
