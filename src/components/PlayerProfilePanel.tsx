@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import type { PlayerConfig, Party } from '../types';
 import { PERSONALITY_TRAIT_LABELS, POLITICAL_IDEOLOGY_LABELS, derivePlayerAbilities } from '../types';
 
@@ -41,7 +42,7 @@ const getSocialLabel = (v: number) => {
   return '激进自由';
 };
 
-/** 可展开文本行：截断显示 + 右侧下拉箭头，点击弹出完整内容 */
+/** 可展开文本行：截断显示 + 右侧下拉箭头，点击弹出完整内容（portal 挂到 body） */
 const ExpandableText: React.FC<{
   title: string;
   text: string;
@@ -59,7 +60,7 @@ const ExpandableText: React.FC<{
           {'▼'}
         </button>
       </div>
-      {expanded && (
+      {expanded && createPortal(
         <div style={mpStyles.popupOverlay} onClick={() => setExpanded(false)}>
           <div style={mpStyles.popupBox} onClick={(e) => e.stopPropagation()}>
             <div style={mpStyles.popupHeader}>
@@ -68,7 +69,8 @@ const ExpandableText: React.FC<{
             </div>
             <div style={mpStyles.popupBody}>{text}</div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </>
   );
