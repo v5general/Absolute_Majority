@@ -251,6 +251,7 @@ export const CharacterCreation: React.FC<CharacterCreationProps> = ({ onComplete
   const [personalityTraits, setPersonalityTraits] = useState<PersonalityTrait[]>([]);
   const [ideologyOpen, setIdeologyOpen] = useState(false);
   const [politicalIdeology, setPoliticalIdeology] = useState<PoliticalIdeology | ''>('');
+  const [hoveredIdeologyLabel, setHoveredIdeologyLabel] = useState<string>('');
   const [economicAxis, setEconomicAxis] = useState(0);
   const [socialAxis, setSocialAxis] = useState(0);
   const [politicalGoal, setPoliticalGoal] = useState('');
@@ -644,7 +645,7 @@ export const CharacterCreation: React.FC<CharacterCreationProps> = ({ onComplete
         <div className="charCreate-formGroup">
           <label className="charCreate-label">
             政治意识形态
-            {politicalIdeology && (
+            {(politicalIdeology || hoveredIdeologyLabel) && (
               <span style={{
                 fontSize: '11px',
                 color: 'rgba(212, 197, 160, 0.5)',
@@ -652,7 +653,7 @@ export const CharacterCreation: React.FC<CharacterCreationProps> = ({ onComplete
                 marginLeft: '8px',
                 maxWidth: '300px',
               }}>
-                — {IDEOLOGY_DESCRIPTIONS[MERGED_IDEOLOGIES.find(m => m.keys.includes(politicalIdeology))?.label ?? '']}
+                — {IDEOLOGY_DESCRIPTIONS[politicalIdeology || hoveredIdeologyLabel] || ''}
               </span>
             )}
           </label>
@@ -683,6 +684,8 @@ export const CharacterCreation: React.FC<CharacterCreationProps> = ({ onComplete
                         setPoliticalIdeology(keys[0]);
                         setIdeologyOpen(false);
                       }}
+                      onMouseEnter={() => setHoveredIdeologyLabel(label)}
+                      onMouseLeave={() => setHoveredIdeologyLabel('')}
                       type="button"
                     >
                       {label}
