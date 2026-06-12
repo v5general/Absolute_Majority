@@ -75,6 +75,60 @@ const MERGED_IDEOLOGIES: Array<{ keys: PoliticalIdeology[]; label: string }> = [
   { keys: ['republicanism'], label: '共和主义' },
 ];
 
+// 意识形态含义阐述
+const IDEOLOGY_DESCRIPTIONS: Record<string, string> = {
+  '社会主义·共产主义': '追求公有制和阶级平等，通过革命或渐进方式实现社会主义经济制度',
+  '社会民主主义': '在资本主义框架内，通过福利国家和政策干预实现社会公正和改良',
+  '无政府主义': '废除国家机器，建立基于自愿合作的无政府社会',
+  '工团主义': '工人自治，工会掌管生产和分配，反对资本主义剥削',
+  '托洛茨基主义': '世界革命，不断革命，反对官僚主义的一国社会主义',
+  '毛主义': '农村包围城市，人民战争，发动群众进行阶级斗争',
+  '自由主义': '个人自由和权利至上，支持市场经济和有限政府',
+  '新自由主义': '经济自由化，私有化，放松管制，强调市场竞争',
+  '进步主义': '推动社会改革和科学技术进步，反对保守和停滞',
+  '自由意志主义': '最小政府，最大个人自治，强调自由市场和公民自由',
+  '社会自由主义': '经济自由结合社会福利，追求社会正义和个人自由',
+  '保守主义': '维护传统价值观，渐进改革，重视秩序和稳定',
+  '新保守主义': '强力政府，干预主义，在国内外推行保守价值观',
+  '自由保守主义': '经济保守结合社会自由，平衡传统与现代性',
+  '传统主义': '宗教/文化传统至上，反对激进变革和社会转型',
+  '民族主义': '民族利益至上，强调民族认同和国家主权',
+  '法西斯主义·沙文主义': '极端民族主义，威权统治，崇尚暴力和战争',
+  '地方主义': '地方自治优先，区域利益和本地文化保护',
+  '神权政治·原教旨主义': '宗教法则统治，严格遵循宗教教义和法律',
+  '世俗主义': '政教分离，宗教不得干预政治和法律',
+  '环保主义': '环境保护优先，可持续发展，反对污染和破坏生态',
+  '女权主义': '性别平等，反对性别歧视，推动女性权利和机会平等',
+  '民粹主义': '人民对抗精英，反建制，强调平民意志和直接民主',
+  '威权主义': '强力领导，秩序优先，限制部分自由以维持稳定',
+  '技术官僚主义': '专家治国，技术精英治理，强调科学性和效率',
+  '统合主义': '阶级合作，团体协商，各利益集团参与决策',
+  '军国主义': '军事扩张，武力至上，通过军事手段实现国家目标',
+  '和平主义': '反对战争，非暴力，和平解决国际冲突',
+  '君主主义': '保留君主或君主立宪，传统王权象征性存在',
+  '共和主义': '共和体制，反对君主制，强调公民参与和政治平等',
+};
+
+// 经济立场含义
+const ECONOMIC_DESCRIPTIONS: Record<string, string> = {
+  '极左': '全面公有制，计划经济，国家控制所有生产资料',
+  '左': '公有制为主，有限市场，强调国家干预和财富再分配',
+  '中间偏左': '混合经济，偏向国家调控，重视社会福利和公共服务',
+  '中间': '市场经济与政府干预平衡，兼顾效率和公平',
+  '中间偏右': '市场主导，有限政府，鼓励私营企业和投资',
+  '右': '私有制和市场经济为主，减少政府干预和管制',
+  '极右': '完全自由市场，最小政府，废除大部分经济管制',
+};
+
+// 社会立场含义
+const SOCIAL_DESCRIPTIONS: Record<string, string> = {
+  '威权': '强力维护社会秩序，限制部分个人自由以保持稳定',
+  '保守': '重视传统价值观和道德标准，渐进式社会变革',
+  '自由': '平衡个人自由和社会秩序，支持多元化和包容性',
+  '进步': '推动社会改革和进步价值观，重视平等和多样性',
+  '激进自由': '最大化个人自由，反对传统束缚，激进社会变革',
+};
+
 /** 政党详情展开卡片 */
 const PartyDetailCard: React.FC<{
   party: Party;
@@ -590,6 +644,17 @@ export const CharacterCreation: React.FC<CharacterCreationProps> = ({ onComplete
         <div className="charCreate-formGroup">
           <label className="charCreate-label">
             政治意识形态
+            {politicalIdeology && (
+              <span style={{
+                fontSize: '11px',
+                color: 'rgba(212, 197, 160, 0.5)',
+                fontWeight: 400,
+                marginLeft: '8px',
+                maxWidth: '300px',
+              }}>
+                — {IDEOLOGY_DESCRIPTIONS[MERGED_IDEOLOGIES.find(m => m.keys.includes(politicalIdeology))?.label ?? '']}
+              </span>
+            )}
           </label>
           <div style={{ position: 'relative' }}>
             <button
@@ -631,8 +696,13 @@ export const CharacterCreation: React.FC<CharacterCreationProps> = ({ onComplete
 
         {/* ===== 经济立场滑块 ===== */}
         <div className="charCreate-formGroup">
-          <label className="charCreate-label">
-            经济立场：<span className="charCreate-sliderValue">{getEconomicLabel(economicAxis)}（{economicAxis}）</span>
+          <label className="charCreate-label" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <div>
+              经济立场：<span className="charCreate-sliderValue">{getEconomicLabel(economicAxis)}（{economicAxis}）</span>
+            </div>
+            <div style={{ fontSize: '11px', color: 'rgba(212, 197, 160, 0.5)', fontWeight: 400, lineHeight: '1.4' }}>
+              {ECONOMIC_DESCRIPTIONS[getEconomicLabel(economicAxis)]}
+            </div>
           </label>
           <div className="charCreate-sliderContainer">
             <span className="charCreate-sliderEndLabel">极左</span>
@@ -650,8 +720,13 @@ export const CharacterCreation: React.FC<CharacterCreationProps> = ({ onComplete
 
         {/* ===== 社会立场滑块 ===== */}
         <div className="charCreate-formGroup">
-          <label className="charCreate-label">
-            社会立场：<span className="charCreate-sliderValue">{getSocialLabel(socialAxis)}（{socialAxis}）</span>
+          <label className="charCreate-label" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <div>
+              社会立场：<span className="charCreate-sliderValue">{getSocialLabel(socialAxis)}（{socialAxis}）</span>
+            </div>
+            <div style={{ fontSize: '11px', color: 'rgba(212, 197, 160, 0.5)', fontWeight: 400, lineHeight: '1.4' }}>
+              {SOCIAL_DESCRIPTIONS[getSocialLabel(socialAxis)]}
+            </div>
           </label>
           <div className="charCreate-sliderContainer">
             <span className="charCreate-sliderEndLabel">威权</span>
