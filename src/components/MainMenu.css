@@ -26,7 +26,6 @@
   z-index: 0;
   transform: scale(1.08);
   animation: bgZoomIn 1.2s ease-out forwards;
-  animation-delay: 0.3s;
 }
 
 @keyframes bgZoomIn {
