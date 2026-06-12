@@ -87,7 +87,7 @@ const PartyDetailCard: React.FC<{
   return (
     <div style={{
       ...styles.partyCard,
-      borderColor: isSelected ? party.color : '#2a2a4a',
+      borderColor: isSelected ? party.color : 'rgba(192, 168, 130, 0.15)',
       boxShadow: isSelected ? `0 0 16px ${party.color}30` : 'none',
     }}>
       {/* 头部：点击选择 + 展开 */}
@@ -408,6 +408,10 @@ export const CharacterCreation: React.FC<CharacterCreationProps> = ({ onComplete
 
   return (
     <div style={styles.container}>
+      {/* 全屏背景图 */}
+      <div style={styles.bgImage} />
+      {/* 暗角渐变遮罩 */}
+      <div style={styles.vignette} />
       <div style={styles.card}>
         <h2 style={styles.title}>创建你的角色</h2>
         <p style={styles.subtitle}>你是一名新当选的众议院议员。2058年，日本政坛正处于十字路口。</p>
@@ -725,7 +729,10 @@ export const CharacterCreation: React.FC<CharacterCreationProps> = ({ onComplete
           style={{
             ...styles.submitBtn,
             ...(canSubmit ? {} : styles.submitDisabled),
-            ...(canSubmit ? { background: `linear-gradient(135deg, ${initialParties.find(p => p.id === partyId)?.color ?? '#1E88E5'}, ${initialParties.find(p => p.id === partyId)?.color ?? '#42A5F5'}cc)` } : {}),
+            ...(canSubmit ? {
+              border: `1px solid rgba(192, 168, 130, 0.55)`,
+              boxShadow: `0 0 16px rgba(192, 168, 130, 0.15)`,
+            } : {}),
           }}
           onClick={handleSubmit}
           disabled={!canSubmit}
@@ -737,59 +744,97 @@ export const CharacterCreation: React.FC<CharacterCreationProps> = ({ onComplete
   );
 };
 
+const FONT_SERIF = '"Noto Serif SC", "Source Han Serif SC", Georgia, serif';
+const COLOR_GOLD = '#C0A882';
+const COLOR_GOLD_LIGHT = '#D4C5A0';
+const COLOR_GOLD_DIM = '#B8A47C';
+const COLOR_BORDER = 'rgba(192, 168, 130, 0.2)';
+const COLOR_BORDER_ACTIVE = 'rgba(192, 168, 130, 0.55)';
+
 const styles: Record<string, React.CSSProperties> = {
+  // ===== 背景 =====
   container: {
+    position: 'relative',
     minHeight: '100vh',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    background: '#0f0f23',
+    background: '#000',
     padding: 24,
+    fontFamily: `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, ${FONT_SERIF}`,
   },
+  bgImage: {
+    position: 'fixed',
+    inset: 0,
+    backgroundImage: 'url(/character-create-bg.png)',
+    backgroundSize: 'cover',
+    backgroundPosition: 'center center',
+    backgroundRepeat: 'no-repeat',
+    zIndex: 0,
+  },
+  vignette: {
+    position: 'fixed',
+    inset: 0,
+    zIndex: 0,
+    background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.25) 80%, rgba(0,0,0,0.45) 100%)',
+    pointerEvents: 'none',
+  },
+  // ===== 主卡片 =====
   card: {
+    position: 'relative',
+    zIndex: 1,
     maxWidth: 640,
     width: '100%',
-    background: '#1a1a2e',
-    borderRadius: 12,
-    border: '1px solid #2a2a4a',
+    background: 'rgba(0, 0, 0, 0.65)',
+    borderRadius: 4,
+    border: `1px solid ${COLOR_BORDER}`,
     padding: '32px 28px',
+    backdropFilter: 'blur(12px)',
+    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
   },
   title: {
     margin: 0,
     fontSize: 28,
-    fontWeight: 800,
-    color: '#e0e0e0',
+    fontWeight: 900,
+    fontFamily: FONT_SERIF,
+    background: `linear-gradient(180deg, ${COLOR_GOLD_LIGHT}, #A08B6B)`,
+    WebkitBackgroundClip: 'text',
+    WebkitTextFillColor: 'transparent',
     textAlign: 'center' as const,
+    letterSpacing: 8,
   },
   subtitle: {
     fontSize: 14,
-    color: '#888',
+    color: COLOR_GOLD_DIM,
     textAlign: 'center' as const,
     margin: '8px 0 24px',
+    letterSpacing: 2,
+    fontFamily: FONT_SERIF,
   },
   // Settings
   settingsToggle: {
     width: '100%',
     padding: '10px 14px',
-    borderRadius: 6,
-    border: '1px solid #3a3a5a',
-    background: '#0f0f23',
-    color: '#888',
+    borderRadius: 4,
+    border: `1px solid ${COLOR_BORDER}`,
+    background: 'rgba(0, 0, 0, 0.4)',
+    color: COLOR_GOLD_DIM,
     fontSize: 13,
     cursor: 'pointer',
     textAlign: 'left' as const,
     marginBottom: 8,
+    transition: 'all 0.2s',
   },
   settingsPanel: {
-    background: 'rgba(0,0,0,0.3)',
-    borderRadius: 8,
+    background: 'rgba(0, 0, 0, 0.35)',
+    borderRadius: 4,
     padding: '14px',
     marginBottom: 16,
-    border: '1px solid #2a3a5c',
+    border: `1px solid ${COLOR_BORDER}`,
   },
   settingsHint: {
     fontSize: 12,
-    color: '#666',
+    color: 'rgba(192, 168, 130, 0.5)',
     marginBottom: 14,
     lineHeight: 1.6,
   },
@@ -801,16 +846,17 @@ const styles: Record<string, React.CSSProperties> = {
   presetBtn: {
     padding: '5px 12px',
     borderRadius: 4,
-    border: '1px solid #3a3a5a',
-    background: '#0f0f23',
-    color: '#888',
+    border: `1px solid ${COLOR_BORDER}`,
+    background: 'rgba(0, 0, 0, 0.3)',
+    color: 'rgba(192, 168, 130, 0.6)',
     fontSize: 12,
     cursor: 'pointer',
+    transition: 'all 0.15s',
   },
   presetBtnActive: {
-    border: '1px solid #5c8aff',
-    color: '#fff',
-    background: '#1a2540',
+    border: `1px solid ${COLOR_BORDER_ACTIVE}`,
+    color: COLOR_GOLD,
+    background: 'rgba(192, 168, 130, 0.1)',
   },
   testRow: {
     display: 'flex',
@@ -820,40 +866,42 @@ const styles: Record<string, React.CSSProperties> = {
   },
   testBtn: {
     padding: '8px 20px',
-    borderRadius: 6,
-    border: '1px solid #5c8aff',
-    background: '#1a2540',
-    color: '#5c8aff',
+    borderRadius: 4,
+    border: `1px solid ${COLOR_BORDER_ACTIVE}`,
+    background: 'rgba(0, 0, 0, 0.4)',
+    color: COLOR_GOLD,
     fontSize: 13,
     fontWeight: 700,
     cursor: 'pointer',
     whiteSpace: 'nowrap' as const,
+    transition: 'all 0.2s',
   },
   statusOk: {
     fontSize: 12,
-    color: '#66BB6A',
+    color: '#81C784',
     fontWeight: 700,
     marginTop: 8,
     padding: '6px 10px',
-    background: 'rgba(102,187,106,0.1)',
+    background: 'rgba(129, 199, 132, 0.1)',
     borderRadius: 4,
+    border: '1px solid rgba(129, 199, 132, 0.2)',
   },
   statusFailBox: {
     marginTop: 8,
     padding: '8px 10px',
-    background: 'rgba(239,83,80,0.1)',
+    background: 'rgba(239, 83, 80, 0.1)',
     borderRadius: 4,
-    border: '1px solid rgba(239,83,80,0.3)',
+    border: '1px solid rgba(239, 83, 80, 0.25)',
   },
   statusFailDetail: {
     fontSize: 11,
-    color: '#EF5350',
+    color: '#EF9A9A',
     wordBreak: 'break-all' as const,
     lineHeight: 1.5,
     fontFamily: 'monospace',
   },
   divider: {
-    borderBottom: '1px solid #2a2a4a',
+    borderBottom: `1px solid ${COLOR_BORDER}`,
     margin: '16px 0',
   },
   // Name
@@ -872,37 +920,42 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'block',
     fontSize: 13,
     fontWeight: 600,
-    color: '#aaa',
+    color: COLOR_GOLD_DIM,
     marginBottom: 6,
+    fontFamily: FONT_SERIF,
+    letterSpacing: 1,
   },
   labelHint: {
     fontSize: 11,
-    color: '#555',
+    color: 'rgba(192, 168, 130, 0.4)',
     fontWeight: 400,
     marginLeft: 6,
   },
   requiredMark: {
-    color: '#EF5350',
+    color: '#EF9A9A',
     fontSize: 11,
     fontWeight: 400,
   },
   input: {
     width: '100%',
     padding: '10px 14px',
-    borderRadius: 6,
-    border: '1px solid #3a3a5a',
-    background: '#0f0f23',
+    borderRadius: 4,
+    border: `1px solid ${COLOR_BORDER}`,
+    background: 'rgba(0, 0, 0, 0.4)',
     color: '#e0e0e0',
     fontSize: 15,
     boxSizing: 'border-box' as const,
+    outline: 'none',
+    transition: 'border-color 0.2s, box-shadow 0.2s',
   },
   inputError: {
-    border: '1px solid #E53935',
+    border: '1px solid #EF5350',
+    boxShadow: '0 0 8px rgba(239, 83, 80, 0.2)',
   },
   error: {
     display: 'block',
     fontSize: 12,
-    color: '#E53935',
+    color: '#EF9A9A',
     marginTop: 4,
   },
   genderRow: {
@@ -911,18 +964,19 @@ const styles: Record<string, React.CSSProperties> = {
   },
   genderBtn: {
     padding: '8px 24px',
-    borderRadius: 6,
-    border: '1px solid #3a3a5a',
-    background: '#0f0f23',
-    color: '#aaa',
+    borderRadius: 4,
+    border: `1px solid ${COLOR_BORDER}`,
+    background: 'rgba(0, 0, 0, 0.4)',
+    color: 'rgba(192, 168, 130, 0.6)',
     fontSize: 15,
     cursor: 'pointer',
     fontWeight: 600,
+    transition: 'all 0.15s',
   },
   genderActive: {
-    border: '1px solid #5c8aff',
-    color: '#fff',
-    background: '#1a2540',
+    border: `1px solid ${COLOR_BORDER_ACTIVE}`,
+    color: COLOR_GOLD,
+    background: 'rgba(192, 168, 130, 0.1)',
   },
   // ===== 性格特质 =====
   traitGrid: {
@@ -938,35 +992,36 @@ const styles: Record<string, React.CSSProperties> = {
   traitBtn: {
     padding: '5px 8px',
     borderRadius: 4,
-    border: '1px solid #3a3a5a',
-    background: '#0f0f23',
-    color: '#888',
+    border: `1px solid ${COLOR_BORDER}`,
+    background: 'rgba(0, 0, 0, 0.3)',
+    color: 'rgba(192, 168, 130, 0.6)',
     fontSize: 12,
     cursor: 'pointer',
     textAlign: 'center' as const,
     transition: 'all 0.15s',
   },
   traitBtnActive: {
-    border: '1px solid #5c8aff',
-    color: '#fff',
-    background: '#1a2540',
+    border: `1px solid ${COLOR_BORDER_ACTIVE}`,
+    color: COLOR_GOLD,
+    background: 'rgba(192, 168, 130, 0.1)',
     fontWeight: 700,
   },
   traitBtnDisabled: {
-    opacity: 0.4,
+    opacity: 0.35,
     cursor: 'not-allowed',
   },
   // ===== 意识形态下拉 =====
   select: {
     width: '100%',
     padding: '10px 14px',
-    borderRadius: 6,
-    border: '1px solid #3a3a5a',
-    background: '#0f0f23',
+    borderRadius: 4,
+    border: `1px solid ${COLOR_BORDER}`,
+    background: 'rgba(0, 0, 0, 0.4)',
     color: '#e0e0e0',
     fontSize: 14,
     boxSizing: 'border-box' as const,
     cursor: 'pointer',
+    outline: 'none',
   },
   // ===== 滑块 =====
   sliderContainer: {
@@ -976,18 +1031,18 @@ const styles: Record<string, React.CSSProperties> = {
   },
   slider: {
     flex: 1,
-    accentColor: '#5c8aff',
+    accentColor: COLOR_GOLD,
     cursor: 'pointer',
   },
   sliderEndLabel: {
     fontSize: 11,
-    color: '#666',
+    color: 'rgba(192, 168, 130, 0.5)',
     fontWeight: 600,
     whiteSpace: 'nowrap' as const,
-    minWidth: 40,
+    minWidth: 50,
   },
   sliderValue: {
-    color: '#5c8aff',
+    color: COLOR_GOLD,
     fontWeight: 700,
   },
   // ===== 党派卡片 =====
@@ -997,9 +1052,9 @@ const styles: Record<string, React.CSSProperties> = {
     gap: 8,
   },
   partyCard: {
-    borderRadius: 8,
-    border: '1px solid #2a2a4a',
-    background: '#0f0f23',
+    borderRadius: 4,
+    border: `1px solid ${COLOR_BORDER}`,
+    background: 'rgba(0, 0, 0, 0.4)',
     overflow: 'hidden',
     transition: 'all 0.2s',
   },
@@ -1031,7 +1086,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   partyCardAbbr: {
     fontSize: 12,
-    color: '#666',
+    color: 'rgba(192, 168, 130, 0.4)',
     marginLeft: 4,
     fontWeight: 400,
   },
@@ -1052,12 +1107,12 @@ const styles: Record<string, React.CSSProperties> = {
   },
   partyCardSeats: {
     fontSize: 12,
-    color: '#888',
+    color: COLOR_GOLD_DIM,
     fontWeight: 600,
   },
   partyCardLeader: {
     fontSize: 11,
-    color: '#666',
+    color: 'rgba(192, 168, 130, 0.4)',
   },
   selectedBadge: {
     fontSize: 11,
@@ -1071,9 +1126,9 @@ const styles: Record<string, React.CSSProperties> = {
     width: 28,
     height: 28,
     borderRadius: 4,
-    border: '1px solid #3a3a5a',
-    background: '#1a1a2e',
-    color: '#888',
+    border: `1px solid ${COLOR_BORDER}`,
+    background: 'rgba(0, 0, 0, 0.3)',
+    color: COLOR_GOLD_DIM,
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
@@ -1084,11 +1139,11 @@ const styles: Record<string, React.CSSProperties> = {
   // ===== 展开详情 =====
   partyDetail: {
     padding: '0 14px 14px',
-    borderTop: '1px solid #2a2a4a',
+    borderTop: `1px solid ${COLOR_BORDER}`,
   },
   partyDesc: {
     fontSize: 13,
-    color: '#999',
+    color: 'rgba(192, 168, 130, 0.7)',
     lineHeight: 1.6,
     marginTop: 10,
     marginBottom: 12,
@@ -1105,7 +1160,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   statLabel: {
     fontSize: 12,
-    color: '#777',
+    color: 'rgba(192, 168, 130, 0.5)',
     fontWeight: 600,
     width: 60,
     flexShrink: 0,
@@ -1113,7 +1168,7 @@ const styles: Record<string, React.CSSProperties> = {
   statBarWrap: {
     flex: 1,
     height: 6,
-    background: '#1a1a2e',
+    background: 'rgba(0, 0, 0, 0.3)',
     borderRadius: 3,
     overflow: 'hidden',
   },
@@ -1125,7 +1180,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   statValue: {
     fontSize: 12,
-    color: '#aaa',
+    color: COLOR_GOLD_DIM,
     fontWeight: 700,
     width: 36,
     textAlign: 'right' as const,
@@ -1143,12 +1198,12 @@ const styles: Record<string, React.CSSProperties> = {
   },
   statSeats: {
     fontSize: 13,
-    color: '#5c8aff',
+    color: COLOR_GOLD,
     fontWeight: 700,
   },
   statMembers: {
     fontSize: 12,
-    color: '#888',
+    color: 'rgba(192, 168, 130, 0.5)',
     lineHeight: 1.5,
   },
   partyDot: {
@@ -1166,47 +1221,52 @@ const styles: Record<string, React.CSSProperties> = {
   },
   backgroundWarn: {
     fontSize: 12,
-    color: '#EF5350',
+    color: '#EF9A9A',
     fontWeight: 600,
   },
   aiGenBtn: {
     padding: '7px 16px',
-    borderRadius: 6,
-    border: '1px solid #7C4DFF',
-    background: 'linear-gradient(135deg, #311B92, #4A148C)',
-    color: '#B388FF',
+    borderRadius: 4,
+    border: `1px solid ${COLOR_BORDER_ACTIVE}`,
+    background: 'rgba(0, 0, 0, 0.5)',
+    color: COLOR_GOLD,
     fontSize: 13,
     fontWeight: 700,
     cursor: 'pointer',
     whiteSpace: 'nowrap' as const,
-    transition: 'all 0.15s',
+    transition: 'all 0.2s',
+    backdropFilter: 'blur(4px)',
   },
   textarea: {
     width: '100%',
     padding: '10px 14px',
-    borderRadius: 6,
-    border: '1px solid #3a3a5a',
-    background: '#0f0f23',
+    borderRadius: 4,
+    border: `1px solid ${COLOR_BORDER}`,
+    background: 'rgba(0, 0, 0, 0.4)',
     color: '#e0e0e0',
     fontSize: 14,
     resize: 'vertical' as const,
     boxSizing: 'border-box' as const,
     fontFamily: 'inherit',
     lineHeight: 1.6,
+    outline: 'none',
+    transition: 'border-color 0.2s, box-shadow 0.2s',
   },
   submitBtn: {
     width: '100%',
-    padding: '12px 0',
-    borderRadius: 8,
-    border: 'none',
-    background: 'linear-gradient(135deg, #1E88E5, #42A5F5)',
-    color: '#fff',
-    fontSize: 17,
-    fontWeight: 800,
+    padding: '14px 0',
+    borderRadius: 2,
+    border: `1px solid ${COLOR_BORDER}`,
+    background: 'rgba(0, 0, 0, 0.6)',
+    color: COLOR_GOLD,
+    fontSize: 18,
+    fontWeight: 700,
     cursor: 'pointer',
-    letterSpacing: 4,
+    letterSpacing: 6,
     marginTop: 8,
     transition: 'all 0.2s',
+    backdropFilter: 'blur(8px)',
+    fontFamily: FONT_SERIF,
   },
   submitDisabled: {
     opacity: 0.4,
