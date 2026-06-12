@@ -137,8 +137,10 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartNew, onResume }) => {
     }
   }, [animateIn]);
 
-  // RAF 驱动的滚动弹回：wheel 事件更新目标偏移，每帧 lerp 插值到目标，
-  // 无滚动输入 60ms 后目标归零平滑回弹。鼠标与触屏走同一动画路径，无抖动。
+  // RAF 驱动的滚动弹回：追踪本次手势的峰值 deltaY，
+  // 当 delta 跌破峰值 30% 时判定为惯性衰减，立即启动回弹。
+  // 回弹归位后进入冷却期：小 delta 事件视为惯性残留忽略，
+  // 大 delta 事件（>50）视为新意图立即放行。鼠标不受影响。
   useEffect(() => {
     const el = screenRef.current;
     if (!el || !entranceDone) return;
@@ -146,27 +148,72 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartNew, onResume }) => {
     let target = 0;
     let display = 0;
     let lastWheelTime = 0;
+    let isReturning = false;
+    let peakDelta = 0;
+    let lastDir = 0;
+    let ignoreUntil = 0;
     let rafId: number;
 
     const onWheel = (e: WheelEvent) => {
+      if (isReturning) return;
       const absDelta = Math.abs(e.deltaY);
-      const step = Math.sign(e.deltaY) * Math.min(absDelta * 0.4, 12);
+
+      // 冷却期：小幅 delta 视为惯性残留忽略，大幅 delta 视为新意图放行
+      if (performance.now() < ignoreUntil) {
+        if (absDelta < 50) return;
+        ignoreUntil = 0;
+      }
+
+      const dir = Math.sign(e.deltaY);
+
+      // 方向切换时重置峰值
+      if (dir !== lastDir && lastDir !== 0) {
+        peakDelta = absDelta;
+      }
+      lastDir = dir;
+      if (absDelta > peakDelta) peakDelta = absDelta;
+
+      // 当前 delta 跌破峰值 30% → 惯性衰减，立即回弹
+      if (peakDelta > 15 && absDelta < peakDelta * 0.3) {
+        isReturning = true;
+        peakDelta = 0;
+        lastDir = 0;
+        return;
+      }
+
+      const step = dir * Math.min(absDelta * 0.4, 12);
       target = Math.max(-MAX_BOUNCE, Math.min(MAX_BOUNCE, target - step));
       lastWheelTime = performance.now();
     };
 
     const tick = () => {
       const now = performance.now();
-      const returning = (now - lastWheelTime) > 60;
-      const effectiveTarget = returning ? 0 : target;
-      const diff = effectiveTarget - display;
 
-      if (Math.abs(diff) > 0.3) {
-        display += diff * 0.15;
-        setBounceOffset(display);
-      } else if (display !== 0) {
-        display = 0;
-        setBounceOffset(0);
+      // 超时兜底（鼠标：事件稀疏，60ms 无新事件即回弹）
+      if (!isReturning && lastWheelTime > 0 && (now - lastWheelTime) > 60) {
+        isReturning = true;
+      }
+
+      if (isReturning) {
+        const diff = 0 - display;
+        if (Math.abs(diff) > 0.3) {
+          display += diff * 0.15;
+          setBounceOffset(display);
+        } else {
+          display = 0;
+          target = 0;
+          isReturning = false;
+          peakDelta = 0;
+          lastDir = 0;
+          ignoreUntil = performance.now() + 500;
+          setBounceOffset(0);
+        }
+      } else {
+        const diff = target - display;
+        if (Math.abs(diff) > 0.3) {
+          display += diff * 0.15;
+          setBounceOffset(display);
+        }
       }
 
       rafId = requestAnimationFrame(tick);
