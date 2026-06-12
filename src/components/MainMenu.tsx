@@ -115,7 +115,12 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartNew, onResume }) => {
 
   useEffect(() => {
     setHasExistingSave(hasSave());
-    requestAnimationFrame(() => setAnimateIn(true));
+    // 锁定 body 滚动，让 .screen 自身做滚动容器，避免滚动条出现/消失导致布局宽度跳变
+    document.body.style.overflow = 'hidden';
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => setAnimateIn(true));
+    });
+    return () => { document.body.style.overflow = ''; };
   }, []);
 
   const handleNewGame = () => {
@@ -271,7 +276,8 @@ const styles: Record<string, React.CSSProperties> = {
   screen: {
     position: 'relative',
     width: '100%',
-    minHeight: '100vh',
+    height: '100vh',
+    overflowY: 'auto',
     overflowX: 'hidden',
     background: '#000',
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans SC", "Noto Serif SC", serif',
