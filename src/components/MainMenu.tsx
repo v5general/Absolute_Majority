@@ -116,9 +116,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartNew, onResume }) => {
   // ===== 滚动弹回机制 =====
   const screenRef = useRef<HTMLDivElement>(null);
   const [bounceOffset, setBounceOffset] = useState(0);
-  const [bouncing, setBouncing] = useState(false);
   const [entranceDone, setEntranceDone] = useState(false);
-  const bounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const MAX_BOUNCE = 30;
 
   useEffect(() => {
@@ -139,29 +137,47 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartNew, onResume }) => {
     }
   }, [animateIn]);
 
-  // 监听 wheel 事件实现弹回
+  // RAF 驱动的滚动弹回：wheel 事件更新目标偏移，每帧 lerp 插值到目标，
+  // 无滚动输入 60ms 后目标归零平滑回弹。鼠标与触屏走同一动画路径，无抖动。
   useEffect(() => {
     const el = screenRef.current;
     if (!el || !entranceDone) return;
 
+    let target = 0;
+    let display = 0;
+    let lastWheelTime = 0;
+    let rafId: number;
+
     const onWheel = (e: WheelEvent) => {
       const absDelta = Math.abs(e.deltaY);
       const step = Math.sign(e.deltaY) * Math.min(absDelta * 0.4, 12);
-      setBouncing(false);
-      setBounceOffset(prev => Math.max(-MAX_BOUNCE, Math.min(MAX_BOUNCE, prev - step)));
-      if (bounceTimerRef.current) clearTimeout(bounceTimerRef.current);
-      // 惯性衰减（deltaY 变小）时缩短等待，快速弹回
-      const debounceMs = absDelta < 3 ? 30 : absDelta < 10 ? 50 : 80;
-      bounceTimerRef.current = setTimeout(() => {
+      target = Math.max(-MAX_BOUNCE, Math.min(MAX_BOUNCE, target - step));
+      lastWheelTime = performance.now();
+    };
+
+    const tick = () => {
+      const now = performance.now();
+      const returning = (now - lastWheelTime) > 60;
+      const effectiveTarget = returning ? 0 : target;
+      const diff = effectiveTarget - display;
+
+      if (Math.abs(diff) > 0.3) {
+        display += diff * 0.15;
+        setBounceOffset(display);
+      } else if (display !== 0) {
+        display = 0;
         setBounceOffset(0);
-        setBouncing(true);
-      }, debounceMs);
+      }
+
+      rafId = requestAnimationFrame(tick);
     };
 
     el.addEventListener('wheel', onWheel, { passive: true });
+    rafId = requestAnimationFrame(tick);
+
     return () => {
       el.removeEventListener('wheel', onWheel);
-      if (bounceTimerRef.current) clearTimeout(bounceTimerRef.current);
+      cancelAnimationFrame(rafId);
     };
   }, [entranceDone]);
 
@@ -209,7 +225,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartNew, onResume }) => {
           ? `translateY(${bounceOffset}px)`
           : animateIn ? 'translateY(0)' : 'translateY(20px)',
         transition: entranceDone
-          ? `transform ${bouncing ? '0.5s cubic-bezier(0.25, 1, 0.5, 1)' : '0.1s ease-out'}`
+          ? 'none'
           : 'opacity 0.8s ease-out, transform 0.8s ease-out',
       }}>
         {/* 标题区域 - 屏幕上方 */}

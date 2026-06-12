@@ -178,7 +178,7 @@ export const CharacterCreation: React.FC<CharacterCreationProps> = ({ onComplete
 
   const [lastName, setLastName] = useState('');
   const [firstName, setFirstName] = useState('');
-  const [age, setAge] = useState<number | ''>(30);
+  const [age, setAge] = useState<number | ''>('');
   const [gender, setGender] = useState<'male' | 'female'>('male');
   const [partyId, setPartyId] = useState(initialParties[0].id);
   const [background, setBackground] = useState('');
@@ -189,6 +189,7 @@ export const CharacterCreation: React.FC<CharacterCreationProps> = ({ onComplete
 
   // 新增属性
   const [personalityTraits, setPersonalityTraits] = useState<PersonalityTrait[]>([]);
+  const [ideologyOpen, setIdeologyOpen] = useState(false);
   const [politicalIdeology, setPoliticalIdeology] = useState<PoliticalIdeology | ''>('');
   const [economicAxis, setEconomicAxis] = useState(0);
   const [socialAxis, setSocialAxis] = useState(0);
@@ -205,12 +206,12 @@ export const CharacterCreation: React.FC<CharacterCreationProps> = ({ onComplete
   const [testResult, setTestResult] = useState<{ ok: boolean; error?: string } | null>(null);
   const [testing, setTesting] = useState(false);
 
-  const ageError = age !== '' && age < 25 ? '年龄不能小于25岁（众议员年龄下限）' : '';
+  const ageError = age !== '' && age < 25 ? '年龄不能小于25岁（众议员年龄下限）' : age !== '' && age > 80 ? '年龄不能大于80岁' : '';
   const hasBackground = background.trim().length > 0;
   const hasGoal = politicalGoal.trim().length > 0;
   // 前置字段是否填写完整（用于 AI 生成按钮的启用判断）
   const preGoalComplete = lastName.trim().length >= 1 && firstName.trim().length >= 1
-    && age !== '' && age >= 25
+    && age !== '' && age >= 25 && age <= 80
     && personalityTraits.length >= 1 && politicalIdeology !== '';
   const preBackgroundComplete = preGoalComplete && hasGoal;
   const canSubmit = preBackgroundComplete && hasBackground;
@@ -526,14 +527,14 @@ export const CharacterCreation: React.FC<CharacterCreationProps> = ({ onComplete
           <label style={styles.label}>年龄</label>
           <input
             style={{ ...styles.input, ...(ageError ? styles.inputError : {}) }}
-            type="number"
+            type="text"
+            inputMode="numeric"
             value={age}
             onChange={(e) => {
-              const v = e.target.value;
-              setAge(v === '' ? '' : parseInt(v) || '');
+              const v = e.target.value.replace(/[^0-9]/g, '');
+              setAge(v === '' ? '' : parseInt(v));
             }}
-            min={25}
-            max={80}
+            placeholder="请输入年龄（25-80）"
           />
           {ageError && <span style={styles.error}>{ageError}</span>}
         </div>
@@ -589,18 +590,50 @@ export const CharacterCreation: React.FC<CharacterCreationProps> = ({ onComplete
         {/* ===== 意识形态 ===== */}
         <div style={styles.formGroup}>
           <label style={styles.label}>
-            政治意识形态 <span style={styles.requiredMark}>*必选</span>
+            政治意识形态
           </label>
-          <select
-            style={styles.select}
-            value={politicalIdeology}
-            onChange={(e) => setPoliticalIdeology(e.target.value as PoliticalIdeology)}
-          >
-            <option value="">-- 请选择意识形态 --</option>
-            {MERGED_IDEOLOGIES.map(({ keys, label }) => (
-              <option key={keys[0]} value={keys[0]}>{label}</option>
-            ))}
-          </select>
+          <div style={{ position: 'relative' }}>
+            <button
+              style={{
+                ...styles.selectTrigger,
+                ...(ideologyOpen ? styles.selectTriggerOpen : {}),
+              }}
+              onClick={() => setIdeologyOpen(v => !v)}
+              type="button"
+            >
+              <span style={{
+                color: politicalIdeology ? '#e0e0e0' : 'rgba(192, 168, 130, 0.4)',
+              }}>
+                {politicalIdeology
+                  ? MERGED_IDEOLOGIES.find(m => m.keys.includes(politicalIdeology))?.label ?? ''
+                  : '-- 请选择意识形态 --'}
+              </span>
+              <span style={styles.selectArrow}>{ideologyOpen ? '▲' : '▼'}</span>
+            </button>
+            {ideologyOpen && (
+              <div style={styles.selectDropdown}>
+                {MERGED_IDEOLOGIES.map(({ keys, label }) => {
+                  const selected = politicalIdeology !== '' && keys.includes(politicalIdeology);
+                  return (
+                    <button
+                      key={keys[0]}
+                      style={{
+                        ...styles.selectOption,
+                        ...(selected ? styles.selectOptionActive : {}),
+                      }}
+                      onClick={() => {
+                        setPoliticalIdeology(keys[0]);
+                        setIdeologyOpen(false);
+                      }}
+                      type="button"
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* ===== 经济立场滑块 ===== */}
@@ -644,7 +677,7 @@ export const CharacterCreation: React.FC<CharacterCreationProps> = ({ onComplete
         {/* ===== 政治目标 ===== */}
         <div style={styles.formGroup}>
           <label style={styles.label}>
-            政治目标 <span style={styles.requiredMark}>*必填</span>
+            政治目标
           </label>
           <textarea
             style={styles.textarea}
@@ -693,7 +726,7 @@ export const CharacterCreation: React.FC<CharacterCreationProps> = ({ onComplete
         {/* ===== 背景故事（必填） ===== */}
         <div style={styles.formGroup}>
           <label style={styles.label}>
-            背景故事 <span style={styles.requiredMark}>*必填</span>
+            背景故事
           </label>
           <textarea
             style={{
@@ -789,7 +822,7 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 4,
     border: `1px solid ${COLOR_BORDER}`,
     padding: '32px 28px',
-    backdropFilter: 'blur(12px)',
+    backdropFilter: 'blur(6px)',
     boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
   },
   title: {
@@ -823,6 +856,7 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: 'pointer',
     textAlign: 'left' as const,
     marginBottom: 8,
+    fontFamily: FONT_SERIF,
     transition: 'all 0.2s',
   },
   settingsPanel: {
@@ -851,6 +885,7 @@ const styles: Record<string, React.CSSProperties> = {
     color: 'rgba(192, 168, 130, 0.6)',
     fontSize: 12,
     cursor: 'pointer',
+    fontFamily: FONT_SERIF,
     transition: 'all 0.15s',
   },
   presetBtnActive: {
@@ -874,6 +909,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 700,
     cursor: 'pointer',
     whiteSpace: 'nowrap' as const,
+    fontFamily: FONT_SERIF,
     transition: 'all 0.2s',
   },
   statusOk: {
@@ -885,6 +921,7 @@ const styles: Record<string, React.CSSProperties> = {
     background: 'rgba(129, 199, 132, 0.1)',
     borderRadius: 4,
     border: '1px solid rgba(129, 199, 132, 0.2)',
+    fontFamily: FONT_SERIF,
   },
   statusFailBox: {
     marginTop: 8,
@@ -930,11 +967,13 @@ const styles: Record<string, React.CSSProperties> = {
     color: 'rgba(192, 168, 130, 0.4)',
     fontWeight: 400,
     marginLeft: 6,
+    fontFamily: FONT_SERIF,
   },
   requiredMark: {
     color: '#EF9A9A',
     fontSize: 11,
     fontWeight: 400,
+    fontFamily: FONT_SERIF,
   },
   input: {
     width: '100%',
@@ -947,6 +986,7 @@ const styles: Record<string, React.CSSProperties> = {
     boxSizing: 'border-box' as const,
     outline: 'none',
     transition: 'border-color 0.2s, box-shadow 0.2s',
+    fontFamily: FONT_SERIF,
   },
   inputError: {
     border: '1px solid #EF5350',
@@ -957,6 +997,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 12,
     color: '#EF9A9A',
     marginTop: 4,
+    fontFamily: FONT_SERIF,
   },
   genderRow: {
     display: 'flex',
@@ -971,6 +1012,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 15,
     cursor: 'pointer',
     fontWeight: 600,
+    fontFamily: FONT_SERIF,
     transition: 'all 0.15s',
   },
   genderActive: {
@@ -998,6 +1040,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 12,
     cursor: 'pointer',
     textAlign: 'center' as const,
+    fontFamily: FONT_SERIF,
     transition: 'all 0.15s',
   },
   traitBtnActive: {
@@ -1010,18 +1053,65 @@ const styles: Record<string, React.CSSProperties> = {
     opacity: 0.35,
     cursor: 'not-allowed',
   },
-  // ===== 意识形态下拉 =====
-  select: {
+  // ===== 意识形态自定义下拉 =====
+  selectTrigger: {
     width: '100%',
     padding: '10px 14px',
     borderRadius: 4,
     border: `1px solid ${COLOR_BORDER}`,
     background: 'rgba(0, 0, 0, 0.4)',
     color: '#e0e0e0',
-    fontSize: 14,
+    fontSize: 15,
     boxSizing: 'border-box' as const,
     cursor: 'pointer',
-    outline: 'none',
+    textAlign: 'left' as const,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    fontFamily: FONT_SERIF,
+    transition: 'border-color 0.2s',
+  },
+  selectTriggerOpen: {
+    border: `1px solid ${COLOR_BORDER_ACTIVE}`,
+    borderRadius: '4px 4px 0 0',
+  },
+  selectArrow: {
+    fontSize: 10,
+    color: COLOR_GOLD_DIM,
+    flexShrink: 0,
+    marginLeft: 8,
+  },
+  selectDropdown: {
+    position: 'absolute',
+    top: '100%',
+    left: 0,
+    right: 0,
+    maxHeight: 240,
+    overflowY: 'auto',
+    background: 'rgba(0, 0, 0, 0.78)',
+    border: `1px solid ${COLOR_BORDER_ACTIVE}`,
+    borderTop: 'none',
+    borderRadius: '0 0 4px 4px',
+    zIndex: 100,
+    backdropFilter: 'blur(12px)',
+  },
+  selectOption: {
+    width: '100%',
+    padding: '8px 14px',
+    border: 'none',
+    background: 'transparent',
+    color: 'rgba(192, 168, 130, 0.7)',
+    fontSize: 14,
+    cursor: 'pointer',
+    textAlign: 'left' as const,
+    fontFamily: FONT_SERIF,
+    transition: 'all 0.1s',
+    letterSpacing: 1,
+  },
+  selectOptionActive: {
+    color: COLOR_GOLD,
+    background: 'rgba(192, 168, 130, 0.1)',
+    fontWeight: 700,
   },
   // ===== 滑块 =====
   sliderContainer: {
@@ -1040,10 +1130,12 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 600,
     whiteSpace: 'nowrap' as const,
     minWidth: 50,
+    fontFamily: FONT_SERIF,
   },
   sliderValue: {
     color: COLOR_GOLD,
     fontWeight: 700,
+    fontFamily: FONT_SERIF,
   },
   // ===== 党派卡片 =====
   partyGrid: {
@@ -1083,12 +1175,14 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 15,
     fontWeight: 700,
     color: '#e0e0e0',
+    fontFamily: FONT_SERIF,
   },
   partyCardAbbr: {
     fontSize: 12,
     color: 'rgba(192, 168, 130, 0.4)',
     marginLeft: 4,
     fontWeight: 400,
+    fontFamily: FONT_SERIF,
   },
   partyCardSubLine: {
     display: 'flex',
@@ -1104,15 +1198,18 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 3,
     border: '1px solid',
     lineHeight: '18px',
+    fontFamily: FONT_SERIF,
   },
   partyCardSeats: {
     fontSize: 12,
     color: COLOR_GOLD_DIM,
     fontWeight: 600,
+    fontFamily: FONT_SERIF,
   },
   partyCardLeader: {
     fontSize: 11,
     color: 'rgba(192, 168, 130, 0.4)',
+    fontFamily: FONT_SERIF,
   },
   selectedBadge: {
     fontSize: 11,
@@ -1121,6 +1218,7 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 3,
     color: '#fff',
     letterSpacing: 1,
+    fontFamily: FONT_SERIF,
   },
   expandBtn: {
     width: 28,
@@ -1134,6 +1232,7 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: 'center',
     justifyContent: 'center',
     fontSize: 12,
+    fontFamily: FONT_SERIF,
     transition: 'all 0.15s',
   },
   // ===== 展开详情 =====
@@ -1147,6 +1246,7 @@ const styles: Record<string, React.CSSProperties> = {
     lineHeight: 1.6,
     marginTop: 10,
     marginBottom: 12,
+    fontFamily: FONT_SERIF,
   },
   partyStats: {
     display: 'flex',
@@ -1164,6 +1264,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 600,
     width: 60,
     flexShrink: 0,
+    fontFamily: FONT_SERIF,
   },
   statBarWrap: {
     flex: 1,
@@ -1185,6 +1286,7 @@ const styles: Record<string, React.CSSProperties> = {
     width: 36,
     textAlign: 'right' as const,
     flexShrink: 0,
+    fontFamily: FONT_SERIF,
   },
   statRow: {
     display: 'flex',
@@ -1195,16 +1297,19 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 13,
     color: '#FFD54F',
     fontWeight: 700,
+    fontFamily: FONT_SERIF,
   },
   statSeats: {
     fontSize: 13,
     color: COLOR_GOLD,
     fontWeight: 700,
+    fontFamily: FONT_SERIF,
   },
   statMembers: {
     fontSize: 12,
     color: 'rgba(192, 168, 130, 0.5)',
     lineHeight: 1.5,
+    fontFamily: FONT_SERIF,
   },
   partyDot: {
     width: 14,
@@ -1223,6 +1328,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 12,
     color: '#EF9A9A',
     fontWeight: 600,
+    fontFamily: FONT_SERIF,
   },
   aiGenBtn: {
     padding: '7px 16px',
@@ -1244,10 +1350,10 @@ const styles: Record<string, React.CSSProperties> = {
     border: `1px solid ${COLOR_BORDER}`,
     background: 'rgba(0, 0, 0, 0.4)',
     color: '#e0e0e0',
-    fontSize: 14,
+    fontSize: 15,
     resize: 'vertical' as const,
     boxSizing: 'border-box' as const,
-    fontFamily: 'inherit',
+    fontFamily: FONT_SERIF,
     lineHeight: 1.6,
     outline: 'none',
     transition: 'border-color 0.2s, box-shadow 0.2s',
