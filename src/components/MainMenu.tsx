@@ -66,19 +66,19 @@ const Toast: React.FC<{
 // ===== SVG 图标 =====
 
 const Icons: Record<string, React.FC<{ color?: string }>> = {
-  continue: ({ color = '#D4AF37' }) => (
+  continue: ({ color = '#C0A882' }) => (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M3 21h18M3 7v14M21 7v14M6 11h12M6 15h12M6 7h12" />
       <path d="M6 3h12l3 4H3l3-4z" />
     </svg>
   ),
-  newGame: ({ color = '#D4AF37' }) => (
+  newGame: ({ color = '#C0A882' }) => (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="10" />
       <polygon points="16.24,7.76 14.12,14.12 7.76,16.24 9.88,9.88" />
     </svg>
   ),
-  load: ({ color = '#D4AF37' }) => (
+  load: ({ color = '#C0A882' }) => (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
       <polyline points="14,2 14,8 20,8" />
@@ -86,13 +86,13 @@ const Icons: Record<string, React.FC<{ color?: string }>> = {
       <line x1="16" y1="17" x2="8" y2="17" />
     </svg>
   ),
-  settings: ({ color = '#D4AF37' }) => (
+  settings: ({ color = '#C0A882' }) => (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="3" />
       <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
     </svg>
   ),
-  exit: ({ color = '#D4AF37' }) => (
+  exit: ({ color = '#C0A882' }) => (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
       <polyline points="16,17 21,12 16,7" />
@@ -356,7 +356,7 @@ const styles: Record<string, React.CSSProperties> = {
   decorLineTop: {
     width: '20%',
     height: 1,
-    background: 'linear-gradient(90deg, rgba(212, 175, 55, 0.6), transparent)',
+    background: 'linear-gradient(90deg, rgba(192, 168, 130, 0.6), transparent)',
     marginBottom: 28,
   },
   title: {
@@ -365,20 +365,22 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 900,
     letterSpacing: 20,
     fontFamily: '"Noto Serif SC", "Source Han Serif SC", Georgia, serif',
-    color: '#D4AF37',
-    textShadow: '0 0 40px rgba(212, 175, 55, 0.3), 0 2px 4px rgba(0, 0, 0, 0.5)',
+    background: 'linear-gradient(180deg, #D4C5A0, #A08B6B)',
+    WebkitBackgroundClip: 'text',
+    WebkitTextFillColor: 'transparent',
+    textShadow: 'none',
     lineHeight: 1.2,
   },
   subtitle: {
     fontSize: 'clamp(14px, 1.5vw, 18px)',
-    color: 'rgba(240, 240, 250, 0.8)',
+    color: '#96794D',
     marginTop: 16,
     letterSpacing: 6,
     fontWeight: 400,
   },
   tagline: {
     fontSize: 'clamp(11px, 1vw, 14px)',
-    color: 'rgba(200, 200, 215, 0.45)',
+    color: 'rgba(150, 121, 77, 0.55)',
     marginTop: 8,
     letterSpacing: 3,
     fontWeight: 300,
@@ -387,7 +389,7 @@ const styles: Record<string, React.CSSProperties> = {
   decorLineBottom: {
     width: '15%',
     height: 1,
-    background: 'linear-gradient(90deg, rgba(212, 175, 55, 0.5), transparent)',
+    background: 'linear-gradient(90deg, rgba(192, 168, 130, 0.5), transparent)',
     marginTop: 24,
   },
   buttonGroup: {
@@ -402,9 +404,9 @@ const styles: Record<string, React.CSSProperties> = {
     width: '100%',
     padding: '14px 20px',
     borderRadius: 2,
-    border: '1px solid rgba(212, 175, 55, 0.25)',
+    border: '1px solid rgba(192, 168, 130, 0.25)',
     background: 'rgba(0, 0, 0, 0.6)',
-    color: '#e0e0e8',
+    color: '#C0A882',
     textAlign: 'left' as const,
     backdropFilter: 'blur(8px)',
     display: 'flex',
@@ -414,8 +416,8 @@ const styles: Record<string, React.CSSProperties> = {
   },
   menuBtnHover: {
     background: 'rgba(0, 0, 0, 0.75)',
-    border: '1px solid rgba(212, 175, 55, 0.55)',
-    boxShadow: '0 0 20px rgba(212, 175, 55, 0.1)',
+    border: '1px solid rgba(192, 168, 130, 0.55)',
+    boxShadow: '0 0 20px rgba(192, 168, 130, 0.1)',
   },
   menuBtnIcon: {
     flexShrink: 0,
@@ -424,9 +426,9 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: 'center',
     width: 40,
     height: 40,
-    border: '1px solid rgba(212, 175, 55, 0.2)',
+    border: '1px solid rgba(192, 168, 130, 0.2)',
     borderRadius: 2,
-    background: 'rgba(212, 175, 55, 0.06)',
+    background: 'rgba(192, 168, 130, 0.06)',
   },
   menuBtnTextWrap: {
     display: 'flex',
@@ -437,12 +439,12 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 18,
     fontWeight: 700,
     letterSpacing: 6,
-    color: '#f0f0f5',
+    color: '#C0A882',
   },
   menuBtnSub: {
     fontSize: 9,
     letterSpacing: 4,
-    color: 'rgba(212, 175, 55, 0.45)',
+    color: 'rgba(192, 168, 130, 0.45)',
     fontWeight: 400,
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
   },
@@ -454,7 +456,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   version: {
     fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.2)',
+    color: 'rgba(192, 168, 130, 0.2)',
     letterSpacing: 2,
   },
 };
@@ -469,14 +471,14 @@ const toastStyles: Record<string, React.CSSProperties> = {
   },
   box: {
     background: 'rgba(10, 10, 25, 0.92)',
-    border: '1px solid rgba(212, 175, 55, 0.25)',
+    border: '1px solid rgba(192, 168, 130, 0.25)',
     borderRadius: 4,
     padding: '12px 28px',
     backdropFilter: 'blur(12px)',
     boxShadow: '0 4px 20px rgba(0, 0, 0, 0.5)',
   },
   text: {
-    color: '#ddd',
+    color: '#C0A882',
     fontSize: 14,
     fontWeight: 500,
     whiteSpace: 'nowrap' as const,
