@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { GameProvider, useGame } from './hooks/useGameState';
 import { RelationMatrix } from './components/RelationMatrix';
 import { MarketDashboard } from './components/MarketDashboard';
@@ -8,7 +8,7 @@ import { GalgameDialog } from './components/GalgameDialog';
 import { CharacterCreation } from './components/CharacterCreation';
 import { PlayerProfilePanel } from './components/PlayerProfilePanel';
 import { MainMenu, saveGame, loadGame, hasSave, deleteSave } from './components/MainMenu';
-import type { ThinkingLogEntry } from './types';
+import type { ThinkingLogEntry, GameState } from './types';
 
 /** 根据回合数计算月份标签（回合1=大选后第一个月） */
 const MONTH_NAMES = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
@@ -22,7 +22,7 @@ function getMonthLabel(turn: number): string {
   return `${year}年${MONTH_NAMES[month]}`;
 }
 
-const GameInner: React.FC<{ onBackToMenu: () => void }> = ({ onBackToMenu }) => {
+const GameInner: React.FC = () => {
   const { state, setPlayerConfig, nextTurn, isThinking, thinkingLogs } = useGame();
   const [showProfile, setShowProfile] = useState(false);
 
@@ -32,11 +32,6 @@ const GameInner: React.FC<{ onBackToMenu: () => void }> = ({ onBackToMenu }) => 
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
   }, [state.playerConfig]);
-
-  // 未创建角色时显示角色创建界面
-  if (!state.playerConfig) {
-    return <CharacterCreation onComplete={setPlayerConfig} />;
-  }
 
   const pendingCount = state.currentAIEvents.length;
 
@@ -219,31 +214,75 @@ const ACTION_LABELS: Record<string, string> = {
   wait: '按兵不动',
 };
 
+/** 包装 CharacterCreation，使其在 GameProvider 内调用 setPlayerConfig */
+const CharacterCreationWrapper: React.FC<{ onComplete: () => void }> = ({ onComplete }) => {
+  const { setPlayerConfig } = useGame();
+  return (
+    <CharacterCreation
+      onComplete={(config) => {
+        setPlayerConfig(config);
+        onComplete();
+      }}
+    />
+  );
+};
+
+type Route = 'menu' | 'create' | 'game';
+
+function getHashRoute(): Route {
+  const hash = window.location.hash;
+  if (hash === '#/create') return 'create';
+  if (hash === '#/game') return 'game';
+  return 'menu';
+}
+
 const App: React.FC = () => {
-  const [route, setRoute] = useState<'menu' | 'game'>(() => {
-    // 如果有存档，也先显示主菜单（让用户选择继续或新开）
-    return 'menu';
-  });
+  const [route, setRoute] = useState<Route>(getHashRoute);
+
+  useEffect(() => {
+    const onHashChange = () => setRoute(getHashRoute());
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
+
+  const navigate = useCallback((r: Route) => {
+    window.location.hash = '#/' + r;
+  }, []);
 
   if (route === 'menu') {
     return (
       <MainMenu
         onStartNew={() => {
           deleteSave();
-          setRoute('game');
+          navigate('create');
         }}
-        onResume={(save) => {
-          // 恢复存档逻辑：设置 gameState
-          // 目前简化处理——直接进入游戏（存档功能后续完善）
-          setRoute('game');
+        onResume={() => {
+          navigate('game');
         }}
       />
     );
   }
 
+  if (route === 'create') {
+    return (
+      <GameProvider>
+        <CharacterCreationWrapper onComplete={() => navigate('game')} />
+      </GameProvider>
+    );
+  }
+
+  // route === 'game': 恢复存档，无存档则跳转主菜单
+  const save = loadGame();
+  if (!save || !save.gameState) {
+    // 无存档，跳回主菜单
+    navigate('menu');
+    return null;
+  }
+
+  const savedState = save.gameState as GameState;
   return (
-    <GameProvider>
-      <GameInner onBackToMenu={() => setRoute('menu')} />
+    <GameProvider savedState={savedState}>
+      <GameInner />
     </GameProvider>
   );
 };

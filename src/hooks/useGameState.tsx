@@ -1,8 +1,9 @@
-import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
 import type { GameState, ActiveEvent, PoliticalEvent, EventChoice, PlayerConfig, FreeTextResponse, ThinkingLogEntry } from '../types';
 import type { MPPersonality, PersonalityTrait, PoliticalIdeology } from '../types/mp';
 import { createInitialState } from '../data/initialState';
 import { applyChoice } from '../engine/eventEngine';
+import { saveGame as saveToStorage } from '../components/MainMenu';
 import {
   runAgentTurn,
   convertIntentsToEvents,
@@ -132,13 +133,20 @@ export function useGame(): GameContextValue {
 
 // ===== Provider =====
 
-export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [state, setState] = useState<GameState>(() => migrateGameState(createInitialState()));
+export const GameProvider: React.FC<{ children: React.ReactNode; savedState?: GameState }> = ({ children, savedState }) => {
+  const [state, setState] = useState<GameState>(() => savedState ? migrateGameState(savedState) : migrateGameState(createInitialState()));
   const [activeEvent, setActiveEvent] = useState<ActiveEvent | null>(null);
   const [isPaused, setIsPaused] = useState(false);
   const [isThinking, setIsThinking] = useState(false);
   const [thinkingLogs, setThinkingLogs] = useState<ThinkingLogEntry[]>([]);
   const isRunningRef = useRef(false);
+
+  // 自动保存：state 变化时写入 localStorage
+  useEffect(() => {
+    if (state.playerConfig) {
+      saveToStorage(state.playerConfig, state, state.turn);
+    }
+  }, [state]);
 
   /** 设置玩家角色，同时为玩家所在党派席位数 +1（玩家来了） */
   const setPlayerConfig = useCallback((config: PlayerConfig) => {
