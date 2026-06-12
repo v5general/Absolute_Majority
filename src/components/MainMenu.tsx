@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 // ===== localStorage 存档工具 =====
 
@@ -113,6 +113,14 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartNew, onResume }) => {
   const [toast, setToast] = useState<string | null>(null);
   const [animateIn, setAnimateIn] = useState(false);
 
+  // ===== 滚动弹回机制 =====
+  const screenRef = useRef<HTMLDivElement>(null);
+  const [bounceOffset, setBounceOffset] = useState(0);
+  const [bouncing, setBouncing] = useState(false);
+  const [entranceDone, setEntranceDone] = useState(false);
+  const bounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const MAX_BOUNCE = 30;
+
   useEffect(() => {
     setHasExistingSave(hasSave());
     // 锁定 body 滚动，让 .screen 自身做滚动容器，避免滚动条出现/消失导致布局宽度跳变
@@ -122,6 +130,37 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartNew, onResume }) => {
     });
     return () => { document.body.style.overflow = ''; };
   }, []);
+
+  // 入场动画完成后启用弹回
+  useEffect(() => {
+    if (animateIn) {
+      const timer = setTimeout(() => setEntranceDone(true), 850);
+      return () => clearTimeout(timer);
+    }
+  }, [animateIn]);
+
+  // 监听 wheel 事件实现弹回
+  useEffect(() => {
+    const el = screenRef.current;
+    if (!el || !entranceDone) return;
+
+    const onWheel = (e: WheelEvent) => {
+      const step = Math.sign(e.deltaY) * Math.min(Math.abs(e.deltaY) * 0.3, 10);
+      setBouncing(false);
+      setBounceOffset(prev => Math.max(-MAX_BOUNCE, Math.min(MAX_BOUNCE, prev - step)));
+      if (bounceTimerRef.current) clearTimeout(bounceTimerRef.current);
+      bounceTimerRef.current = setTimeout(() => {
+        setBounceOffset(0);
+        setBouncing(true);
+      }, 120);
+    };
+
+    el.addEventListener('wheel', onWheel, { passive: true });
+    return () => {
+      el.removeEventListener('wheel', onWheel);
+      if (bounceTimerRef.current) clearTimeout(bounceTimerRef.current);
+    };
+  }, [entranceDone]);
 
   const handleNewGame = () => {
     deleteSave();
@@ -155,7 +194,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartNew, onResume }) => {
   const showToast = (msg: string) => setToast(msg);
 
   return (
-    <div style={styles.screen}>
+    <div ref={screenRef} style={styles.screen}>
       {/* 背景图 */}
       <div style={styles.bgImage} />
 
@@ -163,8 +202,12 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartNew, onResume }) => {
       <div style={{
         ...styles.content,
         opacity: animateIn ? 0.995 : 0,
-        transform: animateIn ? 'translateY(0)' : 'translateY(20px)',
-        transition: 'opacity 0.8s ease-out, transform 0.8s ease-out',
+        transform: entranceDone
+          ? `translateY(${bounceOffset}px)`
+          : animateIn ? 'translateY(0)' : 'translateY(20px)',
+        transition: entranceDone
+          ? `transform ${bouncing ? '0.5s cubic-bezier(0.25, 1, 0.5, 1)' : '0.1s ease-out'}`
+          : 'opacity 0.8s ease-out, transform 0.8s ease-out',
       }}>
         {/* 标题区域 - 屏幕上方 */}
         <div style={styles.titleSection}>
