@@ -48,6 +48,10 @@ const GameInner: React.FC = () => {
 
   return (
     <div style={styles.app}>
+      {/* 全屏背景图 */}
+      <div style={styles.bgImage} />
+      {/* 暗角渐变遮罩 */}
+      <div style={styles.vignette} />
       <header style={styles.headerRow}>
         <div style={styles.headerLeft}>
           <h1 style={styles.headerTitle}>绝对多数</h1>
@@ -287,18 +291,44 @@ const App: React.FC = () => {
   );
 };
 
+const FONT_SERIF = '"Noto Serif SC", "Source Han Serif SC", Georgia, serif';
+const COLOR_GOLD = '#C0A882';
+const COLOR_GOLD_DIM = '#B8A47C';
+const COLOR_BORDER = 'rgba(192, 168, 130, 0.18)';
+const COLOR_BORDER_ACTIVE = 'rgba(192, 168, 130, 0.4)';
+
 const styles: Record<string, React.CSSProperties> = {
   app: {
+    position: 'relative',
     minHeight: '100vh',
-    background: '#0f0f23',
+    background: '#000',
     color: '#e0e0e0',
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    fontFamily: `${FONT_SERIF}, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto`,
+  },
+  bgImage: {
+    position: 'fixed',
+    inset: 0,
+    backgroundImage: 'url(/game_bg.png)',
+    backgroundSize: 'cover',
+    backgroundPosition: 'center center',
+    backgroundRepeat: 'no-repeat',
+    backgroundAttachment: 'fixed',
+    zIndex: 0,
+  },
+  vignette: {
+    position: 'fixed',
+    inset: 0,
+    zIndex: 0,
+    background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.0) 0%, rgba(0,0,0,0.1) 50%, rgba(0,0,0,0.3) 100%)',
+    pointerEvents: 'none',
   },
   header: {
     textAlign: 'center',
     padding: '32px 16px 8px',
   },
   headerRow: {
+    position: 'relative',
+    zIndex: 1,
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
@@ -319,7 +349,8 @@ const styles: Record<string, React.CSSProperties> = {
     height: 42,
     borderRadius: '50%',
     border: '2px solid',
-    background: 'rgba(0,0,0,0.3)',
+    background: 'rgba(0,0,0,0.5)',
+    backdropFilter: 'blur(8px)',
     color: '#e0e0e0',
     fontSize: 18,
     fontWeight: 800,
@@ -333,15 +364,17 @@ const styles: Record<string, React.CSSProperties> = {
     margin: 0,
     fontSize: 36,
     fontWeight: 800,
-    background: 'linear-gradient(135deg, #E53935, #1E88E5, #43A047)',
+    fontFamily: FONT_SERIF,
+    background: 'linear-gradient(180deg, #D4C5A0, #A08B6B)',
     WebkitBackgroundClip: 'text',
     WebkitTextFillColor: 'transparent',
   },
   headerSub: {
     fontSize: 12,
-    color: '#666',
+    color: COLOR_GOLD_DIM,
     letterSpacing: 4,
     marginTop: 4,
+    fontFamily: FONT_SERIF,
   },
   headerInfo: {
     display: 'flex',
@@ -352,41 +385,50 @@ const styles: Record<string, React.CSSProperties> = {
   turnBadge: {
     padding: '3px 14px',
     borderRadius: 4,
-    background: '#1a2540',
-    border: '1px solid #2a3a5c',
-    color: '#5c8aff',
+    background: 'rgba(0,0,0,0.5)',
+    backdropFilter: 'blur(6px)',
+    border: `1px solid ${COLOR_BORDER}`,
+    color: COLOR_GOLD,
     fontSize: 13,
     fontWeight: 700,
+    fontFamily: FONT_SERIF,
   },
   turnNumBadge: {
     padding: '3px 14px',
     borderRadius: 4,
-    background: '#1a2540',
-    border: '1px solid #2a3a5c',
+    background: 'rgba(0,0,0,0.5)',
+    backdropFilter: 'blur(6px)',
+    border: `1px solid ${COLOR_BORDER}`,
     color: '#aaa',
     fontSize: 13,
     fontWeight: 600,
+    fontFamily: FONT_SERIF,
   },
   playerBadge: {
     padding: '3px 14px',
     borderRadius: 4,
-    background: '#1a2540',
-    border: '1px solid #3a5a3c',
+    background: 'rgba(0,0,0,0.5)',
+    backdropFilter: 'blur(6px)',
+    border: `1px solid ${COLOR_BORDER}`,
     color: '#8aff5c',
     fontSize: 13,
     fontWeight: 600,
+    fontFamily: FONT_SERIF,
   },
   coalitionBadge: {
     padding: '3px 14px',
     borderRadius: 4,
-    background: '#1a2540',
-    border: '1px solid #2a3a5c',
-    color: '#5c8aff',
+    background: 'rgba(0,0,0,0.5)',
+    backdropFilter: 'blur(6px)',
+    border: `1px solid ${COLOR_BORDER}`,
+    color: COLOR_GOLD,
     fontSize: 13,
     fontWeight: 600,
+    fontFamily: FONT_SERIF,
   },
   supermajorityBadge: {
-    background: 'linear-gradient(135deg, #4A148C, #7B1FA2)',
+    background: 'rgba(74,20,140,0.6)',
+    backdropFilter: 'blur(6px)',
     border: '1px solid #CE93D8',
     color: '#E1BEE7',
     fontWeight: 700,
@@ -397,6 +439,8 @@ const styles: Record<string, React.CSSProperties> = {
     color: '#FFB74D',
   },
   actionBar: {
+    position: 'relative',
+    zIndex: 1,
     maxWidth: 1200,
     margin: '12px auto',
     padding: '0 16px',
@@ -406,38 +450,47 @@ const styles: Record<string, React.CSSProperties> = {
   },
   nextTurnBtn: {
     padding: '10px 28px',
-    borderRadius: 6,
-    background: 'linear-gradient(135deg, #1E88E5, #42A5F5)',
-    border: 'none',
-    color: '#fff',
+    borderRadius: 2,
+    background: 'rgba(0,0,0,0.6)',
+    backdropFilter: 'blur(8px)',
+    border: `1px solid ${COLOR_BORDER_ACTIVE}`,
+    color: COLOR_GOLD,
     fontSize: 15,
     fontWeight: 700,
     cursor: 'pointer',
     letterSpacing: 2,
-    boxShadow: '0 2px 12px rgba(30,136,229,0.3)',
+    fontFamily: FONT_SERIF,
+    boxShadow: '0 0 16px rgba(192,168,130,0.1)',
     transition: 'all 0.15s',
   },
   nextTurnBtnDisabled: {
-    background: 'linear-gradient(135deg, #555, #666)',
+    background: 'rgba(0,0,0,0.5)',
+    border: `1px solid ${COLOR_BORDER}`,
     boxShadow: 'none',
-    opacity: 0.8,
+    opacity: 0.5,
+    color: '#666',
   },
   actionHint: {
     fontSize: 13,
-    color: '#666',
+    color: 'rgba(192,168,130,0.5)',
+    fontFamily: FONT_SERIF,
   },
   // 推演日志条
   logBar: {
+    position: 'relative',
+    zIndex: 1,
     maxWidth: 1200,
     margin: '0 auto 12px',
-    background: '#111827',
-    borderRadius: 8,
-    border: '1px solid #2a3a5c',
+    background: 'rgba(0,0,0,0.55)',
+    backdropFilter: 'blur(12px)',
+    borderRadius: 4,
+    border: `1px solid ${COLOR_BORDER}`,
     overflow: 'hidden',
+    boxShadow: '0 4px 24px rgba(0,0,0,0.3)',
   },
   logBarHeader: {
     padding: '8px 14px',
-    borderBottom: '1px solid #1a2540',
+    borderBottom: `1px solid ${COLOR_BORDER}`,
     display: 'flex',
     alignItems: 'center',
     gap: 8,
@@ -445,7 +498,8 @@ const styles: Record<string, React.CSSProperties> = {
   logBarTitle: {
     fontSize: 13,
     fontWeight: 700,
-    color: '#aaa',
+    color: COLOR_GOLD_DIM,
+    fontFamily: FONT_SERIF,
   },
   logBarContent: {
     maxHeight: 180,
@@ -468,10 +522,10 @@ const styles: Record<string, React.CSSProperties> = {
     minWidth: 80,
   },
   logBarAction: {
-    background: '#1a2540',
+    background: 'rgba(0,0,0,0.3)',
     padding: '1px 6px',
     borderRadius: 3,
-    color: '#666',
+    color: COLOR_GOLD_DIM,
     fontSize: 11,
     whiteSpace: 'nowrap' as const,
   },
@@ -484,6 +538,8 @@ const styles: Record<string, React.CSSProperties> = {
     flex: 1,
   },
   main: {
+    position: 'relative',
+    zIndex: 1,
     maxWidth: 1200,
     margin: '0 auto',
     padding: '0 16px 48px',

@@ -255,6 +255,7 @@ export const CommitteeDashboard: React.FC<Props> = ({ committees, bills, parties
   const partyMap = new Map(parties.map((p) => [p.id, p]));
   const activeBills = bills.filter((b) => !['passed', 'rejected', 'implemented'].includes(b.status));
   const completedBills = bills.filter((b) => ['passed', 'rejected', 'implemented'].includes(b.status));
+  const [selectedMP, setSelectedMP] = useState<{ personality: MPPersonality; party: Party } | null>(null);
 
   return (
     <div style={styles.container}>
@@ -274,7 +275,7 @@ export const CommitteeDashboard: React.FC<Props> = ({ committees, bills, parties
 
       <div style={styles.committeeGrid}>
         {committees.map((c) => (
-          <CommitteeCard key={c.id} committee={c} partyMap={partyMap} activeBills={activeBills} mpPersonalities={mpPersonalities} />
+          <CommitteeCard key={c.id} committee={c} partyMap={partyMap} activeBills={activeBills} mpPersonalities={mpPersonalities} onSelectMP={setSelectedMP} />
         ))}
       </div>
 
@@ -288,6 +289,15 @@ export const CommitteeDashboard: React.FC<Props> = ({ committees, bills, parties
           </div>
         </div>
       )}
+
+      {/* 议员资料弹窗 — 提升到卡片外部，避免 backdrop-filter 堆叠上下文问题 */}
+      {selectedMP && (
+        <MPProfilePanel
+          personality={selectedMP.personality}
+          party={selectedMP.party}
+          onClose={() => setSelectedMP(null)}
+        />
+      )}
     </div>
   );
 };
@@ -298,9 +308,9 @@ const CommitteeCard: React.FC<{
   partyMap: Map<string, Party>;
   activeBills: Bill[];
   mpPersonalities: Record<string, MPPersonality>;
-}> = ({ committee, partyMap, activeBills, mpPersonalities }) => {
+  onSelectMP: (mp: { personality: MPPersonality; party: Party } | null) => void;
+}> = ({ committee, partyMap, activeBills, mpPersonalities, onSelectMP }) => {
   const [expanded, setExpanded] = useState(false);
-  const [selectedMP, setSelectedMP] = useState<{ personality: MPPersonality; party: Party } | null>(null);
   const chairmanParty = partyMap.get(committee.chairman.partyId);
   const viceParty = partyMap.get(committee.viceChairman.partyId);
 
@@ -324,7 +334,7 @@ const CommitteeCard: React.FC<{
     const personality = mpPersonalities[key];
     const party = partyMap.get(m.partyId);
     if (personality && party) {
-      setSelectedMP({ personality, party });
+      onSelectMP({ personality, party });
     }
   };
 
@@ -421,14 +431,6 @@ const CommitteeCard: React.FC<{
         </div>
       )}
 
-      {/* 议员资料弹窗 */}
-      {selectedMP && (
-        <MPProfilePanel
-          personality={selectedMP.personality}
-          party={selectedMP.party}
-          onClose={() => setSelectedMP(null)}
-        />
-      )}
     </div>
   );
 };
@@ -487,14 +489,18 @@ function statusColor(status: string): string {
 }
 
 // ===== 议员面板样式 =====
+const FONT_SERIF = '"Noto Serif SC", "Source Han Serif SC", Georgia, serif';
+const COLOR_BORDER = 'rgba(192, 168, 130, 0.18)';
+
 const mpStyles: Record<string, React.CSSProperties> = {
   overlay: {
     position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex',
     alignItems: 'center', justifyContent: 'center', zIndex: 2000, backdropFilter: 'blur(4px)',
   },
   panel: {
-    width: 440, maxHeight: '85vh', background: 'linear-gradient(180deg, #0d1b2a 0%, #1b2838 100%)',
-    borderRadius: 12, border: '1px solid #2a3a5c', overflowY: 'auto', padding: 20,
+    width: 440, maxHeight: '85vh', background: 'rgba(0,0,0,0.65)',
+    borderRadius: 4, border: `1px solid ${COLOR_BORDER}`, overflowY: 'auto', padding: 20,
+    backdropFilter: 'blur(12px)', boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
   },
   header: { display: 'flex', gap: 14, alignItems: 'center', marginBottom: 12 },
   avatar: {
@@ -516,47 +522,64 @@ const mpStyles: Record<string, React.CSSProperties> = {
     fontSize: 11, fontWeight: 600,
   },
   section: { marginBottom: 14 },
-  sectionTitle: { fontSize: 12, color: '#888', fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase' as const, marginBottom: 8 },
-  narrative: { fontSize: 13, color: '#bbb', lineHeight: 1.7, background: 'rgba(0,0,0,0.2)', padding: '8px 12px', borderRadius: 6 },
+  sectionTitle: { fontSize: 12, color: '#888', fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase' as const, marginBottom: 8, fontFamily: FONT_SERIF },
+  narrative: { fontSize: 13, color: '#bbb', lineHeight: 1.7, background: 'rgba(0,0,0,0.2)', padding: '8px 12px', borderRadius: 4, border: `1px solid ${COLOR_BORDER}` },
   detailGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 16px' },
   detailItem: { display: 'flex', gap: 6, fontSize: 12 },
   detailLabel: { color: '#666', fontWeight: 600, minWidth: 48 },
   detailValue: { color: '#bbb' },
   traitRow: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 },
   traitLabel: { fontSize: 11, color: '#777', fontWeight: 600, width: 55, flexShrink: 0 },
-  traitBarWrap: { flex: 1, height: 6, background: '#1a1a2e', borderRadius: 3, overflow: 'hidden' },
+  traitBarWrap: { flex: 1, height: 6, background: 'rgba(0,0,0,0.3)', borderRadius: 3, overflow: 'hidden' },
   traitBar: { height: '100%', borderRadius: 3, transition: 'width 0.3s' },
   traitValue: { fontSize: 11, color: '#aaa', fontWeight: 700, width: 24, textAlign: 'right' as const, flexShrink: 0 },
   traitDesc: { fontSize: 10, color: '#555', width: 24, flexShrink: 0 },
   goalList: { display: 'flex', gap: 4, flexWrap: 'wrap' },
   goalTag: {
-    padding: '3px 10px', borderRadius: 4, border: '1px solid #3a4a6a', background: '#1a2540',
+    padding: '3px 10px', borderRadius: 4, border: `1px solid ${COLOR_BORDER}`, background: 'rgba(0,0,0,0.3)',
     color: '#8ab4ff', fontSize: 11,
   },
 };
 
 // ===== 主样式 =====
+const COLOR_GOLD = '#C0A882';
+const COLOR_GOLD_DIM = '#B8A47C';
+
 const styles: Record<string, React.CSSProperties> = {
-  container: { background: '#1a1a2e', borderRadius: 12, padding: 24, color: '#e0e0e0' },
+  container: {
+    background: 'rgba(0,0,0,0.55)',
+    backdropFilter: 'blur(12px)',
+    borderRadius: 4,
+    border: `1px solid ${COLOR_BORDER}`,
+    padding: 24,
+    color: '#e0e0e0',
+    boxShadow: '0 4px 24px rgba(0,0,0,0.3)',
+  },
   header: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
-  title: { margin: 0, fontSize: 20, color: '#fff' },
+  title: { margin: 0, fontSize: 20, color: COLOR_GOLD, fontWeight: 700, fontFamily: FONT_SERIF, letterSpacing: 2 },
   summary: { display: 'flex', gap: 16, fontSize: 13 },
   summaryItem: { display: 'flex', alignItems: 'center' },
   committeeGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 12 },
-  card: { background: '#16213e', borderRadius: 8, padding: '12px 16px' },
+  card: {
+    background: 'rgba(0,0,0,0.4)',
+    borderRadius: 4,
+    border: `1px solid ${COLOR_BORDER}`,
+    padding: '12px 16px',
+    backdropFilter: 'blur(4px)',
+  },
   cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  cardTitle: { fontSize: 15, fontWeight: 700, color: '#e0e0e0' },
+  cardTitle: { fontSize: 15, fontWeight: 700, color: '#e0e0e0', fontFamily: FONT_SERIF },
   badge: { padding: '2px 10px', borderRadius: 4, color: '#fff', fontSize: 12, fontWeight: 700 },
   leadership: { display: 'flex', gap: 16, marginBottom: 8 },
   leader: { display: 'flex', flexDirection: 'column' as const, gap: 1 },
-  leaderLabel: { fontSize: 10, color: '#666', textTransform: 'uppercase' as const, letterSpacing: 1 },
+  leaderLabel: { fontSize: 10, color: 'rgba(192,168,130,0.5)', textTransform: 'uppercase' as const, letterSpacing: 1, fontFamily: FONT_SERIF },
   partyBar: { display: 'flex', gap: 2, borderRadius: 3, overflow: 'hidden' },
   partyStats: { display: 'flex', flexWrap: 'wrap' as const, gap: 6, marginTop: 6 },
   partyStatItem: { display: 'flex', alignItems: 'center', gap: 3 },
   partyDot: { width: 6, height: 6, borderRadius: '50%' },
   toggleRow: { display: 'flex', alignItems: 'center', marginTop: 8, cursor: 'pointer', userSelect: 'none' as const },
-  toggleIcon: { marginLeft: 'auto', fontSize: 10, color: '#666' },
-  memberList: { marginTop: 8, borderTop: '1px solid #2a3a5c', paddingTop: 8 },
+  toggleIcon: { marginLeft: 'auto', fontSize: 10, color: 'rgba(192,168,130,0.4)' },
+  memberList: { marginTop: 8, borderTop: `1px solid ${COLOR_BORDER}`, paddingTop: 8 },
   memberGroup: { marginBottom: 8 },
   groupLabel: { fontSize: 11, fontWeight: 700, marginBottom: 4 },
   memberNames: { display: 'flex', flexWrap: 'wrap' as const, gap: 4 },
@@ -567,9 +590,15 @@ const styles: Record<string, React.CSSProperties> = {
   roleTag: { fontSize: 9, color: '#FFD600', fontWeight: 700 },
   cardFooter: { display: 'flex', justifyContent: 'space-between', marginTop: 6 },
   billSection: { marginTop: 24 },
-  sectionTitle: { fontSize: 16, color: '#ccc', marginBottom: 12, borderBottom: '1px solid #333', paddingBottom: 6 },
+  sectionTitle: {
+    fontSize: 16, color: COLOR_GOLD_DIM, marginBottom: 12, borderBottom: `1px solid ${COLOR_BORDER}`, paddingBottom: 6,
+    fontFamily: FONT_SERIF, fontWeight: 700, letterSpacing: 1,
+  },
   billList: { display: 'flex', flexDirection: 'column' as const, gap: 6 },
-  billRow: { display: 'flex', alignItems: 'flex-start' as const, gap: 12, padding: '8px 12px', background: '#16213e', borderRadius: 6 },
+  billRow: {
+    display: 'flex', alignItems: 'flex-start' as const, gap: 12, padding: '8px 12px',
+    background: 'rgba(0,0,0,0.4)', borderRadius: 4, border: `1px solid ${COLOR_BORDER}`,
+  },
   billStatusCol: { minWidth: 70, paddingTop: 2 },
   statusBadge: { display: 'inline-block', padding: '2px 8px', borderRadius: 4, color: '#fff', fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap' as const },
   billTitleCol: { flex: 1, minWidth: 0 },

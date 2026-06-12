@@ -1,0 +1,421 @@
+/* ===== 绝对多数 - 电影海报式主菜单 ===== */
+
+/* 字体引入 */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700;900&family=Cinzel:wght@400;700&display=swap');
+
+/* ===== 全局容器 ===== */
+.mainMenu-screen {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  overflow-y: scroll;
+  overflow-x: hidden;
+  background: #000;
+  font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", "SimSun", serif;
+}
+
+/* ===== 背景图 - 入场缩放动画 ===== */
+.mainMenu-bgImage {
+  position: fixed;
+  inset: 0;
+  background-image: url(/main_menu_bg.png);
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  z-index: 0;
+  transform: scale(1.08);
+  animation: bgZoomIn 1.2s ease-out forwards;
+  animation-delay: 0.3s;
+}
+
+@keyframes bgZoomIn {
+  to {
+    transform: scale(1);
+  }
+}
+
+/* ===== 内容容器 ===== */
+.mainMenu-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  width: 100%;
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding: 3vh 0 6vh;
+}
+
+/* ===== 标题区域 ===== */
+.mainMenu-titleSection {
+  text-align: left;
+  margin-bottom: 6vh;
+  padding-left: 5vw;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  opacity: 0;
+  animation: titleFadeIn 1s ease forwards;
+  animation-delay: 0.2s;
+}
+
+@keyframes titleFadeIn {
+  to {
+    opacity: 1;
+  }
+}
+
+/* 顶部金色装饰线 */
+.mainMenu-decorLineTop {
+  width: 20%;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(192, 168, 130, 0.7), rgba(192, 168, 130, 0.3), transparent);
+  margin-bottom: 20px;
+  box-shadow: 0 0 8px rgba(192, 168, 130, 0.3);
+}
+
+/* 主标题 */
+.mainMenu-title {
+  margin: 0;
+  font-size: clamp(56px, 7vw, 96px);
+  font-weight: 900;
+  letter-spacing: 0.25em;
+  font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", "SimSun", serif;
+  background: linear-gradient(180deg, #E8D9B0 0%, #D4C5A0 30%, #A08B6B 70%, #8B7355 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1.1;
+  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.8), 0 0 40px rgba(192, 168, 130, 0.15);
+  filter: drop-shadow(0 0 20px rgba(192, 168, 130, 0.2));
+  position: relative;
+}
+
+/* 标题外发光 */
+.mainMenu-title::after {
+  content: attr(data-text);
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: -1;
+  background: linear-gradient(180deg, #E8D9B0, #A08B6B);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: blur(8px);
+  opacity: 0.4;
+}
+
+/* 副标题 */
+.mainMenu-subtitle {
+  font-size: clamp(15px, 1.8vw, 20px);
+  color: rgba(212, 197, 160, 0.75);
+  margin-top: 20px;
+  letter-spacing: 0.4em;
+  font-weight: 400;
+  font-family: "Noto Serif SC", "Source Han Serif SC", serif;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+}
+
+/* 副标题英文 */
+.mainMenu-subtitleEn {
+  font-size: clamp(11px, 1.2vw, 14px);
+  color: rgba(192, 168, 130, 0.5);
+  margin-top: 8px;
+  letter-spacing: 0.3em;
+  font-weight: 400;
+  font-family: "Cinzel", serif;
+  text-transform: uppercase;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+
+/* 下方金色装饰线 */
+.mainMenu-decorLineBottom {
+  width: 15%;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(192, 168, 130, 0.6), transparent);
+  margin-top: 16px;
+}
+
+/* ===== 菜单按钮组 ===== */
+.mainMenu-buttonGroup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 0 20px;
+  position: relative;
+}
+
+/* 菜单左侧装饰线 - 军政档案风格 */
+.mainMenu-buttonGroup::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: linear-gradient(180deg,
+    transparent,
+    rgba(192, 168, 130, 0.15) 10%,
+    rgba(192, 168, 130, 0.25) 50%,
+    rgba(192, 168, 130, 0.15) 90%,
+    transparent
+  );
+}
+
+/* ===== 菜单按钮 ===== */
+.mainMenu-btn {
+  width: 100%;
+  height: 70px;
+  padding: 0 24px;
+  border-radius: 3px;
+  border: 1px solid rgba(192, 168, 130, 0.3);
+  background: linear-gradient(135deg, rgba(5, 8, 14, 0.55), rgba(20, 18, 14, 0.72));
+  color: #C0A882;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  opacity: 0;
+  transition: transform 0.26s ease,
+              border-color 0.26s ease,
+              background 0.26s ease,
+              box-shadow 0.26s ease;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4),
+              inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* 按钮依次出现动画 - 只有淡入，没有位移 */
+.mainMenu-btn:nth-child(1) { animation: btnFadeIn 0.6s ease forwards 0.4s; }
+.mainMenu-btn:nth-child(2) { animation: btnFadeIn 0.6s ease forwards 0.5s; }
+.mainMenu-btn:nth-child(3) { animation: btnFadeIn 0.6s ease forwards 0.6s; }
+.mainMenu-btn:nth-child(4) { animation: btnFadeIn 0.6s ease forwards 0.7s; }
+.mainMenu-btn:nth-child(5) { animation: btnFadeIn 0.6s ease forwards 0.8s; }
+
+@keyframes btnFadeIn {
+  to {
+    opacity: 1;
+  }
+}
+
+/* 按钮hover状态 */
+.mainMenu-btn:hover {
+  border-color: rgba(192, 168, 130, 0.65);
+  background: linear-gradient(135deg, rgba(5, 8, 14, 0.72), rgba(20, 18, 14, 0.85));
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5),
+              inset 0 1px 0 rgba(255, 255, 255, 0.08),
+              0 0 20px rgba(192, 168, 130, 0.15);
+  transform: scale(1.05);
+  transition: transform 0.26s ease,
+              border-color 0.26s ease,
+              background 0.26s ease,
+              box-shadow 0.26s ease;
+}
+
+/* 按钮active状态 */
+.mainMenu-btn:active {
+  transform: scale(1.02);
+}
+
+/* 按钮扫光效果 - ::before伪元素 */
+.mainMenu-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(192, 168, 130, 0.15),
+    rgba(212, 197, 160, 0.25),
+    rgba(192, 168, 130, 0.15),
+    transparent
+  );
+  transform: skewX(-20deg);
+  transition: left 0.5s ease;
+  pointer-events: none;
+}
+
+.mainMenu-btn:hover::before {
+  left: 150%;
+  transition: left 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* 按钮右侧装饰线 - 战略界面风格 */
+.mainMenu-btn::after {
+  content: '';
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2px;
+  height: 40%;
+  background: linear-gradient(180deg,
+    transparent,
+    rgba(192, 168, 130, 0.2) 30%,
+    rgba(192, 168, 130, 0.2) 70%,
+    transparent
+  );
+  opacity: 0;
+  transition: opacity 0.26s ease;
+}
+
+.mainMenu-btn:hover::after {
+  opacity: 1;
+}
+
+/* ===== 按钮图标 ===== */
+.mainMenu-btnIcon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border: 1px solid rgba(192, 168, 130, 0.25);
+  border-radius: 3px;
+  background: rgba(192, 168, 130, 0.08);
+  transition: all 0.26s ease;
+  position: relative;
+}
+
+/* 图标外框hover发光 */
+.mainMenu-btn:hover .mainMenu-btnIcon {
+  border-color: rgba(212, 197, 160, 0.6);
+  background: rgba(212, 197, 160, 0.12);
+  box-shadow: 0 0 12px rgba(192, 168, 130, 0.2),
+              inset 0 0 8px rgba(212, 197, 160, 0.1);
+}
+
+/* ===== 按钮文字 ===== */
+.mainMenu-btnTextWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.mainMenu-btnLabel {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.35em;
+  color: rgba(212, 197, 160, 0.85);
+  font-family: "Noto Serif SC", "Source Han Serif SC", serif;
+  transition: color 0.26s ease;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+
+/* hover时中文文字变为亮金色 */
+.mainMenu-btn:hover .mainMenu-btnLabel {
+  color: #E8D9B0;
+  text-shadow: 0 0 12px rgba(212, 197, 160, 0.3),
+               0 2px 6px rgba(0, 0, 0, 0.5);
+}
+
+.mainMenu-btnSub {
+  font-size: 11px;
+  letter-spacing: 0.4em;
+  color: rgba(192, 168, 130, 0.4);
+  font-weight: 400;
+  font-family: "Cinzel", serif;
+  text-transform: uppercase;
+  transition: color 0.26s ease;
+}
+
+.mainMenu-btn:hover .mainMenu-btnSub {
+  color: rgba(212, 197, 160, 0.65);
+}
+
+/* ===== 底部版本号 ===== */
+.mainMenu-footer {
+  position: fixed;
+  bottom: 24px;
+  right: 36px;
+  z-index: 2;
+}
+
+.mainMenu-version {
+  font-size: 11px;
+  color: rgba(192, 168, 130, 0.25);
+  letter-spacing: 0.2em;
+  font-family: "Cinzel", serif;
+  text-transform: uppercase;
+}
+
+/* ===== Toast ===== */
+.mainMenu-toastOverlay {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  animation: toastFadeIn 0.3s ease;
+}
+
+@keyframes toastFadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.mainMenu-toastBox {
+  background: rgba(10, 10, 25, 0.94);
+  border: 1px solid rgba(192, 168, 130, 0.3);
+  border-radius: 4px;
+  padding: 14px 32px;
+  backdrop-filter: blur(16px);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.6),
+              0 0 20px rgba(192, 168, 130, 0.1);
+}
+
+.mainMenu-toastText {
+  color: #E8D9B0;
+  font-size: 15px;
+  font-weight: 500;
+  white-space: nowrap;
+  letter-spacing: 0.1em;
+  font-family: "Noto Serif SC", serif;
+}
+
+/* ===== 响应式调整 ===== */
+@media (max-width: 768px) {
+  .mainMenu-buttonGroup {
+    max-width: 100%;
+    padding: 0 16px;
+  }
+
+  .mainMenu-btn {
+    height: 64px;
+    padding: 0 20px;
+    gap: 16px;
+  }
+
+  .mainMenu-btnIcon {
+    width: 42px;
+    height: 42px;
+  }
+
+  .mainMenu-btnLabel {
+    font-size: 20px;
+  }
+
+  .mainMenu-btnSub {
+    font-size: 10px;
+  }
+}

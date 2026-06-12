@@ -213,14 +213,18 @@ export const PlayerProfilePanel: React.FC<PlayerProfilePanelProps> = ({
   );
 };
 
+const FONT_SERIF = '"Noto Serif SC", "Source Han Serif SC", Georgia, serif';
+const COLOR_BORDER = 'rgba(192, 168, 130, 0.18)';
+
 const mpStyles: Record<string, React.CSSProperties> = {
   overlay: {
     position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex',
     alignItems: 'center', justifyContent: 'center', zIndex: 2000, backdropFilter: 'blur(4px)',
   },
   panel: {
-    width: 440, maxHeight: '85vh', background: 'linear-gradient(180deg, #0d1b2a 0%, #1b2838 100%)',
-    borderRadius: 12, border: '1px solid #2a3a5c', overflowY: 'auto', padding: 20,
+    width: 440, maxHeight: '85vh', background: 'rgba(0,0,0,0.65)',
+    borderRadius: 4, border: `1px solid ${COLOR_BORDER}`, overflowY: 'auto', padding: 20,
+    backdropFilter: 'blur(12px)', boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
   },
   header: { display: 'flex', gap: 14, alignItems: 'center', marginBottom: 12 },
   avatar: {
@@ -242,21 +246,21 @@ const mpStyles: Record<string, React.CSSProperties> = {
     fontSize: 11, fontWeight: 600,
   },
   section: { marginBottom: 14 },
-  sectionTitle: { fontSize: 12, color: '#888', fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase' as const, marginBottom: 8 },
-  narrative: { fontSize: 13, color: '#bbb', lineHeight: 1.7, background: 'rgba(0,0,0,0.2)', padding: '8px 12px', borderRadius: 6 },
+  sectionTitle: { fontSize: 12, color: '#888', fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase' as const, marginBottom: 8, fontFamily: FONT_SERIF },
+  narrative: { fontSize: 13, color: '#bbb', lineHeight: 1.7, background: 'rgba(0,0,0,0.2)', padding: '8px 12px', borderRadius: 4, border: `1px solid ${COLOR_BORDER}` },
   detailGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 16px' },
   detailItem: { display: 'flex', gap: 6, fontSize: 12 },
   detailLabel: { color: '#666', fontWeight: 600, minWidth: 48 },
   detailValue: { color: '#bbb' },
   traitRow: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 },
   traitLabel: { fontSize: 11, color: '#777', fontWeight: 600, width: 55, flexShrink: 0 },
-  traitBarWrap: { flex: 1, height: 6, background: '#1a1a2e', borderRadius: 3, overflow: 'hidden' },
+  traitBarWrap: { flex: 1, height: 6, background: 'rgba(0,0,0,0.3)', borderRadius: 3, overflow: 'hidden' },
   traitBar: { height: '100%', borderRadius: 3, transition: 'width 0.3s' },
   traitValue: { fontSize: 11, color: '#aaa', fontWeight: 700, width: 24, textAlign: 'right' as const, flexShrink: 0 },
   traitDesc: { fontSize: 10, color: '#555', width: 24, flexShrink: 0 },
   goalList: { display: 'flex', gap: 4, flexWrap: 'wrap' },
   goalTag: {
-    padding: '3px 10px', borderRadius: 4, border: '1px solid #3a4a6a', background: '#1a2540',
+    padding: '3px 10px', borderRadius: 4, border: `1px solid ${COLOR_BORDER}`, background: 'rgba(0,0,0,0.3)',
     color: '#8ab4ff', fontSize: 11,
   },
   // 可展开行
@@ -275,13 +279,13 @@ const mpStyles: Record<string, React.CSSProperties> = {
     alignItems: 'center', justifyContent: 'center', zIndex: 2100, backdropFilter: 'blur(2px)',
   },
   popupBox: {
-    width: 380, maxHeight: '60vh', background: 'linear-gradient(180deg, #0d1b2a 0%, #1b2838 100%)',
-    borderRadius: 10, border: '1px solid #3a4a6a', overflow: 'hidden',
-    boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+    width: 380, maxHeight: '60vh', background: 'rgba(0,0,0,0.65)',
+    borderRadius: 4, border: `1px solid ${COLOR_BORDER}`, overflow: 'hidden',
+    backdropFilter: 'blur(12px)', boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
   },
   popupHeader: {
     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-    padding: '12px 16px', borderBottom: '1px solid #2a3a5c',
+    padding: '12px 16px', borderBottom: `1px solid ${COLOR_BORDER}`,
   },
   popupTitle: {
     fontSize: 14, fontWeight: 700, color: '#e0e0e0',

@@ -151,22 +151,34 @@ export const RelationMatrix: React.FC<Props> = ({ parties, relations }) => {
   );
 };
 
+const FONT_SERIF = '"Noto Serif SC", "Source Han Serif SC", Georgia, serif';
+const COLOR_GOLD = '#C0A882';
+const COLOR_GOLD_DIM = '#B8A47C';
+const COLOR_BORDER = 'rgba(192, 168, 130, 0.18)';
+
 const styles: Record<string, React.CSSProperties> = {
   container: {
-    background: '#1a1a2e',
-    borderRadius: 12,
+    background: 'rgba(0,0,0,0.55)',
+    backdropFilter: 'blur(12px)',
+    borderRadius: 4,
+    border: `1px solid ${COLOR_BORDER}`,
     padding: 24,
     color: '#e0e0e0',
+    boxShadow: '0 4px 24px rgba(0,0,0,0.3)',
   },
   title: {
     margin: 0,
     fontSize: 20,
-    color: '#fff',
+    color: COLOR_GOLD,
+    fontWeight: 700,
+    fontFamily: FONT_SERIF,
+    letterSpacing: 2,
   },
   subtitle: {
     margin: '4px 0 16px',
     fontSize: 12,
-    color: '#888',
+    color: 'rgba(192,168,130,0.5)',
+    fontFamily: FONT_SERIF,
   },
   headerCell: {
     display: 'flex',
@@ -180,7 +192,7 @@ const styles: Record<string, React.CSSProperties> = {
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 6,
+    borderRadius: 4,
     transition: 'transform 0.15s',
   },
   legend: {

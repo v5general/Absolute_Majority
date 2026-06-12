@@ -450,12 +450,20 @@ function stabilityLabel(val: number): string {
 
 // ===== Styles =====
 
+const FONT_SERIF = '"Noto Serif SC", "Source Han Serif SC", Georgia, serif';
+const COLOR_GOLD = '#C0A882';
+const COLOR_GOLD_DIM = '#B8A47C';
+const COLOR_BORDER = 'rgba(192, 168, 130, 0.18)';
+
 const styles: Record<string, React.CSSProperties> = {
   container: {
-    background: '#1a1a2e',
-    borderRadius: 12,
+    background: 'rgba(0,0,0,0.55)',
+    backdropFilter: 'blur(12px)',
+    borderRadius: 4,
+    border: `1px solid ${COLOR_BORDER}`,
     padding: 24,
     color: '#e0e0e0',
+    boxShadow: '0 4px 24px rgba(0,0,0,0.3)',
   },
   titleRow: {
     display: 'flex',
@@ -465,12 +473,16 @@ const styles: Record<string, React.CSSProperties> = {
   title: {
     margin: 0,
     fontSize: 20,
-    color: '#fff',
+    color: COLOR_GOLD,
+    fontWeight: 700,
+    fontFamily: FONT_SERIF,
+    letterSpacing: 2,
   },
   minorityBadge: {
     padding: '3px 12px',
     borderRadius: 4,
-    backgroundColor: '#E65100',
+    backgroundColor: 'rgba(230,81,0,0.6)',
+    backdropFilter: 'blur(6px)',
     color: '#FFD54F',
     fontSize: 12,
     fontWeight: 700,
@@ -479,8 +491,10 @@ const styles: Record<string, React.CSSProperties> = {
   supermajorityBadge: {
     padding: '3px 12px',
     borderRadius: 4,
-    background: 'linear-gradient(135deg, #7B1FA2, #CE93D8)',
-    color: '#fff',
+    background: 'rgba(74,20,140,0.6)',
+    backdropFilter: 'blur(6px)',
+    border: '1px solid #CE93D8',
+    color: '#E1BEE7',
     fontSize: 12,
     fontWeight: 700,
     letterSpacing: 1,
@@ -492,9 +506,10 @@ const styles: Record<string, React.CSSProperties> = {
     gap: 20,
     marginTop: 20,
     padding: '16px 20px',
-    background: '#16213e',
-    borderRadius: 10,
-    border: '1px solid #2a3a5c',
+    background: 'rgba(0,0,0,0.4)',
+    borderRadius: 4,
+    border: `1px solid ${COLOR_BORDER}`,
+    backdropFilter: 'blur(6px)',
   },
   pmPortrait: {
     display: 'flex',
@@ -515,18 +530,21 @@ const styles: Record<string, React.CSSProperties> = {
   },
   pmLabel: {
     fontSize: 11,
-    color: '#888',
+    color: 'rgba(192,168,130,0.5)',
     textTransform: 'uppercase',
     letterSpacing: 2,
+    fontFamily: FONT_SERIF,
   },
   pmName: {
     fontSize: 24,
     fontWeight: 800,
     margin: '2px 0',
+    fontFamily: FONT_SERIF,
   },
   pmParty: {
     fontSize: 13,
     color: '#aaa',
+    fontFamily: FONT_SERIF,
   },
   seatsInfo: {
     textAlign: 'right',
@@ -535,12 +553,14 @@ const styles: Record<string, React.CSSProperties> = {
   seatsValue: {
     fontSize: 22,
     fontWeight: 800,
+    fontFamily: FONT_SERIF,
   },
   stabilitySection: {
     marginTop: 20,
     padding: '12px 16px',
-    background: '#16213e',
-    borderRadius: 8,
+    background: 'rgba(0,0,0,0.4)',
+    borderRadius: 4,
+    border: `1px solid ${COLOR_BORDER}`,
   },
   stabilityHeader: {
     display: 'flex',
@@ -551,14 +571,16 @@ const styles: Record<string, React.CSSProperties> = {
   stabilityLabel: {
     fontSize: 13,
     color: '#aaa',
+    fontFamily: FONT_SERIF,
   },
   stabilityValue: {
     fontSize: 20,
     fontWeight: 800,
+    fontFamily: FONT_SERIF,
   },
   stabilityBarBg: {
     height: 8,
-    backgroundColor: '#333',
+    backgroundColor: 'rgba(0,0,0,0.3)',
     borderRadius: 4,
     overflow: 'hidden',
   },
@@ -571,6 +593,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 12,
     color: '#888',
     marginTop: 6,
+    fontFamily: FONT_SERIF,
   },
   coalitionSection: {
     display: 'flex',
@@ -579,9 +602,11 @@ const styles: Record<string, React.CSSProperties> = {
   },
   coalitionColumn: {
     flex: 1,
-    background: '#16213e',
-    borderRadius: 8,
+    background: 'rgba(0,0,0,0.4)',
+    borderRadius: 4,
+    border: `1px solid ${COLOR_BORDER}`,
     padding: '12px 16px',
+    backdropFilter: 'blur(4px)',
   },
   coalitionTitle: {
     display: 'flex',
@@ -590,22 +615,24 @@ const styles: Record<string, React.CSSProperties> = {
     marginBottom: 10,
     fontSize: 14,
     fontWeight: 700,
+    fontFamily: FONT_SERIF,
   },
   coalitionSeats: {
     fontSize: 13,
     color: '#aaa',
     fontWeight: 600,
+    fontFamily: FONT_SERIF,
   },
   coalitionDivider: {
     width: 1,
-    backgroundColor: '#333',
+    backgroundColor: COLOR_BORDER,
   },
   partyChip: {
     display: 'flex',
     alignItems: 'center',
     gap: 8,
     padding: '6px 0',
-    borderBottom: '1px solid #222',
+    borderBottom: `1px solid ${COLOR_BORDER}`,
   },
   chipDot: {
     width: 8,
@@ -616,6 +643,7 @@ const styles: Record<string, React.CSSProperties> = {
     marginLeft: 'auto',
     fontSize: 12,
     color: '#888',
+    fontFamily: FONT_SERIF,
   },
   seatBarSection: {
     marginTop: 20,
@@ -625,10 +653,13 @@ const styles: Record<string, React.CSSProperties> = {
   },
   sectionTitle: {
     fontSize: 16,
-    color: '#ccc',
+    color: COLOR_GOLD_DIM,
     marginBottom: 12,
-    borderBottom: '1px solid #333',
+    borderBottom: `1px solid ${COLOR_BORDER}`,
     paddingBottom: 6,
+    fontFamily: FONT_SERIF,
+    fontWeight: 700,
+    letterSpacing: 1,
   },
   cabinetGrid: {
     display: 'grid',
@@ -636,9 +667,11 @@ const styles: Record<string, React.CSSProperties> = {
     gap: 10,
   },
   ministerCard: {
-    background: '#16213e',
-    borderRadius: 8,
+    background: 'rgba(0,0,0,0.4)',
+    borderRadius: 4,
+    border: `1px solid ${COLOR_BORDER}`,
     padding: '10px 14px',
+    backdropFilter: 'blur(4px)',
   },
   ministerPost: {
     fontSize: 11,
@@ -648,14 +681,16 @@ const styles: Record<string, React.CSSProperties> = {
     marginBottom: 6,
     textTransform: 'uppercase',
     letterSpacing: 1,
+    fontFamily: FONT_SERIF,
   },
   prospectSection: {
     marginTop: 24,
   },
   prospectDesc: {
     fontSize: 12,
-    color: '#666',
+    color: 'rgba(192,168,130,0.5)',
     margin: '0 0 10px',
+    fontFamily: FONT_SERIF,
   },
   prospectList: {
     display: 'flex',
@@ -667,8 +702,9 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: 'center',
     gap: 10,
     padding: '8px 12px',
-    background: '#16213e',
-    borderRadius: 6,
+    background: 'rgba(0,0,0,0.4)',
+    borderRadius: 4,
+    border: `1px solid ${COLOR_BORDER}`,
     fontSize: 13,
   },
   prospectDot: {
@@ -683,7 +719,7 @@ const styles: Record<string, React.CSSProperties> = {
   willingnessBar: {
     flex: 1,
     height: 6,
-    backgroundColor: '#333',
+    backgroundColor: 'rgba(0,0,0,0.3)',
     borderRadius: 3,
     overflow: 'hidden',
     maxWidth: 140,
@@ -698,6 +734,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 700,
     minWidth: 36,
     textAlign: 'right',
+    fontFamily: FONT_SERIF,
   },
   prospectBadge: {
     padding: '2px 10px',
@@ -721,8 +758,9 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: 'center',
     gap: 10,
     padding: '8px 12px',
-    background: '#16213e',
-    borderRadius: 6,
+    background: 'rgba(0,0,0,0.4)',
+    borderRadius: 4,
+    border: `1px solid ${COLOR_BORDER}`,
     fontSize: 13,
   },
   offerDot: {

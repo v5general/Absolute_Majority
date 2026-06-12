@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import './MainMenu.css';
 
 // ===== localStorage 存档工具 =====
 
@@ -55,9 +56,9 @@ const Toast: React.FC<{
   }, [onClose]);
 
   return (
-    <div style={toastStyles.overlay}>
-      <div style={toastStyles.box}>
-        <div style={toastStyles.text}>{message}</div>
+    <div className="mainMenu-toastOverlay">
+      <div className="mainMenu-toastBox">
+        <div className="mainMenu-toastText">{message}</div>
       </div>
     </div>
   );
@@ -67,19 +68,19 @@ const Toast: React.FC<{
 
 const Icons: Record<string, React.FC<{ color?: string }>> = {
   continue: ({ color = '#C0A882' }) => (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M3 21h18M3 7v14M21 7v14M6 11h12M6 15h12M6 7h12" />
       <path d="M6 3h12l3 4H3l3-4z" />
     </svg>
   ),
   newGame: ({ color = '#C0A882' }) => (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="10" />
       <polygon points="16.24,7.76 14.12,14.12 7.76,16.24 9.88,9.88" />
     </svg>
   ),
   load: ({ color = '#C0A882' }) => (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
       <polyline points="14,2 14,8 20,8" />
       <line x1="16" y1="13" x2="8" y2="13" />
@@ -87,13 +88,13 @@ const Icons: Record<string, React.FC<{ color?: string }>> = {
     </svg>
   ),
   settings: ({ color = '#C0A882' }) => (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="3" />
       <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
     </svg>
   ),
   exit: ({ color = '#C0A882' }) => (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
       <polyline points="16,17 21,12 16,7" />
       <line x1="21" y1="12" x2="9" y2="12" />
@@ -132,7 +133,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartNew, onResume }) => {
   // 入场动画完成后启用弹回
   useEffect(() => {
     if (animateIn) {
-      const timer = setTimeout(() => setEntranceDone(true), 850);
+      const timer = setTimeout(() => setEntranceDone(true), 1200);
       return () => clearTimeout(timer);
     }
   }, [animateIn]);
@@ -260,37 +261,36 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartNew, onResume }) => {
   const showToast = (msg: string) => setToast(msg);
 
   return (
-    <div ref={screenRef} style={styles.screen}>
-      {/* 背景图 */}
-      <div style={styles.bgImage} />
+    <div ref={screenRef} className="mainMenu-screen">
+      {/* 背景图 - 慢速缩放动画 */}
+      <div className="mainMenu-bgImage" />
 
-      {/* 整体内容容器 - 靠上居中 */}
-      <div style={{
-        ...styles.content,
-        opacity: animateIn ? 0.995 : 0,
-        transform: entranceDone
-          ? `translateY(${bounceOffset}px)`
-          : animateIn ? 'translateY(0)' : 'translateY(20px)',
-        transition: entranceDone
-          ? 'none'
-          : 'opacity 0.8s ease-out, transform 0.8s ease-out',
-      }}>
-        {/* 标题区域 - 屏幕上方 */}
-        <div style={styles.titleSection}>
+      {/* 整体内容容器 */}
+      <div
+        className="mainMenu-content"
+        style={{
+          opacity: animateIn ? 1 : 0,
+          transform: entranceDone
+            ? `translateY(${bounceOffset}px)`
+            : animateIn ? 'translateY(0)' : 'translateY(20px)',
+          transition: entranceDone
+            ? 'none'
+            : 'opacity 0.8s ease-out, transform 0.8s ease-out',
+        }}
+      >
+        {/* 标题区域 - 左上 */}
+        <div className="mainMenu-titleSection">
           {/* 上方金色装饰线 */}
-          <div style={styles.decorLineTop} />
-          <h1 style={styles.title}>绝对多数</h1>
-          <div style={styles.subtitle}>2058 · 架空政治模拟</div>
-          <div style={styles.tagline}>民意、权力、未来——一切取决于你的决断</div>
+          <div className="mainMenu-decorLineTop" />
+          <h1 className="mainMenu-title" data-text="绝对多数">绝对多数</h1>
+          <div className="mainMenu-subtitle">2058 · 架空政治模拟</div>
+          <div className="mainMenu-subtitleEn">ABSOLUTE MAJORITY</div>
           {/* 下方金色装饰线 */}
-          <div style={styles.decorLineBottom} />
+          <div className="mainMenu-decorLineBottom" />
         </div>
 
         {/* 菜单按钮组 - 居中 */}
-        <div style={{
-          ...styles.buttonGroup,
-          alignSelf: 'center',
-        }}>
+        <div className="mainMenu-buttonGroup">
           {hasExistingSave ? (
             <MenuButton
               icon={<Icons.continue />}
@@ -334,8 +334,8 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartNew, onResume }) => {
       </div>
 
       {/* 底部版本号 */}
-      <div style={styles.footer}>
-        <span style={styles.version}>v0.1.0 Alpha</span>
+      <div className="mainMenu-footer">
+        <span className="mainMenu-version">v0.1.0 Alpha</span>
       </div>
 
       {/* Toast */}
@@ -362,199 +362,14 @@ const MenuButton: React.FC<{
       onMouseLeave={() => { setHovered(false); setPressed(false); }}
       onMouseDown={() => setPressed(true)}
       onMouseUp={() => setPressed(false)}
-      style={{
-        ...styles.menuBtn,
-        ...(hovered ? styles.menuBtnHover : {}),
-        transform: pressed ? 'scale(0.98)' : hovered ? 'scale(1.01)' : 'scale(1)',
-        transition: 'all 0.2s ease',
-        cursor: 'pointer',
-      }}
+      className="mainMenu-btn"
     >
-      <span style={styles.menuBtnIcon}>{icon}</span>
-      <div style={styles.menuBtnTextWrap}>
-        <span style={styles.menuBtnLabel}>{label}</span>
-        <span style={styles.menuBtnSub}>{subLabel}</span>
+      {/* 图标框 */}
+      <span className="mainMenu-btnIcon">{icon}</span>
+      <div className="mainMenu-btnTextWrap">
+        <span className="mainMenu-btnLabel">{label}</span>
+        <span className="mainMenu-btnSub">{subLabel}</span>
       </div>
     </button>
   );
-};
-
-// ===== 样式 =====
-
-const styles: Record<string, React.CSSProperties> = {
-  screen: {
-    position: 'relative',
-    width: '100%',
-    height: '100vh',
-    overflowY: 'auto',
-    overflowX: 'hidden',
-    background: '#000',
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans SC", "Noto Serif SC", serif',
-  },
-  bgImage: {
-    position: 'fixed',
-    inset: 0,
-    backgroundImage: 'url(/main_menu_bg.png)',
-    backgroundSize: 'cover',
-    backgroundPosition: 'center center',
-    backgroundRepeat: 'no-repeat',
-    zIndex: 0,
-  },
-  content: {
-    position: 'relative',
-    zIndex: 1,
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'flex-start',
-    justifyContent: 'flex-start',
-    width: '100%',
-    boxSizing: 'border-box',
-    padding: '3vh 0 6vh',
-  },
-  titleSection: {
-    textAlign: 'left' as const,
-    marginBottom: '6vh',
-    paddingLeft: '5vw',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'flex-start',
-  },
-  decorLineTop: {
-    width: '20%',
-    height: 1,
-    background: 'linear-gradient(90deg, rgba(192, 168, 130, 0.6), transparent)',
-    marginBottom: 16,
-  },
-  title: {
-    margin: 0,
-    fontSize: 'clamp(48px, 6vw, 80px)',
-    fontWeight: 900,
-    letterSpacing: 20,
-    fontFamily: '"Noto Serif SC", "Source Han Serif SC", Georgia, serif',
-    background: 'linear-gradient(180deg, #D4C5A0, #A08B6B)',
-    WebkitBackgroundClip: 'text',
-    WebkitTextFillColor: 'transparent',
-    textShadow: 'none',
-    lineHeight: 1.2,
-  },
-  subtitle: {
-    fontSize: 'clamp(14px, 1.5vw, 18px)',
-    color: '#B8A47C',
-    marginTop: 16,
-    letterSpacing: 6,
-    fontWeight: 400,
-    fontFamily: '"Noto Serif SC", "Source Han Serif SC", Georgia, serif',
-    textAlign: 'center' as const,
-    width: '100%',
-  },
-  tagline: {
-    fontSize: 'clamp(11px, 1vw, 14px)',
-    color: '#B8A47C',
-    marginTop: 8,
-    letterSpacing: 3,
-    fontWeight: 600,
-    fontStyle: 'italic',
-    fontFamily: '"Noto Serif SC", "Source Han Serif SC", Georgia, serif',
-    textAlign: 'center' as const,
-    width: '100%',
-  },
-  decorLineBottom: {
-    width: '15%',
-    height: 1,
-    background: 'linear-gradient(90deg, rgba(192, 168, 130, 0.5), transparent)',
-    marginTop: 12,
-  },
-  buttonGroup: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'stretch',
-    gap: 12,
-    width: '100%',
-    maxWidth: 380,
-  },
-  menuBtn: {
-    width: '100%',
-    padding: '14px 20px',
-    borderRadius: 2,
-    border: '1px solid rgba(192, 168, 130, 0.25)',
-    background: 'rgba(0, 0, 0, 0.6)',
-    color: '#C0A882',
-    textAlign: 'left' as const,
-    backdropFilter: 'blur(8px)',
-    display: 'flex',
-    alignItems: 'center',
-    gap: 16,
-    lineHeight: 1.3,
-  },
-  menuBtnHover: {
-    background: 'rgba(0, 0, 0, 0.75)',
-    border: '1px solid rgba(192, 168, 130, 0.55)',
-    boxShadow: '0 0 20px rgba(192, 168, 130, 0.1)',
-  },
-  menuBtnIcon: {
-    flexShrink: 0,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: 40,
-    height: 40,
-    border: '1px solid rgba(192, 168, 130, 0.2)',
-    borderRadius: 2,
-    background: 'rgba(192, 168, 130, 0.06)',
-  },
-  menuBtnTextWrap: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 2,
-  },
-  menuBtnLabel: {
-    fontSize: 18,
-    fontWeight: 700,
-    letterSpacing: 6,
-    color: '#C0A882',
-    fontFamily: '"Noto Serif SC", "Source Han Serif SC", Georgia, serif',
-  },
-  menuBtnSub: {
-    fontSize: 9,
-    letterSpacing: 4,
-    color: 'rgba(192, 168, 130, 0.45)',
-    fontWeight: 400,
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-  },
-  footer: {
-    position: 'fixed',
-    bottom: 20,
-    right: 30,
-    zIndex: 2,
-  },
-  version: {
-    fontSize: 11,
-    color: 'rgba(192, 168, 130, 0.2)',
-    letterSpacing: 2,
-  },
-};
-
-const toastStyles: Record<string, React.CSSProperties> = {
-  overlay: {
-    position: 'fixed',
-    bottom: 80,
-    left: '50%',
-    transform: 'translateX(-50%)',
-    zIndex: 9999,
-  },
-  box: {
-    background: 'rgba(10, 10, 25, 0.92)',
-    border: '1px solid rgba(192, 168, 130, 0.25)',
-    borderRadius: 4,
-    padding: '12px 28px',
-    backdropFilter: 'blur(12px)',
-    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.5)',
-  },
-  text: {
-    color: '#C0A882',
-    fontSize: 14,
-    fontWeight: 500,
-    whiteSpace: 'nowrap' as const,
-    letterSpacing: 1,
-  },
 };

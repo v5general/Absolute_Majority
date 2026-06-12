@@ -175,17 +175,28 @@ const BarIndicator: React.FC<{
   </div>
 );
 
+const FONT_SERIF = '"Noto Serif SC", "Source Han Serif SC", Georgia, serif';
+const COLOR_GOLD = '#C0A882';
+const COLOR_GOLD_DIM = '#B8A47C';
+const COLOR_BORDER = 'rgba(192, 168, 130, 0.18)';
+
 const styles: Record<string, React.CSSProperties> = {
   container: {
-    background: '#1a1a2e',
-    borderRadius: 12,
+    background: 'rgba(0,0,0,0.55)',
+    backdropFilter: 'blur(12px)',
+    borderRadius: 4,
+    border: `1px solid ${COLOR_BORDER}`,
     padding: 24,
     color: '#e0e0e0',
+    boxShadow: '0 4px 24px rgba(0,0,0,0.3)',
   },
   title: {
     margin: 0,
     fontSize: 20,
-    color: '#fff',
+    color: COLOR_GOLD,
+    fontWeight: 700,
+    fontFamily: FONT_SERIF,
+    letterSpacing: 2,
   },
   kpiRow: {
     display: 'flex',
@@ -196,10 +207,12 @@ const styles: Record<string, React.CSSProperties> = {
   kpiCard: {
     flex: 1,
     minWidth: 140,
-    background: '#16213e',
-    borderRadius: 8,
+    background: 'rgba(0,0,0,0.4)',
+    borderRadius: 4,
+    border: `1px solid ${COLOR_BORDER}`,
     padding: '12px 16px',
     borderTop: '3px solid',
+    backdropFilter: 'blur(4px)',
   },
   indicatorRow: {
     display: 'flex',
@@ -212,10 +225,13 @@ const styles: Record<string, React.CSSProperties> = {
   },
   sectionTitle: {
     fontSize: 16,
-    color: '#ccc',
+    color: COLOR_GOLD_DIM,
     marginBottom: 12,
-    borderBottom: '1px solid #333',
+    borderBottom: `1px solid ${COLOR_BORDER}`,
     paddingBottom: 6,
+    fontFamily: FONT_SERIF,
+    fontWeight: 700,
+    letterSpacing: 1,
   },
   partyList: {
     display: 'flex',
@@ -227,8 +243,10 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: 'center',
     gap: 12,
     padding: '8px 12px',
-    background: '#16213e',
-    borderRadius: 8,
+    background: 'rgba(0,0,0,0.4)',
+    borderRadius: 4,
+    border: `1px solid ${COLOR_BORDER}`,
+    backdropFilter: 'blur(4px)',
   },
   rank: {
     width: 24,
@@ -236,6 +254,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 700,
     color: '#888',
     textAlign: 'center',
+    fontFamily: FONT_SERIF,
   },
   partyColor: {
     width: 8,
@@ -250,10 +269,11 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 14,
     fontWeight: 600,
     marginBottom: 4,
+    fontFamily: FONT_SERIF,
   },
   partyBarContainer: {
     height: 6,
-    backgroundColor: '#333',
+    backgroundColor: 'rgba(0,0,0,0.3)',
     borderRadius: 3,
     overflow: 'hidden',
   },
@@ -276,8 +296,10 @@ const styles: Record<string, React.CSSProperties> = {
     gap: 10,
   },
   districtCard: {
-    background: '#16213e',
-    borderRadius: 8,
+    background: 'rgba(0,0,0,0.4)',
+    borderRadius: 4,
+    border: `1px solid ${COLOR_BORDER}`,
     padding: '10px 14px',
+    backdropFilter: 'blur(4px)',
   },
 };

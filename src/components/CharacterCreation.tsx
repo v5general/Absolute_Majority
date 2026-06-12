@@ -794,7 +794,7 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: 'center',
     background: '#000',
     padding: 24,
-    fontFamily: `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, ${FONT_SERIF}`,
+    fontFamily: `${FONT_SERIF}, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto`,
   },
   bgImage: {
     position: 'fixed',
