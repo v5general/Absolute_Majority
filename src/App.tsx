@@ -33,6 +33,12 @@ const GameInner: React.FC = () => {
     document.body.scrollTop = 0;
   }, [state.playerConfig]);
 
+  // 玩家资料面板打开时锁定页面滚动
+  useEffect(() => {
+    document.body.style.overflow = showProfile ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [showProfile]);
+
   const pendingCount = state.currentAIEvents.length;
 
   // 执政联盟席位计算

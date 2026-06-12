@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import type { Committee, Bill, Party, RelationEntry, MPPersonality, CommitteeMember } from '../types';
 import { COMMITTEE_LABELS, BILL_STATUS_LABELS } from '../types';
 import { getBackgroundNarrative } from '../engine/backgroundEngine';
@@ -257,6 +258,12 @@ export const CommitteeDashboard: React.FC<Props> = ({ committees, bills, parties
   const completedBills = bills.filter((b) => ['passed', 'rejected', 'implemented'].includes(b.status));
   const [selectedMP, setSelectedMP] = useState<{ personality: MPPersonality; party: Party } | null>(null);
 
+  // 议员资料面板打开时锁定页面滚动
+  useEffect(() => {
+    document.body.style.overflow = selectedMP ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [selectedMP]);
+
   return (
     <div style={styles.container}>
       <div style={styles.header}>
@@ -290,13 +297,14 @@ export const CommitteeDashboard: React.FC<Props> = ({ committees, bills, parties
         </div>
       )}
 
-      {/* 议员资料弹窗 — 提升到卡片外部，避免 backdrop-filter 堆叠上下文问题 */}
-      {selectedMP && (
+      {/* 议员资料弹窗 — 通过 portal 挂到 body，避免 backdrop-filter 堆叠上下文问题 */}
+      {selectedMP && createPortal(
         <MPProfilePanel
           personality={selectedMP.personality}
           party={selectedMP.party}
           onClose={() => setSelectedMP(null)}
-        />
+        />,
+        document.body,
       )}
     </div>
   );
