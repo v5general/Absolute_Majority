@@ -2,6 +2,8 @@
 
 # 绝对多数（Absolute Majority）
 
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+
 一款 AI 驱动的政治模拟游戏，背景设定在 2058 年架空日本的众议院。你扮演一名新当选的众议员——不是首相，也不是党首，只是 200 席中的普通一员——在派阀斗争、联合组阁、委员会博弈、媒体战与密室交易中斡旋。
 
 全部剧情——每一个事件、每一句对话、每一个选项——都由 LLM（任意 OpenAI 兼容 API）实时生成，并由确定性的规则引擎约束议会程序。未配置 LLM 时，游戏回退到规则文本，保证始终可玩。
@@ -97,3 +99,7 @@ src/
 ## 状态
 
 个人项目，持续迭代中。出于兴趣与 LLM 接地政治模拟的实验而构建。
+
+## 许可证
+
+本项目基于 [GNU General Public License v3.0](LICENSE) 授权。

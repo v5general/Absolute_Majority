@@ -2,6 +2,8 @@
 
 # Absolute Majority
 
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+
 An AI-driven political simulation game set in a fictional Japanese parliament of 2058. You play as a newly elected member of the House of Representatives — not the Prime Minister, not a party leader, just one rookie MP among 200 — and navigate factional struggles, coalition politics, committee battles, media wars, and backroom deals.
 
 Every event, line of dialogue, and choice is generated live by an LLM (any OpenAI-compatible API), grounded by a deterministic rule engine that enforces parliamentary procedure. When no LLM is configured, the game falls back to rule-based text so it always runs.
@@ -27,12 +29,12 @@ Every event, line of dialogue, and choice is generated live by an LLM (any OpenA
 
 | Party | Abbr. | Ideology | Base seats |
 |-------|-------|----------|-----------|
-| 改革民主党 Reform Democratic Party | RDP | Center | 54 |
-| 自由党 Liberty Party | LP | Right | 40 |
-| 国民保守党 National Conservative Party | NCP | Center-right | 38 |
-| 社会联盟 Social Alliance | SA | Center-left | 29 |
-| 第一公民阵线 First Citizens Front | FCF | Far-right | 24 |
-| 联合劳工党 United Labor Party | ULP | Left | 14 |
+| Reform Democratic Party | RDP | Center | 54 |
+| Liberty Party | LP | Right | 40 |
+| National Conservative Party | NCP | Center-right | 38 |
+| Social Alliance | SA | Center-left | 29 |
+| First Citizens Front | FCF | Far-right | 24 |
+| United Labor Party | ULP | Left | 14 |
 
 You are the 200th seat — the deciding vote that joins one of these parties and tips the balance.
 
@@ -97,3 +99,7 @@ Key engines:
 ## Status
 
 Personal project, actively iterated. Built for fun and as an experiment in LLM-grounded political simulation.
+
+## License
+
+This project is licensed under the [GNU General Public License v3.0](LICENSE).
