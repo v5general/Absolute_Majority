@@ -78,7 +78,7 @@ const GameInner: React.FC = () => {
   return (
     <div style={styles.app}>
       {/* 全屏背景图 */}
-      <div style={styles.bgImage} />
+      <div style={styles.bgImage} className="game-bgImage" />
       {/* 暗角渐变遮罩 */}
       <div style={styles.vignette} />
       <header style={styles.headerRow}>

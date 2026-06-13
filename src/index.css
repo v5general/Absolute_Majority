@@ -14,3 +14,19 @@
   height: 0;
   display: none;               /* Chrome / Safari / Edge / Opera */
 }
+
+/*
+ * 主界面背景图：入场缩放动画
+ * 效果与主菜单（MainMenu）、角色创建（CharacterCreation）一致。
+ */
+.game-bgImage {
+  transform: scale(1.08);
+  animation: gameBgZoomIn 1.2s ease-out forwards;
+}
+
+@keyframes gameBgZoomIn {
+  to {
+    transform: scale(1);
+  }
+}
+
