@@ -8,14 +8,14 @@ import { GalgameDialog } from './components/GalgameDialog';
 import { CharacterCreation } from './components/CharacterCreation';
 import { PlayerProfilePanel } from './components/PlayerProfilePanel';
 import { MainMenu, saveGame, loadGame, hasSave, deleteSave } from './components/MainMenu';
+import { GAME_START_TIME } from './config/ruleConfig';
 import type { ThinkingLogEntry, GameState } from './types';
 
 /** 根据回合数计算月份标签（回合1=大选后第一个月） */
 const MONTH_NAMES = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
 function getMonthLabel(turn: number): string {
-  // 回合1对应2058年4月（大选后的第一个月）
-  const startYear = 2058;
-  const startMonth = 4; // April
+  // 回合1对应起始年月（默认 2058 年 1 月，即国会预算决战期起始）
+  const { startYear, startMonth } = GAME_START_TIME;
   const totalMonths = startMonth - 1 + (turn - 1);
   const year = startYear + Math.floor(totalMonths / 12);
   const month = totalMonths % 12;
@@ -76,8 +76,7 @@ const GameInner: React.FC = () => {
       <div style={styles.vignette} />
       <header style={styles.headerRow}>
         <div style={styles.headerLeft}>
-          <h1 style={styles.headerTitle}>绝对多数</h1>
-          <div style={styles.headerSub}>ABSOLUTE MAJORITY · 政治选举模拟</div>
+          <h1 style={styles.headerTitle}>国会局势</h1>
           <div style={styles.headerInfo}>
             <span style={styles.turnBadge}>{getMonthLabel(state.turn)}</span>
             <span style={styles.turnNumBadge}>第 {state.turn} 回合</span>
@@ -384,19 +383,14 @@ const styles: Record<string, React.CSSProperties> = {
   },
   headerTitle: {
     margin: 0,
-    fontSize: 36,
+    fontSize: 48,
     fontWeight: 800,
     fontFamily: FONT_SERIF,
+    letterSpacing: 6,
+    textAlign: 'center',
     background: 'linear-gradient(180deg, #D4C5A0, #A08B6B)',
     WebkitBackgroundClip: 'text',
     WebkitTextFillColor: 'transparent',
-  },
-  headerSub: {
-    fontSize: 12,
-    color: COLOR_GOLD_DIM,
-    letterSpacing: 4,
-    marginTop: 4,
-    fontFamily: FONT_SERIF,
   },
   headerInfo: {
     display: 'flex',

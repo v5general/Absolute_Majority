@@ -316,12 +316,12 @@ export const GalgameDialog: React.FC = () => {
                 style={styles.choiceBtn}
                 onClick={() => handleChoice(choice.id)}
                 onMouseEnter={(e) => {
-                  (e.target as HTMLElement).style.backgroundColor = '#2a3a5c';
-                  (e.target as HTMLElement).style.borderColor = '#5c8aff';
+                  (e.target as HTMLElement).style.backgroundColor = 'rgba(0,0,0,0.5)';
+                  (e.target as HTMLElement).style.borderColor = COLOR_BORDER_ACTIVE;
                 }}
                 onMouseLeave={(e) => {
-                  (e.target as HTMLElement).style.backgroundColor = '#1a2540';
-                  (e.target as HTMLElement).style.borderColor = '#3a4a6a';
+                  (e.target as HTMLElement).style.backgroundColor = 'rgba(0,0,0,0.4)';
+                  (e.target as HTMLElement).style.borderColor = COLOR_BORDER;
                 }}
               >
                 {choice.text}
@@ -425,66 +425,76 @@ const EffectSummary: React.FC<{ choice: { text: string; effects: Record<string, 
 
 // ===== Styles =====
 
+const FONT_SERIF = '"Noto Serif SC", "Source Han Serif SC", Georgia, serif';
+const COLOR_GOLD = '#C0A882';
+const COLOR_GOLD_DIM = '#B8A47C';
+const COLOR_BORDER = 'rgba(192, 168, 130, 0.18)';
+const COLOR_BORDER_ACTIVE = 'rgba(192, 168, 130, 0.4)';
+
 const styles: Record<string, React.CSSProperties> = {
   overlay: {
     position: 'fixed',
     inset: 0,
-    backgroundColor: 'rgba(0,0,0,0.75)',
+    backgroundColor: 'rgba(0,0,0,0.6)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 1000,
-    backdropFilter: 'blur(4px)',
+    backdropFilter: 'blur(6px)',
   },
   window: {
     width: 780,
     maxWidth: '95vw',
     maxHeight: '90vh',
-    background: 'linear-gradient(180deg, #0d1b2a 0%, #1b2838 100%)',
-    borderRadius: 12,
-    border: '1px solid #2a3a5c',
+    background: 'rgba(0,0,0,0.65)',
+    borderRadius: 4,
+    border: `2px solid ${COLOR_BORDER}`,
     overflow: 'hidden',
     display: 'flex',
     flexDirection: 'column',
-    boxShadow: '0 0 60px rgba(30,60,120,0.4)',
+    backdropFilter: 'blur(12px)',
+    boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
   },
   titleBar: {
     display: 'flex',
     alignItems: 'center',
     gap: 10,
     padding: '10px 16px',
-    background: 'rgba(0,0,0,0.3)',
-    borderBottom: '1px solid #2a3a5c',
+    background: 'rgba(0,0,0,0.35)',
+    borderBottom: `1px solid ${COLOR_BORDER}`,
   },
   severityBadge: {
-    color: '#FF6D00',
+    color: COLOR_GOLD,
     fontWeight: 800,
     fontSize: 14,
     letterSpacing: 2,
   },
   titleText: {
-    color: '#e0e0e0',
+    color: COLOR_GOLD,
     fontSize: 16,
     fontWeight: 700,
     flex: 1,
+    fontFamily: FONT_SERIF,
   },
   closeBtn: {
-    background: '#2a3a5c',
-    border: '1px solid #4a5a7c',
+    background: 'rgba(0,0,0,0.5)',
+    border: `1px solid ${COLOR_BORDER}`,
     color: '#aaa',
     padding: '4px 14px',
     borderRadius: 4,
     cursor: 'pointer',
     fontSize: 13,
+    fontFamily: FONT_SERIF,
   },
   skipBtn: {
     background: 'rgba(239,83,80,0.15)',
-    border: '1px solid rgba(239,83,80,0.4)',
+    border: `1px solid rgba(239,83,80,0.4)`,
     color: '#EF5350',
     padding: '4px 14px',
     borderRadius: 4,
     cursor: 'pointer',
     fontSize: 13,
+    fontFamily: FONT_SERIF,
   },
   sceneArea: {
     display: 'flex',
@@ -516,6 +526,7 @@ const styles: Record<string, React.CSSProperties> = {
   portraitName: {
     fontSize: 13,
     fontWeight: 600,
+    fontFamily: FONT_SERIF,
   },
   portraitParty: {
     fontSize: 11,
@@ -530,9 +541,9 @@ const styles: Record<string, React.CSSProperties> = {
     position: 'relative',
     margin: '8px 16px',
     padding: '28px 20px 16px',
-    background: 'rgba(0,0,0,0.45)',
-    borderRadius: 8,
-    border: '1px solid #2a3a5c',
+    background: 'rgba(0,0,0,0.4)',
+    borderRadius: 4,
+    border: `2px solid ${COLOR_BORDER}`,
     minHeight: 100,
     cursor: 'pointer',
   },
@@ -551,13 +562,15 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 15,
     lineHeight: 1.7,
     minHeight: 60,
+    fontFamily: FONT_SERIF,
   },
   clickHint: {
     textAlign: 'right',
-    color: '#5c8aff',
+    color: COLOR_GOLD,
     fontSize: 12,
     marginTop: 8,
     animation: 'blink 1s infinite',
+    fontFamily: FONT_SERIF,
   },
   // 自由文本输入
   freeTextArea: {
@@ -567,16 +580,16 @@ const styles: Record<string, React.CSSProperties> = {
     gap: 8,
   },
   freeTextInput: {
-    background: 'rgba(0,0,0,0.5)',
-    border: '1px solid #3a4a6a',
-    borderRadius: 6,
+    background: 'rgba(0,0,0,0.4)',
+    border: `1px solid ${COLOR_BORDER}`,
+    borderRadius: 4,
     color: '#e0e0e0',
     fontSize: 14,
     lineHeight: 1.6,
     padding: '10px 14px',
     resize: 'none',
     outline: 'none',
-    fontFamily: 'inherit',
+    fontFamily: FONT_SERIF,
   },
   freeTextActions: {
     display: 'flex',
@@ -585,23 +598,25 @@ const styles: Record<string, React.CSSProperties> = {
   },
   freeTextSubmitBtn: {
     padding: '8px 24px',
-    borderRadius: 6,
-    background: 'linear-gradient(135deg, #43A047, #66BB6A)',
-    border: 'none',
-    color: '#fff',
+    borderRadius: 4,
+    background: 'rgba(0,0,0,0.6)',
+    backdropFilter: 'blur(8px)',
+    border: `1px solid ${COLOR_BORDER_ACTIVE}`,
+    color: COLOR_GOLD,
     fontSize: 14,
     fontWeight: 700,
     cursor: 'pointer',
     letterSpacing: 2,
+    fontFamily: FONT_SERIF,
   },
   freeTextHint: {
     fontSize: 11,
-    color: '#555',
+    color: 'rgba(192,168,130,0.5)',
   },
   quickChoicesDivider: {
     fontSize: 11,
-    color: '#444',
-    borderTop: '1px solid #1a2540',
+    color: 'rgba(192,168,130,0.5)',
+    borderTop: `1px solid ${COLOR_BORDER}`,
     paddingTop: 8,
     marginTop: 4,
   },
@@ -611,8 +626,8 @@ const styles: Record<string, React.CSSProperties> = {
     gap: 6,
   },
   quickChoiceBtn: {
-    background: '#1a2540',
-    border: '1px solid #2a3a5c',
+    background: 'rgba(0,0,0,0.4)',
+    border: `1px solid ${COLOR_BORDER}`,
     color: '#888',
     padding: '6px 12px',
     borderRadius: 4,
@@ -629,13 +644,14 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '12px 16px',
   },
   waitingDot: {
-    color: '#5c8aff',
+    color: COLOR_GOLD,
     fontSize: 10,
     animation: 'blink 1s infinite',
   },
   waitingText: {
-    color: '#5c8aff',
+    color: COLOR_GOLD,
     fontSize: 13,
+    fontFamily: FONT_SERIF,
   },
   // 固定选项
   choicesArea: {
@@ -645,30 +661,32 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '8px 16px 16px',
   },
   choiceBtn: {
-    background: '#1a2540',
-    border: '1px solid #3a4a6a',
+    background: 'rgba(0,0,0,0.4)',
+    border: `1px solid ${COLOR_BORDER}`,
     color: '#e0e0e0',
     padding: '12px 18px',
-    borderRadius: 6,
+    borderRadius: 4,
     fontSize: 14,
     textAlign: 'left',
     cursor: 'pointer',
     transition: 'all 0.15s',
     lineHeight: 1.5,
+    fontFamily: FONT_SERIF,
   },
   effectPanel: {
     margin: '0 16px 16px',
     padding: '10px 14px',
-    background: 'rgba(0,0,0,0.35)',
-    borderRadius: 6,
-    border: '1px solid #2a3a5c',
+    background: 'rgba(0,0,0,0.4)',
+    borderRadius: 4,
+    border: `2px solid ${COLOR_BORDER}`,
   },
   effectTitle: {
     fontSize: 12,
-    color: '#888',
+    color: COLOR_GOLD_DIM,
     marginBottom: 6,
     textTransform: 'uppercase',
     letterSpacing: 2,
+    fontFamily: FONT_SERIF,
   },
   effectList: {
     display: 'flex',
@@ -696,17 +714,18 @@ const styles: Record<string, React.CSSProperties> = {
   },
   historyLabel: {
     fontSize: 11,
-    color: '#666',
+    color: COLOR_GOLD_DIM,
     marginBottom: 4,
+    fontFamily: FONT_SERIF,
   },
   historyItem: {
     display: 'flex',
     flexDirection: 'column',
     gap: 4,
     padding: '8px 12px',
-    background: 'rgba(0,0,0,0.2)',
+    background: 'rgba(0,0,0,0.3)',
     borderRadius: 4,
-    border: '1px solid #2a3a5c',
+    border: `2px solid ${COLOR_BORDER}`,
   },
   playerInput: {
     fontSize: 12,
@@ -723,25 +742,29 @@ const styles: Record<string, React.CSSProperties> = {
   continueBtn: {
     flex: 1,
     padding: '10px 20px',
-    borderRadius: 6,
-    background: 'linear-gradient(135deg, #43A047, #66BB6A)',
-    border: 'none',
-    color: '#fff',
+    borderRadius: 4,
+    background: 'rgba(0,0,0,0.6)',
+    backdropFilter: 'blur(8px)',
+    border: `1px solid ${COLOR_BORDER_ACTIVE}`,
+    color: COLOR_GOLD,
     fontSize: 14,
     fontWeight: 700,
     cursor: 'pointer',
     letterSpacing: 2,
+    fontFamily: FONT_SERIF,
   },
   endConversationBtn: {
     flex: 1,
     padding: '10px 20px',
-    borderRadius: 6,
-    background: 'linear-gradient(135deg, #EF5350, #E57373)',
-    border: 'none',
-    color: '#fff',
+    borderRadius: 4,
+    background: 'rgba(239,83,80,0.6)',
+    backdropFilter: 'blur(8px)',
+    border: `1px solid rgba(239,83,80,0.4)`,
+    color: '#EF5350',
     fontSize: 14,
     fontWeight: 700,
     cursor: 'pointer',
     letterSpacing: 2,
+    fontFamily: FONT_SERIF,
   },
 };

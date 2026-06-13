@@ -390,11 +390,12 @@ const SeatComparisonBar: React.FC<{
         <div style={{
           position: 'absolute',
           left: `${(majorityThreshold / totalSeats) * 100}%`,
-          top: 12,
+          top: 14,
           transform: 'translateX(-50%)',
-          fontSize: 10,
+          fontSize: 13,
           color: '#FFD600',
-          fontWeight: 600,
+          fontWeight: 700,
+          whiteSpace: 'nowrap',
         }}>
           过半线 {majorityThreshold}
         </div>
@@ -410,11 +411,12 @@ const SeatComparisonBar: React.FC<{
         <div style={{
           position: 'absolute',
           left: `${(PARLIAMENT_RULES.constitutionalMajorityThreshold / totalSeats) * 100}%`,
-          top: 24,
+          top: 14,
           transform: 'translateX(-50%)',
-          fontSize: 10,
+          fontSize: 13,
           color: '#CE93D8',
-          fontWeight: 600,
+          fontWeight: 700,
+          whiteSpace: 'nowrap',
         }}>
           绝对多数 {PARLIAMENT_RULES.constitutionalMajorityThreshold}
         </div>
@@ -458,7 +460,7 @@ const COLOR_BORDER = 'rgba(192, 168, 130, 0.18)';
 const styles: Record<string, React.CSSProperties> = {
   container: {
     background: 'rgba(0,0,0,0.55)',
-    backdropFilter: 'blur(12px)',
+    backdropFilter: 'blur(6px)',
     borderRadius: 4,
     border: `1px solid ${COLOR_BORDER}`,
     padding: 24,
@@ -482,7 +484,6 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '3px 12px',
     borderRadius: 4,
     backgroundColor: 'rgba(230,81,0,0.6)',
-    backdropFilter: 'blur(6px)',
     color: '#FFD54F',
     fontSize: 12,
     fontWeight: 700,
@@ -492,7 +493,6 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '3px 12px',
     borderRadius: 4,
     background: 'rgba(74,20,140,0.6)',
-    backdropFilter: 'blur(6px)',
     border: '1px solid #CE93D8',
     color: '#E1BEE7',
     fontSize: 12,
@@ -509,7 +509,7 @@ const styles: Record<string, React.CSSProperties> = {
     background: 'rgba(0,0,0,0.4)',
     borderRadius: 4,
     border: `1px solid ${COLOR_BORDER}`,
-    backdropFilter: 'blur(6px)',
+    backdropFilter: 'blur(4px)',
   },
   pmPortrait: {
     display: 'flex',
@@ -561,6 +561,7 @@ const styles: Record<string, React.CSSProperties> = {
     background: 'rgba(0,0,0,0.4)',
     borderRadius: 4,
     border: `1px solid ${COLOR_BORDER}`,
+    backdropFilter: 'blur(4px)',
   },
   stabilityHeader: {
     display: 'flex',
@@ -706,6 +707,7 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 4,
     border: `1px solid ${COLOR_BORDER}`,
     fontSize: 13,
+    backdropFilter: 'blur(4px)',
   },
   prospectDot: {
     width: 8,
@@ -762,6 +764,7 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 4,
     border: `1px solid ${COLOR_BORDER}`,
     fontSize: 13,
+    backdropFilter: 'blur(4px)',
   },
   offerDot: {
     width: 6,

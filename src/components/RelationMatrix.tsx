@@ -159,7 +159,7 @@ const COLOR_BORDER = 'rgba(192, 168, 130, 0.18)';
 const styles: Record<string, React.CSSProperties> = {
   container: {
     background: 'rgba(0,0,0,0.55)',
-    backdropFilter: 'blur(12px)',
+    backdropFilter: 'blur(6px)',
     borderRadius: 4,
     border: `1px solid ${COLOR_BORDER}`,
     padding: 24,

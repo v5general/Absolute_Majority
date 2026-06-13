@@ -30,6 +30,7 @@ import type {
 } from '../types';
 import type { ThinkingLogEntry } from '../types';
 import { askLLMJSON, isLLMAvailable } from './llmBridge';
+import { getMonthFromTurn, getYearFromTurn, getCongressSessionByMonth } from '../config/ruleConfig';
 
 // ===== 工具函数 =====
 
@@ -50,7 +51,11 @@ function buildWorldSummary(state: GameState, agentPartyId?: string): string {
   const gov = state.government;
   const lines: string[] = [];
 
-  lines.push(`=== 第${state.turn}回合 · 第${state.currentDay}日 ===`);
+  const month = getMonthFromTurn(state.turn);
+  const year = getYearFromTurn(state.turn);
+  const session = getCongressSessionByMonth(month);
+  lines.push(`=== 第${state.turn}回合 · ${year}年${month}月 · 第${state.currentDay}日 ===`);
+  lines.push(`国会会期: ${session.name}（${session.status}，${month}月）— ${session.gameplay}`);
   lines.push(`总席位: ${state.metrics.totalSeats} · 过半: ${state.metrics.majorityThreshold}`);
   lines.push(`距大选: ${state.turnsUntilElection ?? 48}回合`);
 
@@ -352,6 +357,14 @@ ${partyIds}
 
 ### 每月议事流程
 - 第1周：委员会召开 → 第2周：法案审查 → 第3周：党首辩论(180分钟按会派规模分配) → 第4周：全院表决 → 更新支持率/联盟关系/媒体评价/利益集团态度
+
+### 国会年度会期规则（按月份，AI演算必须遵守！）
+游戏起始月份为1月，1回合=1个月。回合数决定当前所处的国会会期，会期严格决定 Agent 本回合可采取的政治行动意图：
+- 1月~3月（预算决战期 / 通常国会）：核心任务是强行通过"新年度财政预算案"。在野党应在预算委员会揪住首相丑闻拖延；若3月底前预算未通过，经济景气指数雪崩。执政党意图应围绕预算通过，在野党意图应围绕预算阻挠。
+- 4月~6月（法案攻坚期 / 通常国会）：审议普通法案。在野党若认为局势有利，应在5-6月会期结束前集结力量发起内阁不信任动议（倒阁）。这是发起no_confidence意图的高发期。
+- 7月~9月（地方基本盘维护期 / 国会闭会）：国会放假，禁止生成任何国会内行动意图（质询、表决、委员会审议等）。Agent意图应转向选区维护、募款、媒体拉拢、搜集政敌黑料等场外行动。
+- 10月~12月（临时国会期 / 临时国会）：会期较短，是否召开由内阁根据突发事件决定。Agent意图应围绕追加预算案、突发政治丑闻、危机应对展开。
+生成意图时必须匹配当前月份所处的会期，禁止在闭会期（7-9月）生成国会内意图，禁止在预算决战期（1-3月）忽略预算议题。
 
 ### 派阀系统
 - 除联合工人党(solidarity)外所有政党允许存在派阀，派阀影响党首选举、首相指名、大臣任命、法案表决
