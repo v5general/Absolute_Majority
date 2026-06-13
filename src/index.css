@@ -1,0 +1,16 @@
+/* 全局样式 */
+
+/*
+ * 隐藏所有界面的浏览器滚动条（主页面、卡片、日志条、下拉框、弹窗等），
+ * 同时保留滚动功能（鼠标滚轮 / 触摸板 / 触屏仍可滚动）。
+ */
+* {
+  scrollbar-width: none;       /* Firefox */
+  -ms-overflow-style: none;    /* IE / 旧版 Edge */
+}
+
+*::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;               /* Chrome / Safari / Edge / Opera */
+}

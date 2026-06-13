@@ -22,16 +22,25 @@ function getMonthLabel(turn: number): string {
   return `${year}年${MONTH_NAMES[month]}`;
 }
 
+/** 主界面卡片导航标签（每张卡片单独一屏，通过标签切换） */
+const TABS = [
+  { id: 'cabinet', label: '内阁' },
+  { id: 'committee', label: '委员会' },
+  { id: 'market', label: '大盘' },
+  { id: 'relations', label: '关系' },
+] as const;
+
 const GameInner: React.FC = () => {
   const { state, setPlayerConfig, nextTurn, isThinking, thinkingLogs } = useGame();
   const [showProfile, setShowProfile] = useState(false);
+  const [activeTab, setActiveTab] = useState(0);
 
   // 任意界面切换时都滚动到顶部
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
-  }, [state.playerConfig]);
+  }, [state.playerConfig, activeTab]);
 
   // 玩家资料面板打开时锁定页面滚动
   useEffect(() => {
@@ -55,8 +64,6 @@ const GameInner: React.FC = () => {
     }
   }, [showProfile]);
 
-  const pendingCount = state.currentAIEvents.length;
-
   // 执政联盟席位计算
   const gov = state.government;
   const coalitionSeats = gov
@@ -76,6 +83,19 @@ const GameInner: React.FC = () => {
       <div style={styles.vignette} />
       <header style={styles.headerRow}>
         <div style={styles.headerLeft}>
+          <button
+            style={{
+              ...styles.nextTurnBtn,
+              ...(isThinking ? styles.nextTurnBtnDisabled : {}),
+              cursor: isThinking ? 'wait' : 'pointer',
+            }}
+            onClick={nextTurn}
+            disabled={isThinking}
+          >
+            {isThinking ? 'AI 推演中...' : '下一回合'}
+          </button>
+        </div>
+        <div style={styles.headerCenter}>
           <h1 style={styles.headerTitle}>国会局势</h1>
           <div style={styles.headerInfo}>
             <span style={styles.turnBadge}>{getMonthLabel(state.turn)}</span>
@@ -117,28 +137,22 @@ const GameInner: React.FC = () => {
         />
       )}
 
-      <div style={styles.actionBar}>
-        <button
-          style={{
-            ...styles.nextTurnBtn,
-            ...(isThinking ? styles.nextTurnBtnDisabled : {}),
-            cursor: isThinking ? 'wait' : 'pointer',
-          }}
-          onClick={nextTurn}
-          disabled={isThinking}
-        >
-          {isThinking ? 'AI 推演中...' : '下一回合'}
-        </button>
-        <span style={styles.actionHint}>
-          {isThinking
-            ? `正在推演... (${thinkingLogs.length}/${10 + state.parties.length} 个角色已完成)`
-            : pendingCount > 0
-              ? `${pendingCount} 个事件待处理`
-              : state.events.length > 0
-                ? `已处理 ${state.events.length} 个事件`
-                : '点击下一回合，让政治世界运转'}
-        </span>
-      </div>
+      <nav style={styles.navBar}>
+        <div style={styles.navTabs}>
+          {TABS.map((tab, i) => (
+            <button
+              key={tab.id}
+              style={{
+                ...styles.navTab,
+                ...(i === activeTab ? styles.navTabActive : {}),
+              }}
+              onClick={() => setActiveTab(i)}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </nav>
 
       {/* 推演日志条：始终显示在主界面 */}
       {thinkingLogs.length > 0 && (
@@ -168,7 +182,7 @@ const GameInner: React.FC = () => {
       )}
 
       <main style={styles.main}>
-        {state.government && (
+        {activeTab === 0 && state.government && (
           <section style={styles.section}>
             <GovernmentPanel
               government={state.government}
@@ -178,31 +192,37 @@ const GameInner: React.FC = () => {
           </section>
         )}
 
-        <section style={styles.section}>
-          <CommitteeDashboard
-            committees={state.committees}
-            bills={state.bills}
-            parties={state.parties}
-            relations={state.relations}
-            mpPersonalities={state.mpPersonalities}
-          />
-        </section>
+        {activeTab === 1 && (
+          <section style={styles.section}>
+            <CommitteeDashboard
+              committees={state.committees}
+              bills={state.bills}
+              parties={state.parties}
+              relations={state.relations}
+              mpPersonalities={state.mpPersonalities}
+            />
+          </section>
+        )}
 
-        <section style={styles.section}>
-          <MarketDashboard
-            parties={state.parties}
-            metrics={state.metrics}
-            districts={state.districts}
-            turnsUntilElection={state.turnsUntilElection ?? 48}
-          />
-        </section>
+        {activeTab === 2 && (
+          <section style={styles.section}>
+            <MarketDashboard
+              parties={state.parties}
+              metrics={state.metrics}
+              districts={state.districts}
+              turnsUntilElection={state.turnsUntilElection ?? 48}
+            />
+          </section>
+        )}
 
-        <section style={styles.section}>
-          <RelationMatrix
-            parties={state.parties}
-            relations={state.relations}
-          />
-        </section>
+        {activeTab === 3 && (
+          <section style={styles.section}>
+            <RelationMatrix
+              parties={state.parties}
+              relations={state.relations}
+            />
+          </section>
+        )}
       </main>
 
       <GalgameDialog />
@@ -359,11 +379,19 @@ const styles: Record<string, React.CSSProperties> = {
   },
   headerLeft: {
     flex: 1,
+    display: 'flex',
+    justifyContent: 'flex-start',
+    alignItems: 'flex-start',
+  },
+  headerCenter: {
+    flex: '0 0 auto',
+    textAlign: 'center',
   },
   headerRight: {
-    flexShrink: 0,
-    paddingLeft: 16,
-    paddingTop: 8,
+    flex: 1,
+    display: 'flex',
+    justifyContent: 'flex-end',
+    alignItems: 'flex-start',
   },
   avatarBtn: {
     width: 42,
@@ -454,7 +482,7 @@ const styles: Record<string, React.CSSProperties> = {
     border: '1px solid #E65100',
     color: '#FFB74D',
   },
-  actionBar: {
+  navBar: {
     position: 'relative',
     zIndex: 1,
     maxWidth: 1200,
@@ -462,7 +490,38 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '0 16px',
     display: 'flex',
     alignItems: 'center',
+    justifyContent: 'space-between',
     gap: 16,
+  },
+  navTabs: {
+    display: 'flex',
+    gap: 8,
+  },
+  navTab: {
+    minWidth: 116,
+    padding: '9px 18px',
+    borderRadius: 18,
+    background: 'rgba(0,0,0,0.5)',
+    backdropFilter: 'blur(8px)',
+    border: `1px solid ${COLOR_BORDER}`,
+    color: COLOR_GOLD_DIM,
+    fontSize: 14,
+    fontWeight: 700,
+    cursor: 'pointer',
+    letterSpacing: 3,
+    textIndent: 3,
+    fontFamily: FONT_SERIF,
+    transition: 'all 0.15s',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    boxSizing: 'border-box',
+  },
+  navTabActive: {
+    background: 'rgba(0,0,0,0.6)',
+    border: `1px solid ${COLOR_BORDER_ACTIVE}`,
+    color: COLOR_GOLD,
+    boxShadow: '0 0 16px rgba(192,168,130,0.15)',
   },
   nextTurnBtn: {
     padding: '10px 28px',
@@ -485,11 +544,6 @@ const styles: Record<string, React.CSSProperties> = {
     boxShadow: 'none',
     opacity: 0.5,
     color: '#666',
-  },
-  actionHint: {
-    fontSize: 13,
-    color: 'rgba(192,168,130,0.5)',
-    fontFamily: FONT_SERIF,
   },
   // 推演日志条
   logBar: {
