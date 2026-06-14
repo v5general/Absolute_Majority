@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { BackgroundImage } from './BackgroundImage';
-import { preloadGameScene } from '../utils/imagePreloader';
+import { preloadMenuScene } from '../utils/imagePreloader';
 import './MainMenu.css';
 
 // ===== localStorage 存档工具 =====
@@ -130,10 +130,10 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartNew, onResume }) => {
       requestAnimationFrame(() => setAnimateIn(true));
     });
 
-    // 预加载游戏场景资源（在菜单显示时后台加载）
-    preloadGameScene().then(results => {
+    // 预加载菜单及下一场景资源（在菜单显示时后台加载）
+    preloadMenuScene().then(results => {
       const successCount = results.filter(r => r.success).length;
-      console.log(`预加载游戏场景: ${successCount}/${results.length} 张图片成功`);
+      console.log(`预加载菜单及下一场景: ${successCount}/${results.length} 张图片成功`);
     });
 
     return () => { document.body.style.overflow = ''; };

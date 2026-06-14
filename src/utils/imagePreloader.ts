@@ -56,11 +56,12 @@ export function preloadGameScene(): Promise<PreloadResult[]> {
 }
 
 /**
- * 预加载菜单资源
+ * 预加载菜单资源（包括下一场景）
  */
 export function preloadMenuScene(): Promise<PreloadResult[]> {
   return preloadImages([
-    '/main_menu_bg.webp',
-    '/character-create-bg.webp',
+    '/main_menu_bg.webp',      // 菜单背景（首屏必需）
+    '/character-create-bg.webp', // 创建角色背景（下一场景）
+    '/game_bg.webp',            // 游戏背景（下一场景）
   ]);
 }
