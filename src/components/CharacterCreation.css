@@ -17,15 +17,9 @@
 }
 
 /* ===== 背景图 - 入场缩放动画 ===== */
+/* background-image 由 BackgroundImage 组件处理（WebP优先，PNG回退） */
 .charCreate-bgImage {
-  position: fixed;
-  inset: 0;
-  background-image: url(/character-create-bg.png);
-  background-size: cover;
-  background-position: center center;
-  background-repeat: no-repeat;
-  background-attachment: fixed;
-  z-index: 0;
+  /* 保留动画效果 */
   transform: scale(1.06);
   animation: charCreateBgZoomIn 1.2s ease-out forwards;
 }

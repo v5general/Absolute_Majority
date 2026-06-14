@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import type { PlayerConfig, Party, Ideology, PersonalityTrait, PoliticalIdeology } from '../types';
+import { BackgroundImage } from './BackgroundImage';
 import './CharacterCreation.css';
 import { PERSONALITY_TRAIT_LABELS, POLITICAL_IDEOLOGY_LABELS } from '../types';
 import { initialParties } from '../data/parties';
@@ -468,8 +469,8 @@ export const CharacterCreation: React.FC<CharacterCreationProps> = ({ onComplete
 
   return (
     <div className="charCreate-container">
-      {/* 全屏背景图 */}
-      <div className="charCreate-bgImage" />
+      {/* 全屏背景图（WebP优先，PNG回退，响应式） */}
+      <BackgroundImage image="character-create-bg" className="charCreate-bgImage" />
       {/* 暗角渐变遮罩 */}
       <div className="charCreate-vignette" />
       <div className="charCreate-card">

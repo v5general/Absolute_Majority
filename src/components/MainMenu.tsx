@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { BackgroundImage } from './BackgroundImage';
 import './MainMenu.css';
 
 // ===== localStorage 存档工具 =====
@@ -262,8 +263,8 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartNew, onResume }) => {
 
   return (
     <div ref={screenRef} className="mainMenu-screen">
-      {/* 背景图 - 慢速缩放动画 */}
-      <div className="mainMenu-bgImage" />
+      {/* 背景图 - 慢速缩放动画（WebP优先，PNG回退，响应式） */}
+      <BackgroundImage image="main_menu_bg" className="mainMenu-bgImage" />
 
       {/* 整体内容容器 */}
       <div

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { GameProvider, useGame } from './hooks/useGameState';
+import { BackgroundImage } from './components/BackgroundImage';
 import { RelationMatrix } from './components/RelationMatrix';
 import { MarketDashboard } from './components/MarketDashboard';
 import { GovernmentPanel } from './components/GovernmentPanel';
@@ -77,8 +78,8 @@ const GameInner: React.FC = () => {
 
   return (
     <div style={styles.app}>
-      {/* 全屏背景图 */}
-      <div style={styles.bgImage} className="game-bgImage" />
+      {/* 全屏背景图（WebP优先，PNG回退，响应式） */}
+      <BackgroundImage image="game_bg" className="game-bgImage" />
       {/* 暗角渐变遮罩 */}
       <div style={styles.vignette} />
       <header style={styles.headerRow}>
