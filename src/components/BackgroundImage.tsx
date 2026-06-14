@@ -3,8 +3,7 @@ import React, { useState, useEffect } from 'react';
 /**
  * 支持现代格式的背景图片组件
  * - WebP 优先，PNG 回退
- * - 响应式图片（移动端加载小图）
- * - 根据设备性能优化
+ * - 简化的逻辑，更好的兼容性
  */
 export const BackgroundImage: React.FC<{
   image: string;
@@ -16,100 +15,57 @@ export const BackgroundImage: React.FC<{
 
   useEffect(() => {
     let isMounted = true;
-    let timeoutId: NodeJS.Timeout | null = null;
 
-    // 检测设备性能和网络
-    const getConnectionType = () => {
-      const connection = (navigator as any).connection;
-      if (connection) {
-        return {
-          effectiveType: connection.effectiveType, // 'slow-2g', '2g', '3g', '4g'
-          saveData: connection.saveData, // 是否开启省流量模式
-        };
-      }
-      return { effectiveType: '4g', saveData: false };
-    };
+    console.log(`[BackgroundImage] Loading image: ${image}`);
 
     // 加载图片并回退
-    const loadImageWithFallback = (imagePath: string, fallbackPath: string) => {
-      const img = new Image();
+    const loadImageWithFallback = (webpPath: string, pngPath: string) => {
+      // 先尝试 WebP
+      const webpImg = new Image();
 
-      // 设置超时（3秒后强制回退，移动端优化）
-      timeoutId = setTimeout(() => {
+      webpImg.onload = () => {
         if (isMounted) {
-          console.log(`Image load timeout: ${imagePath}, trying fallback`);
-          const fallbackImg = new Image();
-          fallbackImg.onload = () => {
-            if (isMounted) {
-              setImageSrc(fallbackPath);
-              setIsLoaded(true);
-            }
-          };
-          fallbackImg.onerror = () => {
-            if (isMounted) console.error('Both WebP and PNG failed to load');
-          };
-          fallbackImg.src = fallbackPath;
-        }
-      }, 3000);
-
-      img.onload = () => {
-        if (timeoutId) clearTimeout(timeoutId);
-        if (isMounted) {
-          console.log(`Successfully loaded: ${imagePath}`);
-          setImageSrc(imagePath);
+          console.log(`[BackgroundImage] ✓ WebP loaded: ${webpPath}`);
+          setImageSrc(webpPath);
           setIsLoaded(true);
         }
       };
 
-      img.onerror = () => {
-        if (timeoutId) clearTimeout(timeoutId);
+      webpImg.onerror = () => {
         if (isMounted) {
-          console.log(`Failed to load: ${imagePath}, trying fallback: ${fallbackPath}`);
-          const fallbackImg = new Image();
-          fallbackImg.onload = () => {
+          console.log(`[BackgroundImage] ✗ WebP failed, trying PNG: ${pngPath}`);
+          // WebP 失败，尝试 PNG
+          const pngImg = new Image();
+          pngImg.onload = () => {
             if (isMounted) {
-              setImageSrc(fallbackPath);
+              console.log(`[BackgroundImage] ✓ PNG loaded: ${pngPath}`);
+              setImageSrc(pngPath);
               setIsLoaded(true);
             }
           };
-          fallbackImg.onerror = () => {
-            if (isMounted) console.error('Both WebP and PNG failed to load');
+          pngImg.onerror = () => {
+            if (isMounted) {
+              console.error(`[BackgroundImage] ✗✗ Both WebP and PNG failed for: ${image}`);
+            }
           };
-          fallbackImg.src = fallbackPath;
+          pngImg.src = pngPath;
         }
       };
 
-      img.src = imagePath;
+      // 开始加载 WebP
+      console.log(`[BackgroundImage] → Loading WebP: ${webpPath}`);
+      webpImg.src = webpPath;
     };
 
-    // 移动端检测
-    const isMobile = () => {
-      return window.innerWidth <= 768;
-    };
+    // 构建路径（不使用 mobile 后缀，因为用户没有创建 mobile 版本）
+    const webpPath = `/${image}.webp`;
+    const pngPath = `/${image}.png`;
 
-    // 获取网络信息
-    const connection = getConnectionType();
-
-    // 加载图片
-    const mobile = isMobile();
-    const mobileSuffix = mobile ? '_mobile' : '';
-
-    // 省流量模式或慢网络优先尝试 PNG（避免 WebP 解码开销）
-    if (connection.saveData || connection.effectiveType === 'slow-2g' || connection.effectiveType === '2g') {
-      const pngPath = `/${image}.png`;
-      loadImageWithFallback(pngPath, pngPath);
-    } else {
-      // 先尝试 WebP，失败则回退到 PNG
-      const webpPath = `/${image}${mobileSuffix}.webp`;
-      const pngPath = `/${image}.png`; // 回退时始终使用完整 PNG（无 mobile 后缀）
-
-      loadImageWithFallback(webpPath, pngPath);
-    }
+    loadImageWithFallback(webpPath, pngPath);
 
     // 清理函数
     return () => {
       isMounted = false;
-      if (timeoutId) clearTimeout(timeoutId);
     };
   }, [image]);
 
