@@ -13,50 +13,74 @@ export const BackgroundImage: React.FC<{
   const [imageSrc, setImageSrc] = useState('');
 
   useEffect(() => {
-    // 检测 WebP 支持
-    const checkWebPSupport = () => {
-      return new Promise<boolean>((resolve) => {
-        const webP = new Image();
-        webP.src = 'data:image/webp;base64,UklGRjoAAABXRUJQVlA4IC4AAACyAgCdASoCAAIALmk0mk0iIiIiIgBeSyxABHgHwAAA/0//AAAA';
-        webP.onload = webP.onerror = () => {
-          resolve(webP.width === 1);
-        };
-      });
+    let isMounted = true;
+    let timeoutId: NodeJS.Timeout | null = null;
+
+    // 加载图片并回退
+    const loadImageWithFallback = (imagePath: string, fallbackPath: string) => {
+      const img = new Image();
+
+      // 设置超时（5秒后强制回退）
+      timeoutId = setTimeout(() => {
+        if (isMounted) {
+          console.log(`Image load timeout: ${imagePath}, trying fallback`);
+          const fallbackImg = new Image();
+          fallbackImg.onload = () => {
+            if (isMounted) setImageSrc(fallbackPath);
+          };
+          fallbackImg.onerror = () => {
+            if (isMounted) console.error('Both WebP and PNG failed to load');
+          };
+          fallbackImg.src = fallbackPath;
+        }
+      }, 5000);
+
+      img.onload = () => {
+        if (timeoutId) clearTimeout(timeoutId);
+        if (isMounted) {
+          console.log(`Successfully loaded: ${imagePath}`);
+          setImageSrc(imagePath);
+        }
+      };
+
+      img.onerror = () => {
+        if (timeoutId) clearTimeout(timeoutId);
+        if (isMounted) {
+          console.log(`Failed to load: ${imagePath}, trying fallback: ${fallbackPath}`);
+          const fallbackImg = new Image();
+          fallbackImg.onload = () => {
+            if (isMounted) setImageSrc(fallbackPath);
+          };
+          fallbackImg.onerror = () => {
+            if (isMounted) console.error('Both WebP and PNG failed to load');
+          };
+          fallbackImg.src = fallbackPath;
+        }
+      };
+
+      img.src = imagePath;
     };
 
-    // 获取设备类型（移动端/桌面端）
+    // 移动端检测
     const isMobile = () => {
       return window.innerWidth <= 768;
     };
 
-    // 根据设备选择分辨率
-    const selectImage = async () => {
-      const supportsWebP = await checkWebPSupport();
-      const mobile = isMobile();
+    // 加载图片
+    const mobile = isMobile();
+    const mobileSuffix = mobile ? '_mobile' : '';
 
-      // 移动端使用较小版本（如果存在）
-      const mobileSuffix = mobile ? '_mobile' : '';
-      const ext = supportsWebP ? 'webp' : 'png';
+    // 先尝试 WebP，失败则回退到 PNG
+    const webpPath = `/${image}${mobileSuffix}.webp`;
+    const pngPath = `/${image}.png`; // 回退时始终使用完整 PNG（无 mobile 后缀）
 
-      // 尝试加载 WebP（或 PNG）
-      const imagePath = `/${image}${mobileSuffix}.${ext}`;
+    loadImageWithFallback(webpPath, pngPath);
 
-      // 验证图片是否存在
-      const img = new Image();
-      img.src = imagePath;
-      img.onload = () => setImageSrc(imagePath);
-      img.onerror = () => {
-        // 回退到 PNG（如果 WebP 失败）
-        if (ext === 'webp') {
-          const fallbackPath = `/${image}.png`;
-          const fallbackImg = new Image();
-          fallbackImg.src = fallbackPath;
-          fallbackImg.onload = () => setImageSrc(fallbackPath);
-        }
-      };
+    // 清理函数
+    return () => {
+      isMounted = false;
+      if (timeoutId) clearTimeout(timeoutId);
     };
-
-    selectImage();
   }, [image]);
 
   const style: React.CSSProperties = {
