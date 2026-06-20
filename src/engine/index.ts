@@ -80,7 +80,8 @@ export {
   getAgentScheduler,
 } from './agentEngine';
 export type { AgentTurnResult } from './agentEngine';
-export { convertIntentsToEvents } from './narrativeEngine';
+export { convertIntentsToEvents, generateAIBills } from './narrativeEngine';
+export type { AIBillDraft } from './narrativeEngine';
 export {
   initializeFactions,
   canChallengeLeader,

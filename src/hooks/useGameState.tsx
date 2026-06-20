@@ -21,7 +21,9 @@ import {
   isTermExpired,
   processLifeEvents,
   generatePersonality,
+  generateAIBills,
 } from '../engine';
+import type { AIBillDraft } from '../engine';
 
 // ===== 数据迁移函数 =====
 
@@ -304,8 +306,42 @@ export const GameProvider: React.FC<{ children: React.ReactNode; savedState?: Ga
           // 2. Political AI：200 名议员意图（不经过 LLM，纯规则）
           const politicalIntents = runPoliticalAI(turnState);
 
+          // 2.5 AI 法案生成：让 LLM 根据当前局势生成本回合法案草案。
+          // 若成功，则过滤掉规则式 propose_bill 意图（避免重复），稍后直接加入 state.bills。
+          let aiBills: AIBillDraft[] = [];
+          try {
+            aiBills = await generateAIBills(turnState);
+          } catch (err) {
+            console.error('[Game] AI bill generation failed:', err);
+            aiBills = [];
+          }
+          const filteredPoliticalIntents = aiBills.length > 0
+            ? politicalIntents.filter(i => i.type !== 'propose_bill')
+            : politicalIntents;
+
           // 结算政治 AI 意图
-          turnState = settleIntents(turnState, politicalIntents);
+          turnState = settleIntents(turnState, filteredPoliticalIntents);
+
+          // 加入 LLM 生成的法案（去重标题）
+          if (aiBills.length > 0) {
+            for (const draft of aiBills) {
+              if (turnState.bills.some(b => b.title === draft.title)) continue;
+              turnState.bills.push({
+                id: `bill-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+                title: draft.title,
+                summary: draft.summary,
+                proposerPartyId: draft.proposerPartyId,
+                proposerName: draft.proposerName,
+                committeeId: draft.committeeId,
+                status: 'draft',
+                committeeNote: '',
+                amendment: '',
+                votesFor: 0,
+                votesAgainst: 0,
+                createdTurn: turnState.turn,
+              });
+            }
+          }
 
           // 3. 获取事件（LLM 已在 Agent 调用中一并生成）
           let aiEvents = agentResult.events;

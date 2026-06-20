@@ -475,27 +475,48 @@ const EfficiencyBadge: React.FC<{ value: number }> = ({ value }) => {
 const BillRow: React.FC<{ bill: Bill; partyMap: Map<string, Party> }> = ({ bill, partyMap }) => {
   const party = partyMap.get(bill.proposerPartyId);
   const isActive = !['passed', 'rejected', 'implemented'].includes(bill.status);
+  const [expanded, setExpanded] = useState(false);
+  const hasDetail = !!bill.summary;
 
   return (
-    <div style={{ ...styles.billRow, opacity: isActive ? 1 : 0.5 }}>
-      <div style={styles.billStatusCol}>
-        <span style={{ ...styles.statusBadge, backgroundColor: statusColor(bill.status) }}>{BILL_STATUS_LABELS[bill.status]}</span>
-      </div>
-      <div style={styles.billTitleCol}>
-        <div style={{ fontWeight: 600, fontSize: 13, color: '#e0e0e0' }}>{bill.title}</div>
-        <div style={{ fontSize: 11, color: '#888', marginTop: 2 }}>
-          {COMMITTEE_LABELS[bill.committeeId]} · 提出者:
-          <span style={{ color: party?.color, marginLeft: 4 }}>{bill.proposerName}</span>
-          <span style={{ marginLeft: 4 }}>({party?.abbreviation})</span>
+    <div style={{ ...styles.billRow, opacity: isActive ? 1 : 0.5, flexDirection: 'column' as const, alignItems: 'stretch' as const }}>
+      <div style={{ display: 'flex', alignItems: 'center' }}>
+        <div style={styles.billStatusCol}>
+          <span style={{ ...styles.statusBadge, backgroundColor: statusColor(bill.status) }}>{BILL_STATUS_LABELS[bill.status]}</span>
         </div>
-        {bill.committeeNote && <div style={{ fontSize: 11, color: '#aaa', marginTop: 4, fontStyle: 'italic' }}>{bill.committeeNote}</div>}
-        {bill.amendment && <div style={{ fontSize: 11, color: '#FFA726', marginTop: 2 }}>修正: {bill.amendment}</div>}
+        <div style={styles.billTitleCol}>
+          <div
+            style={{ fontWeight: 600, fontSize: 13, color: '#e0e0e0', cursor: hasDetail ? 'pointer' : 'default', display: 'flex', alignItems: 'center', gap: 6 }}
+            onClick={hasDetail ? () => setExpanded(e => !e) : undefined}
+            title={hasDetail ? (expanded ? '点击收起详情' : '点击查看详情') : undefined}
+          >
+            <span>{bill.title}</span>
+            {hasDetail && (
+              <span style={{ fontSize: 10, color: '#B8A47C', letterSpacing: 1 }}>
+                {expanded ? '〔收起〕' : '〔详情〕'}
+              </span>
+            )}
+          </div>
+          <div style={{ fontSize: 11, color: '#888', marginTop: 2 }}>
+            {COMMITTEE_LABELS[bill.committeeId]} · 提出者:
+            <span style={{ color: party?.color, marginLeft: 4 }}>{bill.proposerName}</span>
+            <span style={{ marginLeft: 4 }}>({party?.abbreviation})</span>
+          </div>
+          {bill.committeeNote && <div style={{ fontSize: 11, color: '#aaa', marginTop: 4, fontStyle: 'italic' }}>{bill.committeeNote}</div>}
+          {bill.amendment && <div style={{ fontSize: 11, color: '#FFA726', marginTop: 2 }}>修正: {bill.amendment}</div>}
+        </div>
+        {(bill.votesFor > 0 || bill.votesAgainst > 0) && (
+          <div style={styles.billVotes}>
+            <span style={{ color: '#66BB6A', fontWeight: 600 }}>{bill.votesFor}</span>
+            <span style={{ color: '#666', margin: '0 4px' }}>:</span>
+            <span style={{ color: '#EF5350', fontWeight: 600 }}>{bill.votesAgainst}</span>
+          </div>
+        )}
       </div>
-      {(bill.votesFor > 0 || bill.votesAgainst > 0) && (
-        <div style={styles.billVotes}>
-          <span style={{ color: '#66BB6A', fontWeight: 600 }}>{bill.votesFor}</span>
-          <span style={{ color: '#666', margin: '0 4px' }}>:</span>
-          <span style={{ color: '#EF5350', fontWeight: 600 }}>{bill.votesAgainst}</span>
+      {expanded && hasDetail && (
+        <div style={{ marginTop: 8, padding: '8px 10px', background: 'rgba(0,0,0,0.35)', borderRadius: 3, border: '1px solid rgba(192,168,130,0.18)' }}>
+          <div style={{ fontSize: 10, color: '#B8A47C', letterSpacing: 2, marginBottom: 4 }}>法案内容</div>
+          <div style={{ fontSize: 12, color: '#cfcfcf', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{bill.summary}</div>
         </div>
       )}
     </div>

@@ -304,20 +304,6 @@
   position: relative;
 }
 
-.mainHall-title::after {
-  content: attr(data-text);
-  position: absolute;
-  left: 0;
-  top: 0;
-  z-index: -1;
-  background: linear-gradient(180deg, #E8D9B0, #A08B6B);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  filter: blur(8px);
-  opacity: 0.35;
-}
-
 .mainHall-subtitle {
   font-size: clamp(10px, 1.1vw, 13px);
   letter-spacing: 0.5em;
@@ -369,9 +355,9 @@
   flex-direction: row;
 }
 
-/* 右侧标注：● ——线—— [标签] */
+/* 右侧标注：● ——线—— [标签]（按钮靠右，线条在按钮左侧延伸向中心） */
 .mainHall-annotationRight .mainHall-annotation {
-  flex-direction: row-reverse;
+  flex-direction: row;
 }
 
 /* ===== 标注圆点（视觉锚） ===== */

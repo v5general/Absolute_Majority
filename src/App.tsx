@@ -12,7 +12,7 @@ import { PartyOverview } from './components/PartyOverview';
 import { MainHall } from './components/MainHall';
 import { MainMenu, saveGame, loadGame, hasSave, deleteSave } from './components/MainMenu';
 import { GAME_START_TIME } from './config/ruleConfig';
-import type { GameState } from './types';
+import type { GameState, ThinkingLogEntry } from './types';
 
 /** 根据回合数计算月份标签（回合1=大选后第一个月） */
 const MONTH_NAMES = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
@@ -203,18 +203,7 @@ const GameInner: React.FC = () => {
           </div>
           <div style={styles.logBarContent}>
             {thinkingLogs.map((log, i) => (
-              <div key={i} style={styles.logBarItem}>
-                <span style={{
-                  ...styles.logBarRole,
-                  color: ROLE_COLORS[log.role] ?? '#5c8aff',
-                }}>
-                  {ROLE_ICONS[log.role] ?? '◆'} {log.name}
-                </span>
-                <span style={styles.logBarAction}>{ACTION_LABELS[log.action] ?? log.action}</span>
-                <span style={styles.logBarReasoning}>
-                  {log.reasoning.length > 80 ? log.reasoning.slice(0, 80) + '...' : log.reasoning}
-                </span>
-              </div>
+              <LogRow key={i} log={log} />
             ))}
           </div>
         </div>
@@ -296,6 +285,68 @@ const ACTION_LABELS: Record<string, string> = {
   media_scandal: '负面爆料',
   lobby_funds: '政治捐款',
   wait: '按兵不动',
+  // 备用 / 规则引擎路径产生的行动标签
+  error: '出错',
+  fundraise: '政治筹款',
+  undermine: '打压对手',
+  propose_bill: '提出法案',
+  bill_proposal: '法案提案',
+  no_confidence: '不信任案',
+  support_change: '支持率变动',
+  relation_change: '关系变动',
+  funds_change: '资金变动',
+  metrics_change: '大盘变动',
+  challenge_leader: '挑战党首',
+  seek_cabinet: '谋求入阁',
+  form_faction: '组建派阀',
+  lobby_support: '游说支持',
+  media_campaign: '媒体攻势',
+  backroom_deal: '密室交易',
+  faction_defect: '派系叛离',
+  stress_event: '议员失态',
+};
+
+/** 把日志的 action 字段渲染为中文。支持单个行动与逗号分隔的多个行动。 */
+function formatAction(action: string): string {
+  if (ACTION_LABELS[action]) return ACTION_LABELS[action];
+  if (action.includes(',')) {
+    return action.split(',').map(a => ACTION_LABELS[a.trim()] ?? a.trim()).join('、');
+  }
+  return action;
+}
+
+/** 单条推演日志：思考过长时可点击展开/收起，避免被截断无法查看。 */
+const LogRow: React.FC<{ log: ThinkingLogEntry }> = ({ log }) => {
+  const [expanded, setExpanded] = useState(false);
+  const isLong = log.reasoning.length > 80;
+  const text = expanded || !isLong ? log.reasoning : log.reasoning.slice(0, 80) + '...';
+  return (
+    <div style={styles.logBarItem}>
+      <span style={{
+        ...styles.logBarRole,
+        color: ROLE_COLORS[log.role] ?? '#5c8aff',
+      }}>
+        {ROLE_ICONS[log.role] ?? '◆'} {log.name}
+      </span>
+      <span style={styles.logBarAction}>{formatAction(log.action)}</span>
+      <span
+        style={{
+          ...styles.logBarReasoning,
+          cursor: isLong ? 'pointer' : 'default',
+          whiteSpace: expanded ? 'pre-wrap' : (styles.logBarReasoning.whiteSpace as React.CSSProperties['whiteSpace']),
+        }}
+        onClick={isLong ? () => setExpanded(e => !e) : undefined}
+        title={isLong ? (expanded ? '点击收起' : '点击展开全部') : undefined}
+      >
+        {text}
+        {isLong && (
+          <span style={{ color: '#B8A47C', marginLeft: 8, fontSize: 11, whiteSpace: 'nowrap' as const }}>
+            {expanded ? '〔收起〕' : '〔展开〕'}
+          </span>
+        )}
+      </span>
+    </div>
+  );
 };
 
 /** 包装 CharacterCreation，使其在 GameProvider 内调用 setPlayerConfig */

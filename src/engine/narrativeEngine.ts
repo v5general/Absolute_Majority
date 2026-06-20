@@ -13,9 +13,11 @@ import type {
   GameState,
   PoliticalEvent,
   EventChoice,
+  CommitteeId,
 } from '../types';
+import { COMMITTEE_LABELS } from '../types';
 import type { AgentIntent, PlayerConfig } from '../types';
-import { askLLMJSON } from './llmBridge';
+import { askLLMJSON, isLLMAvailable } from './llmBridge';
 import { getBackgroundNarrative } from './backgroundEngine';
 import { getMonthFromTurn, getYearFromTurn, getCongressSessionByMonth } from '../config/ruleConfig';
 
@@ -460,4 +462,102 @@ export async function convertIntentsToEvents(
   events.sort((a, b) => b.severity - a.severity);
 
   return events;
+}
+
+// ===== AI 法案生成（每回合根据局势由 LLM 生成）=====
+
+/** 合法委员会 id 列表（用于校验 LLM 输出） */
+const VALID_COMMITTEE_IDS = Object.keys(COMMITTEE_LABELS) as CommitteeId[];
+
+/** LLM 生成的法案草案（proposerName 由提出党党首真实姓名回填） */
+export interface AIBillDraft {
+  title: string;
+  /** 法案核心内容概述，供玩家点击查看 */
+  summary: string;
+  proposerName: string;
+  proposerPartyId: string;
+  committeeId: CommitteeId;
+}
+
+/**
+ * 每回合调用 LLM 根据当前局势生成 1-2 项法案草案。
+ *
+ * - 紧扣当前月份所处的国会会期（如预算决战期偏向预算/财政类）。
+ * - proposerPartyId 由 LLM 选择（必须为真实党派 id），提出者姓名回填为该党党首真名。
+ * - LLM 不可用或返回非法时返回空数组，由 politicalAIEngine 的规则式 propose_bill 兜底。
+ */
+export async function generateAIBills(state: GameState): Promise<AIBillDraft[]> {
+  if (!isLLMAvailable()) return [];
+
+  const gov = state.government;
+  const month = getMonthFromTurn(state.turn);
+  const session = getCongressSessionByMonth(month);
+
+  const coalitionStr = gov?.rulingCoalition
+    ?.map(pid => state.parties.find(p => p.id === pid)?.name)
+    .filter(Boolean).join('、') ?? '无';
+
+  const partyListStr = state.parties
+    .map(p => `- ${p.id}（${p.name}/${p.abbreviation}，党首：${p.leader}，${p.projectedSeats}席，支持率${p.currentSupport}%）`)
+    .join('\n');
+
+  const committeeListStr = VALID_COMMITTEE_IDS
+    .map(id => `- ${id}：${COMMITTEE_LABELS[id]}`)
+    .join('\n');
+
+  const systemPrompt = `你是架空日本议会（2058年，众议院200席）的法案生成器。根据当前政治局势，为本回合生成1-2项真实合理的法案草案。法案将由真实党首之一提出，送交对应常任委员会审议。
+
+## 可用常任委员会（committeeId 只能从下列 id 中选）
+${committeeListStr}
+
+## 当前局势
+- 月份：${month}月（${session.name} / ${session.status}）
+- 会期玩法提示：${session.gameplay}
+- 执政联盟：${coalitionStr}
+- 总席位 ${state.metrics.totalSeats}，过半 ${state.metrics.majorityThreshold}
+- 经济景气 ${state.metrics.economicIndex}，社会稳定 ${state.metrics.socialStabilityIndex}
+
+## 可用党派与党首
+${partyListStr}
+
+## 生成要求
+- 数量：1-2 项，紧扣当前局势与会期（如预算决战期优先预算/财政类，法案攻坚期覆盖各委员会政策类，闭会期不出法案）
+- title：法案正式名称（中文，8-16字，形如《某某法案》）
+- summary：法案核心内容概述（中文，2-4句，必须包含：①核心政策与关键数据；②涉及的主要党派或人物及其立场；③政治意图）。这是玩家点击查看的详情，要言之有物。
+- proposerPartyId：必须是上面党派 id 之一（由你判断哪个党最可能提出该项法案）
+- committeeId：必须是上面 9 个委员会 id 之一
+
+输出严格 JSON，不要使用 markdown 代码块，不要任何解释：
+{"bills":[{"title":"《...》","summary":"...","proposerPartyId":"...","committeeId":"..."}]}`;
+
+  const userPrompt = `当前是 ${month} 月（${session.name}）。请生成本回合的法案草案。`;
+
+  try {
+    const result = await askLLMJSON<{ bills: Array<{ title: string; summary: string; proposerPartyId: string; committeeId: string }> }>(
+      systemPrompt,
+      userPrompt,
+      { bills: [] },
+    );
+
+    const drafts: AIBillDraft[] = [];
+    for (const raw of result.bills ?? []) {
+      const party = state.parties.find(p => p.id === raw.proposerPartyId);
+      if (!party || !raw.title || !raw.summary) continue;
+      const committeeId = VALID_COMMITTEE_IDS.includes(raw.committeeId as CommitteeId)
+        ? (raw.committeeId as CommitteeId)
+        : 'general';
+      drafts.push({
+        title: raw.title,
+        summary: raw.summary,
+        proposerPartyId: raw.proposerPartyId,
+        proposerName: party.leader, // 回填真实党首姓名，杜绝 LLM 编造人名
+        committeeId,
+      });
+    }
+    // 7-9月闭会期不出法案（与会期规则一致）
+    if (session.status === '国会闭会') return [];
+    return drafts.slice(0, 2);
+  } catch {
+    return [];
+  }
 }
