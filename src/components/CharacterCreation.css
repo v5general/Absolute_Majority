@@ -835,3 +835,79 @@
     grid-template-columns: 1fr 1fr;
   }
 }
+
+/* ===== 手机端（<=480px）紧凑布局 ===== */
+@media (max-width: 480px) {
+  .charCreate-container {
+    padding: 12px;
+  }
+
+  .charCreate-card {
+    padding: 18px 14px;
+  }
+
+  .charCreate-title {
+    font-size: 22px;
+    letter-spacing: 0.2em;
+  }
+
+  .charCreate-subtitle {
+    font-size: 13px;
+    margin: 8px 0 20px;
+  }
+
+  /* 特质栅格在手机端单列，避免三列挤压不可读 */
+  .charCreate-traitRow {
+    grid-template-columns: 1fr;
+  }
+
+  /* 姓名输入（姓/名）在手机端纵向堆叠 */
+  .charCreate-nameRow {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  /* 背景操作按钮与提示在小屏堆叠 */
+  .charCreate-backgroundActions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .charCreate-backgroundWarn {
+    text-align: center;
+  }
+
+  .charCreate-aiGenBtn {
+    width: 100%;
+    padding: 11px 14px;
+  }
+
+  .charCreate-testRow {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .charCreate-testBtn {
+    width: 100%;
+  }
+
+  /* 性别按钮在手机端等宽 */
+  .charCreate-genderRow {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .charCreate-genderBtn {
+    width: 100%;
+    text-align: center;
+  }
+
+  /* 提交按钮缩小字距，避免被截断 */
+  .charCreate-submitBtn {
+    font-size: 16px;
+    letter-spacing: 0.25em;
+    padding: 14px 0;
+  }
+}

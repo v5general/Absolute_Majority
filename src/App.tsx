@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import './App.css';
 import { GameProvider, useGame } from './hooks/useGameState';
 import { BackgroundImage } from './components/BackgroundImage';
 import { RelationMatrix } from './components/RelationMatrix';
@@ -80,7 +81,7 @@ const GameInner: React.FC = () => {
   // 党派一览 / 个人档案 以"模糊蒙层"形式浮在事务所之上（事务所仍可见但被模糊化）。
   if (view === 'hall') {
     return (
-      <div style={styles.app}>
+      <div className="sit-app">
         <MainHall
           onOpenSituation={() => setView('situation')}
           onOpenProfile={() => setShowProfile(true)}
@@ -117,47 +118,46 @@ const GameInner: React.FC = () => {
   // ===== 局势界面（国会局势仪表盘）=====
   // 不再有"下一回合"按钮（移到事务所），用"返回事务所"按钮取代。
   return (
-    <div style={styles.app}>
-      {/* 全屏背景图（WebP优先，PNG回退，响应式） */}
+    <div className="sit-app">
+      {/* 全屏背景图（移动端 WebP 优先，桌面端 PNG 优先） */}
       <BackgroundImage image="game_bg" className="game-bgImage" />
       {/* 暗角渐变遮罩 */}
-      <div style={styles.vignette} />
+      <div className="sit-vignette" />
       {/* 回合推演中：全屏加载占位，复用启动加载界面风格 */}
       {isThinking && <LoadingScreen label="AI 推演中" subLabel="COMPUTING" />}
-      <header style={styles.headerRow}>
-        <div style={styles.headerLeft}>
+      <header className="sit-headerRow">
+        <div className="sit-headerLeft">
           <button
-            style={styles.backBtn}
+            className="sit-backBtn"
             onClick={() => setView('hall')}
             title="返回主界面"
           >
             ◀ 返回事务所
           </button>
         </div>
-        <div style={styles.headerCenter}>
-          <h1 style={styles.headerTitle}>国会局势</h1>
-          <div style={styles.headerInfo}>
-            <span style={styles.turnBadge}>{getMonthLabel(state.turn)}</span>
-            <span style={styles.turnNumBadge}>第 {state.turn} 回合</span>
+        <div className="sit-headerCenter">
+          <h1 className="sit-headerTitle">国会局势</h1>
+          <div className="sit-headerInfo">
+            <span className="sit-turnBadge">{getMonthLabel(state.turn)}</span>
+            <span className="sit-turnNumBadge">第 {state.turn} 回合</span>
             {gov && (
-              <span style={{
-                ...styles.coalitionBadge,
-                ...(hasSupermajority ? styles.supermajorityBadge : isMinority ? styles.minorityHeaderBadge : {}),
-              }}>
+              <span
+                className={`sit-coalitionBadge${
+                  hasSupermajority ? ' sit-coalitionBadge--supermajority' : isMinority ? ' sit-coalitionBadge--minority' : ''
+                }`}
+              >
                 {hasSupermajority ? `★ 绝对多数 ${coalitionSeats}/200` : `${coalitionSeats}/200 席`}
               </span>
             )}
-            <span style={styles.playerBadge}>
+            <span className="sit-playerBadge">
               {state.playerConfig.lastName} {state.playerConfig.firstName} · {state.parties.find(p => p.id === state.playerConfig?.partyId)?.abbreviation ?? ''}
             </span>
           </div>
         </div>
-        <div style={styles.headerRight}>
+        <div className="sit-headerRight">
           <button
-            style={{
-              ...styles.avatarBtn,
-              border: `2px solid ${state.parties.find(p => p.id === state.playerConfig?.partyId)?.color ?? '#5c8aff'}`,
-            }}
+            className="sit-avatarBtn"
+            style={{ border: `2px solid ${state.parties.find(p => p.id === state.playerConfig?.partyId)?.color ?? '#5c8aff'}` }}
             onClick={() => setShowProfile(true)}
             title="查看个人资料"
           >
@@ -176,15 +176,12 @@ const GameInner: React.FC = () => {
         />
       )}
 
-      <nav style={styles.navBar}>
-        <div style={styles.navTabs}>
+      <nav className="sit-navBar">
+        <div className="sit-navTabs">
           {TABS.map((tab, i) => (
             <button
               key={tab.id}
-              style={{
-                ...styles.navTab,
-                ...(i === activeTab ? styles.navTabActive : {}),
-              }}
+              className={`sit-navTab${i === activeTab ? ' sit-navTab--active' : ''}`}
               onClick={() => setActiveTab(i)}
             >
               {tab.label}
@@ -195,13 +192,13 @@ const GameInner: React.FC = () => {
 
       {/* 推演日志条：始终显示在主界面 */}
       {thinkingLogs.length > 0 && (
-        <div style={styles.logBar}>
-          <div style={styles.logBarHeader}>
-            <span style={styles.logBarTitle}>
+        <div className="sit-logBar">
+          <div className="sit-logBarHeader">
+            <span className="sit-logBarTitle">
               {isThinking ? '⏳ AI 推演进行中' : '✓ 本回合推演完成'}
             </span>
           </div>
-          <div style={styles.logBarContent}>
+          <div className="sit-logBarContent">
             {thinkingLogs.map((log, i) => (
               <LogRow key={i} log={log} />
             ))}
@@ -209,9 +206,9 @@ const GameInner: React.FC = () => {
         </div>
       )}
 
-      <main style={styles.main}>
+      <main className="sit-main">
         {activeTab === 0 && state.government && (
-          <section style={styles.section}>
+          <section>
             <GovernmentPanel
               government={state.government}
               parties={state.parties}
@@ -221,7 +218,7 @@ const GameInner: React.FC = () => {
         )}
 
         {activeTab === 1 && (
-          <section style={styles.section}>
+          <section>
             <CommitteeDashboard
               committees={state.committees}
               bills={state.bills}
@@ -233,7 +230,7 @@ const GameInner: React.FC = () => {
         )}
 
         {activeTab === 2 && (
-          <section style={styles.section}>
+          <section>
             <MarketDashboard
               parties={state.parties}
               metrics={state.metrics}
@@ -244,7 +241,7 @@ const GameInner: React.FC = () => {
         )}
 
         {activeTab === 3 && (
-          <section style={styles.section}>
+          <section>
             <RelationMatrix
               parties={state.parties}
               relations={state.relations}
@@ -321,20 +318,17 @@ const LogRow: React.FC<{ log: ThinkingLogEntry }> = ({ log }) => {
   const isLong = log.reasoning.length > 80;
   const text = expanded || !isLong ? log.reasoning : log.reasoning.slice(0, 80) + '...';
   return (
-    <div style={styles.logBarItem}>
-      <span style={{
-        ...styles.logBarRole,
-        color: ROLE_COLORS[log.role] ?? '#5c8aff',
-      }}>
+    <div className="sit-logBarItem">
+      <span
+        className="sit-logBarRole"
+        style={{ color: ROLE_COLORS[log.role] ?? '#5c8aff' }}
+      >
         {ROLE_ICONS[log.role] ?? '◆'} {log.name}
       </span>
-      <span style={styles.logBarAction}>{formatAction(log.action)}</span>
+      <span className="sit-logBarAction">{formatAction(log.action)}</span>
       <span
-        style={{
-          ...styles.logBarReasoning,
-          cursor: isLong ? 'pointer' : 'default',
-          whiteSpace: expanded ? 'pre-wrap' : (styles.logBarReasoning.whiteSpace as React.CSSProperties['whiteSpace']),
-        }}
+        className={`sit-logBarReasoning${expanded ? ' sit-logBarReasoning--expanded' : ''}`}
+        style={{ cursor: isLong ? 'pointer' : 'default' }}
         onClick={isLong ? () => setExpanded(e => !e) : undefined}
         title={isLong ? (expanded ? '点击收起' : '点击展开全部') : undefined}
       >
@@ -373,13 +367,25 @@ function getHashRoute(): Route {
 
 // ===== 启动前资源预加载 =====
 
+/** 移动端用 WebP（更小），桌面端用 PNG（更高质量）。仅在启动时根据当前设备选一次。 */
+function pickBgExtension(): 'webp' | 'png' {
+  if (typeof window !== 'undefined' && window.matchMedia) {
+    return window.matchMedia('(max-width: 768px)').matches ? 'webp' : 'png';
+  }
+  return 'png';
+}
+
 /** 需要预加载的全屏背景图（启动界面、角色创建、事务所、局势界面） */
-const PRELOAD_BACKGROUNDS = [
-  '/main_menu_bg.png',
-  '/character-create-bg.png',
-  '/main_hall_bg.png',
-  '/game_bg.png',
+const PRELOAD_BG_NAMES = [
+  'main_menu_bg',
+  'character-create-bg',
+  'main_hall_bg',
+  'game_bg',
 ];
+const PRELOAD_BACKGROUNDS = (() => {
+  const ext = pickBgExtension();
+  return PRELOAD_BG_NAMES.map(name => `/${name}.${ext}`);
+})();
 
 /** 预加载单张图片，加载完成或失败均 resolve（失败不阻塞启动） */
 function preloadImage(src: string): Promise<void> {
@@ -396,37 +402,9 @@ const LoadingScreen: React.FC<{ label?: string; subLabel?: string }> = ({
   label = '加载中',
   subLabel = 'LOADING',
 }) => (
-  <div style={{
-    position: 'fixed',
-    inset: 0,
-    background: '#000',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 9999,
-  }}>
-    <div style={{
-      fontSize: 30,
-      fontWeight: 800,
-      letterSpacing: 10,
-      fontFamily: '"Noto Serif SC", "Source Han Serif SC", Georgia, serif',
-      background: 'linear-gradient(180deg, #D4C5A0, #A08B6B)',
-      WebkitBackgroundClip: 'text',
-      WebkitTextFillColor: 'transparent',
-      animation: 'loadingPulse 1.4s ease-in-out infinite',
-    }}>
-      {label}
-    </div>
-    <div style={{
-      fontSize: 11,
-      letterSpacing: 5,
-      marginTop: 14,
-      color: 'rgba(192,168,130,0.4)',
-      fontFamily: '"Noto Serif SC", "Source Han Serif SC", Georgia, serif',
-    }}>
-      {subLabel}
-    </div>
+  <div className="sit-loadingScreen">
+    <div className="sit-loadingScreen__label">{label}</div>
+    <div className="sit-loadingScreen__subLabel">{subLabel}</div>
   </div>
 );
 
@@ -489,310 +467,6 @@ const App: React.FC = () => {
       <GameInner />
     </GameProvider>
   );
-};
-
-const FONT_SERIF = '"Noto Serif SC", "Source Han Serif SC", Georgia, serif';
-const COLOR_GOLD = '#C0A882';
-const COLOR_GOLD_DIM = '#B8A47C';
-const COLOR_BORDER = 'rgba(192, 168, 130, 0.18)';
-const COLOR_BORDER_ACTIVE = 'rgba(192, 168, 130, 0.4)';
-
-const styles: Record<string, React.CSSProperties> = {
-  app: {
-    position: 'relative',
-    minHeight: '100vh',
-    background: '#000',
-    color: '#e0e0e0',
-    fontFamily: `${FONT_SERIF}, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto`,
-  },
-  bgImage: {
-    position: 'fixed',
-    inset: 0,
-    backgroundImage: 'url(/game_bg.png)',
-    backgroundSize: 'cover',
-    backgroundPosition: 'center center',
-    backgroundRepeat: 'no-repeat',
-    backgroundAttachment: 'fixed',
-    zIndex: 0,
-  },
-  vignette: {
-    position: 'fixed',
-    inset: 0,
-    zIndex: 0,
-    background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.0) 0%, rgba(0,0,0,0.1) 50%, rgba(0,0,0,0.3) 100%)',
-    pointerEvents: 'none',
-  },
-  header: {
-    textAlign: 'center',
-    padding: '32px 16px 8px',
-  },
-  headerRow: {
-    position: 'relative',
-    zIndex: 1,
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    padding: '24px 16px 8px',
-    maxWidth: 1200,
-    margin: '0 auto',
-  },
-  headerLeft: {
-    flex: 1,
-    display: 'flex',
-    justifyContent: 'flex-start',
-    alignItems: 'flex-start',
-  },
-  headerCenter: {
-    flex: '0 0 auto',
-    textAlign: 'center',
-  },
-  headerRight: {
-    flex: 1,
-    display: 'flex',
-    justifyContent: 'flex-end',
-    alignItems: 'flex-start',
-  },
-  avatarBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: '50%',
-    border: '2px solid',
-    background: 'rgba(0,0,0,0.5)',
-    backdropFilter: 'blur(8px)',
-    color: '#e0e0e0',
-    fontSize: 18,
-    fontWeight: 800,
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    transition: 'all 0.2s',
-  },
-  headerTitle: {
-    margin: 0,
-    fontSize: 48,
-    fontWeight: 800,
-    fontFamily: FONT_SERIF,
-    letterSpacing: 6,
-    textAlign: 'center',
-    background: 'linear-gradient(180deg, #D4C5A0, #A08B6B)',
-    WebkitBackgroundClip: 'text',
-    WebkitTextFillColor: 'transparent',
-  },
-  headerInfo: {
-    display: 'flex',
-    justifyContent: 'center',
-    gap: 12,
-    marginTop: 10,
-  },
-  turnBadge: {
-    padding: '3px 14px',
-    borderRadius: 4,
-    background: 'rgba(0,0,0,0.5)',
-    backdropFilter: 'blur(6px)',
-    border: `1px solid ${COLOR_BORDER}`,
-    color: COLOR_GOLD,
-    fontSize: 13,
-    fontWeight: 700,
-    fontFamily: FONT_SERIF,
-  },
-  turnNumBadge: {
-    padding: '3px 14px',
-    borderRadius: 4,
-    background: 'rgba(0,0,0,0.5)',
-    backdropFilter: 'blur(6px)',
-    border: `1px solid ${COLOR_BORDER}`,
-    color: '#aaa',
-    fontSize: 13,
-    fontWeight: 600,
-    fontFamily: FONT_SERIF,
-  },
-  playerBadge: {
-    padding: '3px 14px',
-    borderRadius: 4,
-    background: 'rgba(0,0,0,0.5)',
-    backdropFilter: 'blur(6px)',
-    border: `1px solid ${COLOR_BORDER}`,
-    color: '#8aff5c',
-    fontSize: 13,
-    fontWeight: 600,
-    fontFamily: FONT_SERIF,
-  },
-  coalitionBadge: {
-    padding: '3px 14px',
-    borderRadius: 4,
-    background: 'rgba(0,0,0,0.5)',
-    backdropFilter: 'blur(6px)',
-    border: `1px solid ${COLOR_BORDER}`,
-    color: COLOR_GOLD,
-    fontSize: 13,
-    fontWeight: 600,
-    fontFamily: FONT_SERIF,
-  },
-  supermajorityBadge: {
-    background: 'rgba(74,20,140,0.6)',
-    backdropFilter: 'blur(6px)',
-    border: '1px solid #CE93D8',
-    color: '#E1BEE7',
-    fontWeight: 700,
-    boxShadow: '0 0 12px rgba(206,147,216,0.3)',
-  },
-  minorityHeaderBadge: {
-    border: '1px solid #E65100',
-    color: '#FFB74D',
-  },
-  navBar: {
-    position: 'relative',
-    zIndex: 1,
-    maxWidth: 1200,
-    margin: '12px auto',
-    padding: '0 16px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 16,
-  },
-  navTabs: {
-    display: 'flex',
-    gap: 8,
-  },
-  navTab: {
-    minWidth: 116,
-    padding: '9px 18px',
-    borderRadius: 18,
-    background: 'rgba(0,0,0,0.5)',
-    backdropFilter: 'blur(8px)',
-    border: `1px solid ${COLOR_BORDER}`,
-    color: COLOR_GOLD_DIM,
-    fontSize: 14,
-    fontWeight: 700,
-    cursor: 'pointer',
-    letterSpacing: 3,
-    textIndent: 3,
-    fontFamily: FONT_SERIF,
-    transition: 'all 0.15s',
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    boxSizing: 'border-box',
-  },
-  navTabActive: {
-    background: 'rgba(0,0,0,0.6)',
-    border: `1px solid ${COLOR_BORDER_ACTIVE}`,
-    color: COLOR_GOLD,
-    boxShadow: '0 0 16px rgba(192,168,130,0.15)',
-  },
-  nextTurnBtn: {
-    padding: '10px 28px',
-    borderRadius: 2,
-    background: 'rgba(0,0,0,0.6)',
-    backdropFilter: 'blur(8px)',
-    border: `1px solid ${COLOR_BORDER_ACTIVE}`,
-    color: COLOR_GOLD,
-    fontSize: 15,
-    fontWeight: 700,
-    cursor: 'pointer',
-    letterSpacing: 2,
-    fontFamily: FONT_SERIF,
-    boxShadow: '0 0 16px rgba(192,168,130,0.1)',
-    transition: 'all 0.15s',
-  },
-  nextTurnBtnDisabled: {
-    background: 'rgba(0,0,0,0.5)',
-    border: `1px solid ${COLOR_BORDER}`,
-    boxShadow: 'none',
-    opacity: 0.5,
-    color: '#666',
-  },
-  // 返回事务所按钮（取代局势界面的"下一回合"按钮）
-  backBtn: {
-    padding: '10px 24px',
-    borderRadius: 2,
-    background: 'rgba(0,0,0,0.6)',
-    backdropFilter: 'blur(8px)',
-    border: `1px solid ${COLOR_BORDER_ACTIVE}`,
-    color: COLOR_GOLD,
-    fontSize: 14,
-    fontWeight: 700,
-    cursor: 'pointer',
-    letterSpacing: 2,
-    fontFamily: FONT_SERIF,
-    boxShadow: '0 0 16px rgba(192,168,130,0.1)',
-    transition: 'all 0.2s',
-  },
-  // 推演日志条
-  logBar: {
-    position: 'relative',
-    zIndex: 1,
-    maxWidth: 1200,
-    margin: '0 auto 12px',
-    background: 'rgba(0,0,0,0.55)',
-    backdropFilter: 'blur(12px)',
-    borderRadius: 4,
-    border: `1px solid ${COLOR_BORDER}`,
-    overflow: 'hidden',
-    boxShadow: '0 4px 24px rgba(0,0,0,0.3)',
-  },
-  logBarHeader: {
-    padding: '8px 14px',
-    borderBottom: `1px solid ${COLOR_BORDER}`,
-    display: 'flex',
-    alignItems: 'center',
-    gap: 8,
-  },
-  logBarTitle: {
-    fontSize: 13,
-    fontWeight: 700,
-    color: COLOR_GOLD_DIM,
-    fontFamily: FONT_SERIF,
-  },
-  logBarContent: {
-    maxHeight: 180,
-    overflowY: 'auto',
-    padding: '4px 8px',
-  },
-  logBarItem: {
-    display: 'flex',
-    alignItems: 'baseline',
-    gap: 8,
-    padding: '4px 6px',
-    borderRadius: 4,
-    fontSize: 12,
-    lineHeight: 1.5,
-  },
-  logBarRole: {
-    fontWeight: 700,
-    fontSize: 12,
-    whiteSpace: 'nowrap' as const,
-    minWidth: 80,
-  },
-  logBarAction: {
-    background: 'rgba(0,0,0,0.3)',
-    padding: '1px 6px',
-    borderRadius: 3,
-    color: COLOR_GOLD_DIM,
-    fontSize: 11,
-    whiteSpace: 'nowrap' as const,
-  },
-  logBarReasoning: {
-    color: '#777',
-    fontSize: 11,
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap' as const,
-    flex: 1,
-  },
-  main: {
-    position: 'relative',
-    zIndex: 1,
-    maxWidth: 1200,
-    margin: '0 auto',
-    padding: '0 16px 48px',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 20,
-  },
-  section: {},
 };
 
 export default App;

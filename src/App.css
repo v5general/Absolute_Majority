@@ -1,0 +1,421 @@
+/* ===== 局势界面（国会局势仪表盘）样式 ===== */
+/* 从 App.tsx 内联 styles 抽离，并加入移动端断点适配 */
+
+:root {
+  --sit-font-serif: "Noto Serif SC", "Source Han Serif SC", Georgia, serif;
+  --sit-color-gold: #C0A882;
+  --sit-color-gold-dim: #B8A47C;
+  --sit-color-border: rgba(192, 168, 130, 0.18);
+  --sit-color-border-active: rgba(192, 168, 130, 0.4);
+}
+
+/* ===== 根容器 ===== */
+.sit-app {
+  position: relative;
+  min-height: 100vh;
+  background: #000;
+  color: #e0e0e0;
+  font-family: var(--sit-font-serif), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto;
+}
+
+/* ===== 暗角渐变遮罩 ===== */
+.sit-vignette {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background: radial-gradient(ellipse at center, rgba(0,0,0,0.0) 0%, rgba(0,0,0,0.1) 50%, rgba(0,0,0,0.3) 100%);
+  pointer-events: none;
+}
+
+/* ===== 头部区域 ===== */
+.sit-headerRow {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 24px 16px 8px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.sit-headerLeft {
+  flex: 1;
+  display: flex;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.sit-headerCenter {
+  flex: 0 0 auto;
+  text-align: center;
+}
+
+.sit-headerRight {
+  flex: 1;
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-start;
+}
+
+.sit-avatarBtn {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 2px solid;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px);
+  color: #e0e0e0;
+  font-size: 18px;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.sit-headerTitle {
+  margin: 0;
+  font-size: 48px;
+  font-weight: 800;
+  font-family: var(--sit-font-serif);
+  letter-spacing: 6px;
+  text-align: center;
+  background: linear-gradient(180deg, #D4C5A0, #A08B6B);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.sit-headerInfo {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.sit-turnBadge,
+.sit-turnNumBadge,
+.sit-playerBadge,
+.sit-coalitionBadge {
+  padding: 3px 14px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--sit-color-border);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--sit-font-serif);
+}
+
+.sit-turnBadge {
+  color: var(--sit-color-gold);
+  font-weight: 700;
+}
+
+.sit-turnNumBadge {
+  color: #aaa;
+}
+
+.sit-playerBadge {
+  color: #8aff5c;
+}
+
+.sit-coalitionBadge {
+  color: var(--sit-color-gold);
+}
+
+.sit-coalitionBadge--supermajority {
+  background: rgba(74, 20, 140, 0.6);
+  backdrop-filter: blur(6px);
+  border: 1px solid #CE93D8;
+  color: #E1BEE7;
+  font-weight: 700;
+  box-shadow: 0 0 12px rgba(206, 147, 216, 0.3);
+}
+
+.sit-coalitionBadge--minority {
+  border: 1px solid #E65100;
+  color: #FFB74D;
+}
+
+/* ===== 导航 ===== */
+.sit-navBar {
+  position: relative;
+  z-index: 1;
+  max-width: 1200px;
+  margin: 12px auto;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.sit-navTabs {
+  display: flex;
+  gap: 8px;
+}
+
+.sit-navTab {
+  min-width: 116px;
+  padding: 9px 18px;
+  border-radius: 18px;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--sit-color-border);
+  color: var(--sit-color-gold-dim);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 3px;
+  text-indent: 3px;
+  font-family: var(--sit-font-serif);
+  transition: all 0.15s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.sit-navTab--active {
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid var(--sit-color-border-active);
+  color: var(--sit-color-gold);
+  box-shadow: 0 0 16px rgba(192, 168, 130, 0.15);
+}
+
+/* ===== 返回事务所按钮 ===== */
+.sit-backBtn {
+  padding: 10px 24px;
+  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--sit-color-border-active);
+  color: var(--sit-color-gold);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 2px;
+  font-family: var(--sit-font-serif);
+  box-shadow: 0 0 16px rgba(192, 168, 130, 0.1);
+  transition: all 0.2s;
+}
+
+/* ===== 推演日志条 ===== */
+.sit-logBar {
+  position: relative;
+  z-index: 1;
+  max-width: 1200px;
+  margin: 0 auto 12px;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(12px);
+  border-radius: 4px;
+  border: 1px solid var(--sit-color-border);
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+}
+
+.sit-logBarHeader {
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--sit-color-border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sit-logBarTitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--sit-color-gold-dim);
+  font-family: var(--sit-font-serif);
+}
+
+.sit-logBarContent {
+  max-height: 180px;
+  overflow-y: auto;
+  padding: 4px 8px;
+}
+
+.sit-logBarItem {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.sit-logBarRole {
+  font-weight: 700;
+  font-size: 12px;
+  white-space: nowrap;
+  min-width: 80px;
+}
+
+.sit-logBarAction {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 1px 6px;
+  border-radius: 3px;
+  color: var(--sit-color-gold-dim);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.sit-logBarReasoning {
+  color: #777;
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.sit-logBarReasoning--expanded {
+  white-space: pre-wrap;
+}
+
+/* ===== 主内容区 ===== */
+.sit-main {
+  position: relative;
+  z-index: 1;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 16px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ===== 加载占位界面 ===== */
+.sit-loadingScreen {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.sit-loadingScreen__label {
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: 10px;
+  font-family: var(--sit-font-serif);
+  background: linear-gradient(180deg, #D4C5A0, #A08B6B);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: loadingPulse 1.4s ease-in-out infinite;
+}
+
+.sit-loadingScreen__subLabel {
+  font-size: 11px;
+  letter-spacing: 5px;
+  margin-top: 14px;
+  color: rgba(192, 168, 130, 0.4);
+  font-family: var(--sit-font-serif);
+}
+
+/* ===== 移动端断点 ===== */
+
+/* 中等屏幕（平板/小笔记本） */
+@media (max-width: 1024px) {
+  .sit-headerTitle {
+    font-size: 36px;
+  }
+}
+
+/* 平板/大手机 */
+@media (max-width: 768px) {
+  .sit-headerRow {
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .sit-headerLeft,
+  .sit-headerRight {
+    flex: none;
+    justify-content: center;
+  }
+
+  .sit-headerTitle {
+    font-size: 28px;
+    letter-spacing: 4px;
+  }
+
+  .sit-headerInfo {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  /* 4 个标签 4 等分铺满，避免 116px × 4 溢出 */
+  .sit-navTabs {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    width: 100%;
+  }
+
+  .sit-navTab {
+    min-width: 0;
+    padding: 9px 6px;
+    font-size: 13px;
+    letter-spacing: 1px;
+    text-indent: 1px;
+  }
+
+  /* 长思考日志允许换行，避免横向溢出 */
+  .sit-logBarReasoning {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    flex-basis: 100%;
+  }
+
+  .sit-logBarItem {
+    flex-wrap: wrap;
+  }
+}
+
+/* 手机 */
+@media (max-width: 480px) {
+  .sit-headerTitle {
+    font-size: 22px;
+    letter-spacing: 3px;
+  }
+
+  .sit-turnBadge,
+  .sit-turnNumBadge,
+  .sit-playerBadge,
+  .sit-coalitionBadge {
+    padding: 3px 10px;
+    font-size: 12px;
+  }
+
+  .sit-backBtn {
+    padding: 8px 16px;
+    font-size: 13px;
+    letter-spacing: 1px;
+  }
+
+  .sit-navBar {
+    padding: 0 10px;
+  }
+
+  .sit-navTab {
+    padding: 9px 4px;
+    font-size: 12px;
+    letter-spacing: 0;
+    text-indent: 0;
+  }
+
+  .sit-main {
+    padding: 0 10px 36px;
+  }
+}
