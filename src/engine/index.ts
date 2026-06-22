@@ -73,6 +73,7 @@ export {
   getLLMConfig,
   setLLMConfig,
   testLLMConnection,
+  debugLLMConfig,
 } from './llmBridge';
 export type { LLMOptions } from './llmBridge';
 export {

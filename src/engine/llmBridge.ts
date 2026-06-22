@@ -81,6 +81,46 @@ export function setLLMApiKey(key: string): void { setLLMConfig({ apiKey: key });
 export function getLLMApiKey(): string | null { return getConfig().apiKey; }
 export function isLLMAvailable(): boolean { return !!getConfig().apiKey && !!getConfig().baseUrl; }
 
+/**
+ * 浏览器控制台调试用：打印当前 LLM 配置和移动端检测结果。
+ * 用户在 mobile 上可以直接在 console 调用 `debugLLMConfig()` 排查。
+ */
+export function debugLLMConfig(): void {
+  const config = getConfig();
+  const mobile = isMobileDevice();
+  // 不打印完整 apiKey，只打印首尾几位以便确认
+  const keyPreview = config.apiKey
+    ? `${config.apiKey.slice(0, 6)}...${config.apiKey.slice(-4)} (length=${config.apiKey.length})`
+    : '(empty)';
+  console.log('===== LLM Debug =====');
+  console.log('  baseUrl:', config.baseUrl || '(empty)');
+  console.log('  apiKey:', keyPreview);
+  console.log('  model:', config.model || '(empty)');
+  console.log('  mobile:', mobile);
+  console.log('  REQUEST_TIMEOUT_MS:', mobile ? 120_000 : 90_000);
+  console.log('  chatUrl:', (() => {
+    try {
+      return getChatUrl();
+    } catch (e) {
+      return `error: ${(e as Error).message}`;
+    }
+  })());
+  console.log('  localStorage llm_config:', (() => {
+    try {
+      const raw = localStorage.getItem('llm_config');
+      return raw ? `(length=${raw.length})` : '(missing)';
+    } catch {
+      return '(localStorage not accessible)';
+    }
+  })());
+  console.log('=====================');
+}
+
+// 暴露到 window 方便手机端控制台直接调用
+if (typeof window !== 'undefined') {
+  (window as unknown as { debugLLMConfig?: () => void }).debugLLMConfig = debugLLMConfig;
+}
+
 // ===== 核心 fetch =====
 
 /** 构建完整的 chat completions URL */
@@ -166,6 +206,114 @@ function describeNetworkError(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
 
+// ===== 流式响应支持 =====
+//
+// iOS Safari 等移动端浏览器对 fetch 有隐式超时（~60s），长 LLM 响应会被
+// 静默杀掉。改用 stream:true 让服务端逐 token 推送，连接保持活跃，移动端
+// 不会触发超时。所有主流 OpenAI 兼容服务商（DeepSeek/OpenAI/Kimi/Qwen/GLM/
+// SiliconFlow）均支持 SSE 流式响应。
+
+/** 解析单行 SSE chunk，返回 delta.content 累积字符串。 */
+function parseSSEChunk(chunk: string): { content: string; done: boolean } {
+  let content = '';
+  let done = false;
+  // SSE 以 `data: ` 开头，每行一条事件
+  const lines = chunk.split('\n');
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed.startsWith('data:')) continue;
+    const payload = trimmed.slice(5).trim();
+    if (payload === '') continue;
+    if (payload === '[DONE]') { done = true; continue; }
+    try {
+      const parsed = JSON.parse(payload);
+      const delta = parsed?.choices?.[0]?.delta?.content;
+      if (typeof delta === 'string' && delta.length > 0) content += delta;
+    } catch {
+      // 部分 chunk 可能跨行被截断，忽略解析失败
+    }
+  }
+  return { content, done };
+}
+
+/**
+ * 调用 chat completions 接口并返回完整文本内容。
+ * - 优先使用 stream 模式（移动端友好）
+ * - 若服务端不支持 stream 或返回普通 JSON，自动降级
+ * - timeoutMs 仅作用于"拿到响应头"阶段；流式传输阶段不超时（避免误杀）
+ */
+async function callChatCompletion(
+  url: string,
+  body: Record<string, unknown>,
+  config: LLMConfig,
+  timeoutMs: number,
+): Promise<string | null> {
+  // 加上 stream:true，让服务端以 SSE 推送
+  const streamBody = { ...body, stream: true };
+
+  const response = await fetchWithRetry(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${config.apiKey}`,
+      // 提示服务端走 SSE；多数代理会识别此头部
+      'Accept': 'text/event-stream',
+    },
+    body: JSON.stringify(streamBody),
+  }, timeoutMs);
+
+  if (!response.ok) {
+    const errText = await response.text().catch(() => '');
+    throw new Error(`HTTP ${response.status} ${response.statusText}: ${errText.slice(0, 200)}`);
+  }
+
+  // 检测响应类型：SSE 流 vs 普通 JSON
+  const contentType = response.headers.get('content-type') || '';
+  const isSSE = contentType.includes('text/event-stream');
+
+  // 不支持流式：直接 JSON 解析
+  if (!isSSE || !response.body) {
+    const data = await response.json();
+    return data?.choices?.[0]?.message?.content ?? null;
+  }
+
+  // 流式读取：移动端友好，连接持续活跃不会被超时杀掉
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let fullContent = '';
+  let lastErr: unknown = null;
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      // SSE 事件以空行分隔；为防止跨 chunk 截断，按行处理时保留最后未完整行
+      const lines = buffer.split('\n');
+      buffer = lines.pop() ?? '';
+      for (const line of lines) {
+        const { content } = parseSSEChunk(line);
+        if (content) fullContent += content;
+      }
+    }
+    // 处理 buffer 中剩余内容
+    if (buffer.length > 0) {
+      const { content } = parseSSEChunk(buffer);
+      if (content) fullContent += content;
+    }
+  } catch (err) {
+    // 流被中断：保留已收到的部分内容，避免整段丢失
+    lastErr = err;
+    console.warn('[LLM] Stream interrupted, using partial content:', describeNetworkError(err));
+  }
+
+  if (fullContent.length > 0) return fullContent;
+  // 没拿到任何内容，若有错则抛出便于上层重试
+  if (lastErr) throw lastErr;
+  return null;
+}
+
 /** LLM 调用选项 */
 export interface LLMOptions {
   maxTokens?: number;
@@ -210,33 +358,18 @@ export async function askLLM(
       body.response_format = responseFormat;
     }
 
-    const response = await fetchWithRetry(getChatUrl(), {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${config.apiKey}`,
-      },
-      body: JSON.stringify(body),
-    }, REQUEST_TIMEOUT_MS);
-
-    if (!response.ok) {
-      const errText = await response.text().catch(() => '');
-      console.error(`[LLM] API error: ${response.status} ${response.statusText}`);
-      console.error('[LLM] Error details:', errText);
-      console.error('[LLM] Request body:', JSON.stringify({
-        model: config.model,
-        messages: [
-          { role: 'system', content: systemPrompt.slice(0, 100) + '...' },
-          { role: 'user', content: userPrompt.slice(0, 100) + '...' },
-        ],
-      }));
-      return null;
-    }
-
-    const data = await response.json();
-    return data.choices?.[0]?.message?.content ?? null;
+    console.log(`[LLM] askLLM → ${getChatUrl()} (mobile=${isMobileDevice()}, stream=true, model=${config.model})`);
+    const content = await callChatCompletion(getChatUrl(), body, config, REQUEST_TIMEOUT_MS);
+    console.log('[LLM] Response:', content ? `(length: ${content.length})` : 'null');
+    return content;
   } catch (err) {
-    console.warn('[LLM] Request failed:', describeNetworkError(err));
+    const msg = err instanceof Error ? err.message : String(err);
+    // HTTP 错误单独打印，方便定位（如 401/429/模型超 max_tokens）
+    if (msg.startsWith('HTTP ')) {
+      console.error('[LLM] API error:', msg);
+    } else {
+      console.warn('[LLM] Request failed:', describeNetworkError(err));
+    }
     return null;
   }
 }
@@ -384,33 +517,16 @@ export async function askLLMText(
       requestBody.response_format = { type: 'json_object' };
     }
 
-    const response = await fetchWithRetry(getChatUrl(), {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${config.apiKey}`,
-      },
-      body: JSON.stringify(requestBody),
-    }, REQUEST_TIMEOUT_MS);
-
-    if (!response.ok) {
-      const errText = await response.text().catch(() => '');
-      console.error(`[LLM] API error: ${response.status} ${response.statusText}`);
-      console.error('[LLM] Error details:', errText);
-      console.error('[LLM] Request body:', JSON.stringify({
-        model: config.model,
-        messages: [
-          { role: 'system', content: systemPrompt.slice(0, 100) + '...' },
-          { role: 'user', content: userPrompt.slice(0, 100) + '...' },
-        ],
-      }));
-      return null;
-    }
-
-    const data = await response.json();
-    return data.choices?.[0]?.message?.content ?? null;
+    console.log(`[LLM] askLLMText → ${getChatUrl()} (mobile=${isMobileDevice()}, stream=true)`);
+    const content = await callChatCompletion(getChatUrl(), requestBody, config, REQUEST_TIMEOUT_MS);
+    return content;
   } catch (err) {
-    console.warn('[LLM] Text request failed:', describeNetworkError(err));
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.startsWith('HTTP ')) {
+      console.error('[LLM] API error:', msg);
+    } else {
+      console.warn('[LLM] Text request failed:', describeNetworkError(err));
+    }
     return null;
   }
 }
