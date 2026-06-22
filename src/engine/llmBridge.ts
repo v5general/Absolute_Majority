@@ -93,6 +93,79 @@ function getChatUrl(): string {
   return `${base}/v1/chat/completions`;
 }
 
+// ===== 移动端检测与超时配置 =====
+
+/** 移动端通常网络更慢、浏览器并发连接数更少，需要更宽容的超时与串行执行。 */
+export function isMobileDevice(): boolean {
+  if (typeof window === 'undefined' || !window.matchMedia) return false;
+  return window.matchMedia('(max-width: 768px)').matches
+    || /Android|iPhone|iPad|iPod|Mobile/i.test(typeof navigator !== 'undefined' ? navigator.userAgent : '');
+}
+
+/** 单次 LLM 请求超时（毫秒）。移动端给更长，避免慢网络下被中断。 */
+const REQUEST_TIMEOUT_MS = isMobileDevice() ? 120_000 : 90_000;
+/** 验证连接超时（短）。 */
+const TEST_TIMEOUT_MS = 20_000;
+
+/**
+ * 带超时的 fetch：到达超时后 abort 请求，避免移动端浏览器隐式杀掉请求时
+ * 出现"loading 永远不结束"的问题。
+ */
+async function fetchWithTimeout(
+  url: string,
+  options: RequestInit,
+  timeoutMs: number,
+): Promise<Response> {
+  if (typeof AbortController === 'undefined') {
+    // 极旧环境，退回普通 fetch
+    return fetch(url, options);
+  }
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
+ * 带重试的 fetch：仅在网络层错误（TypeError，通常是 CORS/连接失败/abort）
+ * 时重试一次。HTTP 错误码（如 401/429/500）不重试，由上层处理。
+ */
+async function fetchWithRetry(
+  url: string,
+  options: RequestInit,
+  timeoutMs: number,
+  retries = 1,
+): Promise<Response> {
+  let lastErr: unknown = null;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await fetchWithTimeout(url, options, timeoutMs);
+    } catch (err) {
+      lastErr = err;
+      // 仅在还有重试次数时继续；AbortError 也属于"网络问题"，可重试一次
+      if (attempt >= retries) break;
+      // 短暂退避后重试
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+  }
+  throw lastErr;
+}
+
+/** 把网络错误转成可读描述（中文），用于日志/UI 提示。 */
+function describeNetworkError(err: unknown): string {
+  if (err instanceof DOMException && err.name === 'AbortError') {
+    return '请求超时（移动端网络较慢，可重试或切换到 Wi-Fi）';
+  }
+  if (err instanceof TypeError) {
+    // fetch 抛 TypeError 通常是 CORS 拒绝、DNS 失败、连接被拒、混合内容
+    return '网络/CORS 错误：可能是浏览器阻止了跨域请求，或 HTTPS 页面调用了 HTTP API';
+  }
+  return err instanceof Error ? err.message : String(err);
+}
+
 /** LLM 调用选项 */
 export interface LLMOptions {
   maxTokens?: number;
@@ -137,14 +210,14 @@ export async function askLLM(
       body.response_format = responseFormat;
     }
 
-    const response = await fetch(getChatUrl(), {
+    const response = await fetchWithRetry(getChatUrl(), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${config.apiKey}`,
       },
       body: JSON.stringify(body),
-    });
+    }, REQUEST_TIMEOUT_MS);
 
     if (!response.ok) {
       const errText = await response.text().catch(() => '');
@@ -163,7 +236,7 @@ export async function askLLM(
     const data = await response.json();
     return data.choices?.[0]?.message?.content ?? null;
   } catch (err) {
-    console.warn('[LLM] Request failed:', err);
+    console.warn('[LLM] Request failed:', describeNetworkError(err));
     return null;
   }
 }
@@ -311,14 +384,14 @@ export async function askLLMText(
       requestBody.response_format = { type: 'json_object' };
     }
 
-    const response = await fetch(getChatUrl(), {
+    const response = await fetchWithRetry(getChatUrl(), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${config.apiKey}`,
       },
       body: JSON.stringify(requestBody),
-    });
+    }, REQUEST_TIMEOUT_MS);
 
     if (!response.ok) {
       const errText = await response.text().catch(() => '');
@@ -337,7 +410,7 @@ export async function askLLMText(
     const data = await response.json();
     return data.choices?.[0]?.message?.content ?? null;
   } catch (err) {
-    console.warn('[LLM] Text request failed:', err);
+    console.warn('[LLM] Text request failed:', describeNetworkError(err));
     return null;
   }
 }
@@ -357,7 +430,7 @@ export async function testLLMConnection(
   else { url = url + '/v1/chat/completions'; }
 
   try {
-    const response = await fetch(url, {
+    const response = await fetchWithRetry(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -368,7 +441,7 @@ export async function testLLMConnection(
         messages: [{ role: 'user', content: '回复OK' }],
         max_tokens: 5,
       }),
-    });
+    }, TEST_TIMEOUT_MS);
 
     if (response.ok) {
       return { ok: true };
@@ -376,7 +449,6 @@ export async function testLLMConnection(
     const errText = await response.text().catch(() => '');
     return { ok: false, error: `${response.status} ${response.statusText}: ${errText.slice(0, 200)}` };
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    return { ok: false, error: msg };
+    return { ok: false, error: describeNetworkError(err) };
   }
 }

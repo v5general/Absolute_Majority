@@ -489,6 +489,8 @@ export const CharacterCreation: React.FC<CharacterCreationProps> = ({ onComplete
             <div className="charCreate-settingsHint">
               配置任意 OpenAI 兼容 API 以启用 AI 推演。所有请求直接从浏览器发出，需 API 服务商允许跨域（CORS）。
               没有配置时将使用规则引擎 fallback。
+              <br /><br />
+              <strong>手机端提示：</strong>每回合 AI 推演会串行执行多步 LLM 调用，建议在 Wi-Fi 下进行；移动网络下推演耗时较长但会自动重试。
             </div>
 
             <div className="charCreate-formGroup">

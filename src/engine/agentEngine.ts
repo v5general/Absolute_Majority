@@ -29,7 +29,7 @@ import type {
   PoliticalEvent,
 } from '../types';
 import type { ThinkingLogEntry } from '../types';
-import { askLLMJSON, isLLMAvailable } from './llmBridge';
+import { askLLMJSON, isLLMAvailable, isMobileDevice } from './llmBridge';
 import { getMonthFromTurn, getYearFromTurn, getCongressSessionByMonth } from '../config/ruleConfig';
 
 // ===== 工具函数 =====
@@ -1173,26 +1173,36 @@ export class AgentScheduler {
   async runTurn(state: GameState): Promise<AgentTurnResult> {
     this.buildAgents(state);
 
-    // 并行执行所有 Agent 的 LLM 调用，每个Agent独立失败不影响其他
-    const results = await Promise.all(
-      this.agents.map(agent =>
-        agent.generateIntent(state).catch(err => {
-          console.error(`[Agent] ${agent.config.actor_id} crashed:`, err);
-          // 返回安全的fallback结果
-          return {
-            intents: [],
-            events: [],
-            log: {
-              role: agent.config.role,
-              name: agent.config.personName ?? agent.getRoleLabel(),
-              reasoning: '系统错误，暂停行动',
-              action: 'error',
-              timestamp: Date.now(),
-            },
-          };
-        })
-      ),
-    );
+    // 移动端浏览器并发连接数受限（通常 4-6），加上慢网络会让并行 5 个 LLM 调用
+    // 频繁超时。改为串行执行：慢一点但更可靠。桌面端保留并行以提速。
+    const runAgentSafely = async (agent: BaseAgent) =>
+      agent.generateIntent(state).catch(err => {
+        console.error(`[Agent] ${agent.config.actor_id} crashed:`, err);
+        // 返回安全的fallback结果
+        return {
+          intents: [],
+          events: [],
+          log: {
+            role: agent.config.role,
+            name: agent.config.personName ?? agent.getRoleLabel(),
+            reasoning: '系统错误，暂停行动',
+            action: 'error',
+            timestamp: Date.now(),
+          },
+        };
+      });
+
+    let results;
+    if (isMobileDevice()) {
+      // 串行执行，避免移动端并发限制与超时叠加
+      results = [];
+      for (const agent of this.agents) {
+        results.push(await runAgentSafely(agent));
+      }
+    } else {
+      // 桌面端并行执行，每个Agent独立失败不影响其他
+      results = await Promise.all(this.agents.map(runAgentSafely));
+    }
 
     const allIntents = results.flatMap(r => r.intents ?? []);
     const allEvents = results.flatMap(r => r.events ?? []);

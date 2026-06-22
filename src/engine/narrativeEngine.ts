@@ -17,7 +17,7 @@ import type {
 } from '../types';
 import { COMMITTEE_LABELS } from '../types';
 import type { AgentIntent, PlayerConfig } from '../types';
-import { askLLMJSON, isLLMAvailable } from './llmBridge';
+import { askLLMJSON, isLLMAvailable, isMobileDevice } from './llmBridge';
 import { getBackgroundNarrative } from './backgroundEngine';
 import { getMonthFromTurn, getYearFromTurn, getCongressSessionByMonth } from '../config/ruleConfig';
 
@@ -447,16 +447,25 @@ function generateFallbackEvent(
  * 将 AgentIntent 列表转换为 PoliticalEvent 列表
  *
  * 每个意图通过 LLM 动态生成完整的事件内容。
- * 所有事件并行生成，按严重度排序。
+ * 桌面端并行、移动端串行生成事件，最后按严重度排序。
  */
 export async function convertIntentsToEvents(
   intents: AgentIntent[],
   state: GameState,
   playerConfig: PlayerConfig,
 ): Promise<PoliticalEvent[]> {
-  const events = await Promise.all(
-    intents.map(intent => generateEventFromLLM(intent, state, playerConfig)),
-  );
+  // 移动端串行执行，避免并发连接限制；桌面端保留并行
+  let events: PoliticalEvent[];
+  if (isMobileDevice()) {
+    events = [];
+    for (const intent of intents) {
+      events.push(await generateEventFromLLM(intent, state, playerConfig));
+    }
+  } else {
+    events = await Promise.all(
+      intents.map(intent => generateEventFromLLM(intent, state, playerConfig)),
+    );
+  }
 
   // 按严重度排序（高严重度事件优先展示）
   events.sort((a, b) => b.severity - a.severity);
