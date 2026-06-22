@@ -85,6 +85,8 @@ const GameInner: React.FC = () => {
       <BackgroundImage image="game_bg" className="game-bgImage" />
       {/* 暗角渐变遮罩 */}
       <div style={styles.vignette} />
+      {/* 回合推演中：全屏加载占位，复用启动加载界面风格 */}
+      {isThinking && <LoadingScreen label="AI 推演中" subLabel="COMPUTING" />}
       <header style={styles.headerRow}>
         <div style={styles.headerLeft}>
           <button
@@ -304,8 +306,11 @@ function preloadImage(src: string): Promise<void> {
   });
 }
 
-/** 启动加载占位界面（黑底金色衬线，与整体风格一致） */
-const LoadingScreen: React.FC = () => (
+/** 加载占位界面（黑底金色衬线，与整体风格一致）。可复用于启动预加载与回合推演。 */
+const LoadingScreen: React.FC<{ label?: string; subLabel?: string }> = ({
+  label = '加载中',
+  subLabel = 'LOADING',
+}) => (
   <div style={{
     position: 'fixed',
     inset: 0,
@@ -326,7 +331,7 @@ const LoadingScreen: React.FC = () => (
       WebkitTextFillColor: 'transparent',
       animation: 'loadingPulse 1.4s ease-in-out infinite',
     }}>
-      加载中
+      {label}
     </div>
     <div style={{
       fontSize: 11,
@@ -335,7 +340,7 @@ const LoadingScreen: React.FC = () => (
       color: 'rgba(192,168,130,0.4)',
       fontFamily: '"Noto Serif SC", "Source Han Serif SC", Georgia, serif',
     }}>
-      LOADING
+      {subLabel}
     </div>
   </div>
 );
