@@ -40,8 +40,24 @@ const GameInner: React.FC = () => {
   const [showProfile, setShowProfile] = useState(false);
   const [showParties, setShowParties] = useState(false);
   const [activeTab, setActiveTab] = useState(0);
-  // 主界面（事务所）与局势界面之间切换；角色创建后默认进入事务所
-  const [view, setView] = useState<'hall' | 'situation'>('hall');
+  // 主界面（事务所）与局势界面之间切换；初始值从 URL hash 读取，刷新后仍在同一界面
+  const [view, setView] = useState<'hall' | 'situation'>(getGameView);
+
+  // 切换视图时同步 URL hash（便于刷新、前进/后退按钮回到对应界面）
+  const changeView = useCallback((next: 'hall' | 'situation') => {
+    setView(next);
+    syncGameViewHash(next);
+  }, []);
+
+  // 监听 hash 变化（浏览器前进/后退），同步 view 状态
+  useEffect(() => {
+    const onHashChange = () => {
+      const next = getGameView();
+      setView(prev => (prev === next ? prev : next));
+    };
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
 
   // 任意界面切换时都滚动到顶部
   useEffect(() => {
@@ -84,7 +100,7 @@ const GameInner: React.FC = () => {
     return (
       <div className="sit-app">
         <MainHall
-          onOpenSituation={() => setView('situation')}
+          onOpenSituation={() => changeView('situation')}
           onOpenProfile={() => setShowProfile(true)}
           onOpenParties={() => setShowParties(true)}
           onNextTurn={nextTurn}
@@ -130,7 +146,7 @@ const GameInner: React.FC = () => {
         <div className="sit-headerLeft">
           <button
             className="sit-backBtn"
-            onClick={() => setView('hall')}
+            onClick={() => changeView('hall')}
             title="返回主界面"
           >
             ◀ 返回事务所
@@ -364,9 +380,24 @@ type Route = 'menu' | 'create' | 'game';
 
 function getHashRoute(): Route {
   const hash = window.location.hash;
-  if (hash === '#/create') return 'create';
-  if (hash === '#/game') return 'game';
+  if (hash === '#/create' || hash.startsWith('#/create/')) return 'create';
+  if (hash === '#/game' || hash.startsWith('#/game/')) return 'game';
   return 'menu';
+}
+
+/** 从 hash 解析当前游戏内子视图（事务所 vs 国会局势）。 */
+function getGameView(): 'hall' | 'situation' {
+  const hash = window.location.hash;
+  if (hash.startsWith('#/game/situation')) return 'situation';
+  return 'hall';
+}
+
+/** 把当前游戏子视图写入 hash，便于刷新/分享 URL 时回到同一界面。 */
+function syncGameViewHash(view: 'hall' | 'situation') {
+  const target = view === 'situation' ? '#/game/situation' : '#/game';
+  if (window.location.hash !== target) {
+    window.location.hash = target;
+  }
 }
 
 // ===== 启动前资源预加载 =====
