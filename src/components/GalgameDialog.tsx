@@ -1,6 +1,26 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useGame } from '../hooks/useGameState';
-import type { Party, ChoiceEffect } from '../types';
+import { BackgroundImage } from './BackgroundImage';
+import type { Party, ChoiceEffect, PoliticalEvent } from '../types';
+
+/**
+ * 检测当前事件是否是「料亭」类密会场景。
+ * 命中条件（满足任一）：
+ *  - intentType === 'opposition_coalition'（在野联盟密会，prompt 里明确提到料亭）
+ *  - 事件标题/摘要/对话/scenePrompt 文本里出现料亭、割烹、隠れ家、個室、密会 等关键词
+ */
+const RYOTEI_KEYWORDS = /料亭|割烹|隠れ家|個室|密会|私室|高級料理屋/;
+function isRyoteiScene(event: PoliticalEvent | undefined): boolean {
+  if (!event) return false;
+  if (event.intentType === 'opposition_coalition') return true;
+  const parts = [
+    event.title,
+    event.summary,
+    event.freeText?.scenePrompt ?? '',
+    ...event.dialogs.map(d => `${d.speaker ?? ''} ${d.text}`),
+  ];
+  return RYOTEI_KEYWORDS.test(parts.join(' '));
+}
 
 /**
  * Galgame 风格的事件弹窗
@@ -138,9 +158,19 @@ export const GalgameDialog: React.FC = () => {
   const showFreeTextInput = hasFreeText && activeEvent.showChoices && !activeEvent.resolved;
   const showFixedChoices = !hasFreeText && activeEvent.showChoices && !activeEvent.resolved;
 
+  // 检测料亭密会场景：命中时叠加场景背景图，并让 window 背景半透明以露出图片。
+  // 注意 isRyoteiScene 已对 undefined 入参做了兜底（返回 false），可以安全地
+  // 在 early return 之外直接调用，避免触发 Hooks 顺序问题。
+  const ryotei = isRyoteiScene(activeEvent?.event);
+  const windowStyle: React.CSSProperties = ryotei
+    ? { ...styles.window, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(2px)' }
+    : styles.window;
+
   return (
     <div style={styles.overlay} onClick={handleOverlayClick}>
-      <div style={styles.window} onClick={handleWindowClick}>
+      {/* 料亭场景背景图：命中时自动加载（WebP/PNG 自适应），未提供图片文件时静默不渲染 */}
+      {ryotei && <BackgroundImage image="scene-ryotei" />}
+      <div style={windowStyle} onClick={handleWindowClick}>
         {/* 标题栏 */}
         <div style={styles.titleBar}>
           <span style={styles.severityBadge}>
