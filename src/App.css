@@ -68,6 +68,7 @@
   color: #e0e0e0;
   font-size: 18px;
   font-weight: 800;
+  font-family: var(--sit-font-serif);
   cursor: pointer;
   display: flex;
   align-items: center;

@@ -80,7 +80,7 @@ const MPProfilePanel: React.FC<{
             <span style={{ color: party.color, fontWeight: 800, fontSize: 20 }}>{personName(personality)}</span>
           </div>
           <div style={mpStyles.headerInfo}>
-            <div style={{ fontSize: 20, fontWeight: 800, color: '#e0e0e0' }}>{personality.personName}</div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: COLOR_GOLD, fontFamily: FONT_SERIF, letterSpacing: 1 }}>{personality.personName}</div>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 4 }}>
               <span style={{ ...mpStyles.partyTag, background: party.color }}>{party.abbreviation}</span>
               <span style={{ color: '#888', fontSize: 13 }}>{party.name}</span>
@@ -536,6 +536,9 @@ function statusColor(status: string): string {
 // ===== 议员面板样式 =====
 const FONT_SERIF = '"Noto Serif SC", "Source Han Serif SC", Georgia, serif';
 const COLOR_BORDER = 'rgba(192, 168, 130, 0.18)';
+// 与主界面/国会局势其它面板标题同色系，让弹窗视觉与整体一致
+const COLOR_GOLD = '#C0A882';
+const COLOR_GOLD_DIM = '#B8A47C';
 
 const mpStyles: Record<string, React.CSSProperties> = {
   overlay: {
@@ -546,6 +549,9 @@ const mpStyles: Record<string, React.CSSProperties> = {
     width: 440, maxHeight: '85vh', background: 'rgba(0,0,0,0.65)',
     borderRadius: 4, border: `1px solid ${COLOR_BORDER}`, overflowY: 'auto', padding: 20,
     backdropFilter: 'blur(12px)', boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+    // 弹窗通过 Portal 挂到 body，不继承 .sit-app 的字体；这里显式声明，
+    // 让姓名、标签、能力名、目标等所有子节点都使用与主界面一致的衬线字体
+    fontFamily: FONT_SERIF,
   },
   header: { display: 'flex', gap: 14, alignItems: 'center', marginBottom: 12 },
   avatar: {
@@ -567,7 +573,7 @@ const mpStyles: Record<string, React.CSSProperties> = {
     fontSize: 11, fontWeight: 600,
   },
   section: { marginBottom: 14 },
-  sectionTitle: { fontSize: 12, color: '#888', fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase' as const, marginBottom: 8, fontFamily: FONT_SERIF },
+  sectionTitle: { fontSize: 12, color: COLOR_GOLD_DIM, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase' as const, marginBottom: 8, fontFamily: FONT_SERIF },
   narrative: { fontSize: 13, color: '#bbb', lineHeight: 1.7, background: 'rgba(0,0,0,0.2)', padding: '8px 12px', borderRadius: 4, border: `1px solid ${COLOR_BORDER}` },
   detailGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 16px' },
   detailItem: { display: 'flex', gap: 6, fontSize: 12 },
@@ -587,9 +593,6 @@ const mpStyles: Record<string, React.CSSProperties> = {
 };
 
 // ===== 主样式 =====
-const COLOR_GOLD = '#C0A882';
-const COLOR_GOLD_DIM = '#B8A47C';
-
 const styles: Record<string, React.CSSProperties> = {
   container: {
     background: 'rgba(0,0,0,0.55)',

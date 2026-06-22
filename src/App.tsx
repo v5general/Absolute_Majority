@@ -9,6 +9,7 @@ import { CommitteeDashboard } from './components/CommitteeDashboard';
 import { GalgameDialog } from './components/GalgameDialog';
 import { CharacterCreation } from './components/CharacterCreation';
 import { PlayerProfilePanel } from './components/PlayerProfilePanel';
+import { PlayerMPProfilePanel } from './components/PlayerMPProfilePanel';
 import { PartyOverview } from './components/PartyOverview';
 import { MainHall } from './components/MainHall';
 import { MainMenu, saveGame, loadGame, hasSave, deleteSave } from './components/MainMenu';
@@ -157,7 +158,10 @@ const GameInner: React.FC = () => {
         <div className="sit-headerRight">
           <button
             className="sit-avatarBtn"
-            style={{ border: `2px solid ${state.parties.find(p => p.id === state.playerConfig?.partyId)?.color ?? '#5c8aff'}` }}
+            style={{
+              border: `2px solid ${state.parties.find(p => p.id === state.playerConfig?.partyId)?.color ?? '#5c8aff'}`,
+              color: state.parties.find(p => p.id === state.playerConfig?.partyId)?.color ?? '#5c8aff',
+            }}
             onClick={() => setShowProfile(true)}
             title="查看个人资料"
           >
@@ -167,7 +171,7 @@ const GameInner: React.FC = () => {
       </header>
 
       {showProfile && state.playerConfig && (
-        <PlayerProfilePanel
+        <PlayerMPProfilePanel
           playerConfig={state.playerConfig}
           party={state.parties.find(p => p.id === state.playerConfig?.partyId)}
           playerStress={state.playerStress ?? 15}
