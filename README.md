@@ -1,4 +1,4 @@
-> Languages: **English** | [简体中文](README.zh-CN.md)
+> Languages: **English** | [简体中文](README.zh-CN.md) | [日本語](README.ja.md)
 
 # Absolute Majority
 
@@ -16,8 +16,9 @@ Every event, line of dialogue, and choice is generated live by an LLM (any OpenA
 - **Seasonal congressional calendar** — The year is split into four sessions that change what is possible: a budget battle (Jan–Mar), a legislative push (Apr–Jun), a constituency recess (Jul–Sep), and an extraordinary session (Oct–Dec).
 - **Dual career tracks** — Climb the party ladder and the parliamentary ladder independently; becoming a minister ≠ becoming party leader.
 - **Government formation** — Post-election coalition negotiations, cabinet allocation, and prime-minister designation.
-- **Galgame-style dialog** — Political events unfold as visual-novel-style conversations with choices and consequences.
+- **Galgame-style dialog** — Political events unfold as visual-novel-style conversations with choices and consequences, rendered fullscreen with adaptive layouts on phone and desktop.
 - **Character creation** — Define your name, age, gender, party, personality traits, ideology, and background; your background shapes the events you encounter.
+- **Mobile-responsive** — Layout, typography, image format (WebP on mobile, PNG on desktop), and even LLM call concurrency adapt to the screen size. Refresh-safe URL routing keeps you on the same screen (Main Hall vs Situation) across reloads.
 
 ## The World
 
@@ -42,12 +43,13 @@ You are the 200th seat — the deciding vote that joins one of these parties and
 
 1. **Main menu** — Start a new game or continue a saved one.
 2. **Character creation** — Define your politician.
-3. **Main interface** — Switch between four dashboards (Cabinet / Committees / Political landscape / Relations), advance turns, and respond to AI-generated events through the dialog overlay.
+3. **Main Hall** — Your home base: advance turns, open popovers for party overview and your profile, and enter the Situation.
+4. **Situation** — Four dashboards (Cabinet / Committees / Political landscape / Relations) plus a live AI reasoning log. Reachable via `#/game/situation` so the view survives refresh.
 
 ## Tech Stack
 
 - **React 18** + **TypeScript**
-- **Vite 5** (build tooling)
+- **Vite 6** (build tooling)
 - No runtime dependencies beyond React — all game logic is hand-written.
 
 ## Getting Started
@@ -73,17 +75,20 @@ Then open the URL Vite prints (default `http://localhost:5173`).
 The game uses a two-layer architecture:
 
 - **Rule fallback (always on)** — Pure local logic keeps the game playable without any API.
-- **LLM enhancement (optional)** — Connect any OpenAI-compatible API (DeepSeek, OpenAI, Kimi, Qwen, etc.) for richer, more dynamic narrative and reasoning.
+- **LLM enhancement (optional)** — Connect any OpenAI-compatible API (DeepSeek, OpenAI, Kimi, Qwen, GLM, SiliconFlow, etc.) for richer, more dynamic narrative and reasoning.
 
-Configure the LLM in-game via the settings panel: provide a **Base URL**, an **API Key**, and a **Model name** (default model: `deepseek-chat`). The configuration is stored locally in your browser.
+Configure the LLM in-game via the settings panel: provide a **Base URL**, an **API Key**, and a **Model name**. The configuration is stored locally in your browser.
+
+Calls stream the response back via SSE so long generations stay alive on flaky mobile networks, and the engine automatically serializes agent calls on phones to respect stricter concurrent-connection limits. If your provider does not support streaming, the bridge transparently falls back to a single JSON response.
 
 ## Project Structure
 
 ```
 src/
 ├── App.tsx                # Routing, header, nav tabs, turn flow
-├── components/            # UI: MainMenu, CharacterCreation, GalgameDialog, dashboards
-├── engine/                # Game logic: agent, narrative, rules, election, committee, faction...
+├── App.css                # Situation view styles + responsive breakpoints
+├── components/            # UI: MainMenu, CharacterCreation, GalgameDialog, dashboards, popups
+├── engine/                # Game logic: agent, narrative, rules, election, committee, faction, llmBridge...
 ├── config/                # Rule constants, election/district/background config
 ├── data/                  # Initial state, parties, events, market, media, world config
 ├── hooks/                 # useGameState (central state management)
@@ -95,6 +100,7 @@ Key engines:
 - `agentEngine` — AI agents (the PM, party leaders, faction leaders, media, interest groups) perceive the world and generate intents.
 - `narrativeEngine` — Converts intents into playable events (title, dialog, choices, effects).
 - `rulesEngine` — The sole authority for modifying seats, support, funds, and relations; validates every AI intent.
+- `llmBridge` — OpenAI-compatible client with mobile-aware streaming, timeout, retry, and a `debugLLMConfig()` console helper.
 
 ## Status
 
