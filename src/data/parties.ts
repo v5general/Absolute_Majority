@@ -105,7 +105,7 @@ export const initialParties: Party[] = [
     ideology: 'left',
     leader: '浅野 直人',
     members: ['高田 一郎', '中岛 优子', '桥本 哲也', '西村 洋一'],
-    description: '列宁式无产阶级政党，党内实行民主集中制，主张劳动者权益、反对资本剥削、提倡减税减轻劳动人民负担。组织严密、纪律性强，支持者以中老年工人为主，年轻工人次之，整体支持率不高。',
+    description: '无产阶级政党，坚持科学社会主义道路，党内实行民主集中制，主张劳动者权益、反对资本剥削、提倡减税减轻劳动人民负担。组织严密、纪律性强，支持者以中老年工人为主，年轻工人次之，整体支持率不高。',
     baseSupport: 7,
     currentSupport: 7,
     projectedSeats: 14,

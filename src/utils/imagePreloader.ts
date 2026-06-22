@@ -62,6 +62,7 @@ export function preloadMenuScene(): Promise<PreloadResult[]> {
   return preloadImages([
     '/main_menu_bg.webp',      // 菜单背景（首屏必需）
     '/character-create-bg.webp', // 创建角色背景（下一场景）
-    '/game_bg.webp',            // 游戏背景（下一场景）
+    '/main_hall_bg.png',       // 事务所背景（角色创建后进入）
+    '/game_bg.webp',           // 局势界面背景（点击"局势"后进入）
   ]);
 }

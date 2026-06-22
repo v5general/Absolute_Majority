@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
+import React from 'react';
 import type { PlayerConfig, Party } from '../types';
 import { PERSONALITY_TRAIT_LABELS, POLITICAL_IDEOLOGY_LABELS, derivePlayerAbilities } from '../types';
+import './PlayerProfilePanel.css';
 
 interface PlayerProfilePanelProps {
   playerConfig: PlayerConfig;
@@ -9,21 +9,6 @@ interface PlayerProfilePanelProps {
   playerStress: number;
   playerHealth: number;
   onClose: () => void;
-}
-
-function traitBar(label: string, value: number, color: string): React.ReactNode {
-  const desc = value >= 80 ? '极高' : value >= 60 ? '高' : value >= 40 ? '中' : value >= 20 ? '低' : '极低';
-  const formattedValue = Math.round(value * 10) / 10;
-  return (
-    <div style={mpStyles.traitRow} key={label}>
-      <span style={mpStyles.traitLabel}>{label}</span>
-      <div style={mpStyles.traitBarWrap}>
-        <div style={{ ...mpStyles.traitBar, width: `${value}%`, background: color }} />
-      </div>
-      <span style={mpStyles.traitValue}>{formattedValue.toFixed(1)}</span>
-      <span style={mpStyles.traitDesc}>{desc}</span>
-    </div>
-  );
 }
 
 const getEconomicLabel = (v: number) => {
@@ -42,39 +27,7 @@ const getSocialLabel = (v: number) => {
   return '激进自由';
 };
 
-/** 可展开文本行：截断显示 + 右侧下拉箭头，点击弹出完整内容（portal 挂到 body） */
-const ExpandableText: React.FC<{
-  title: string;
-  text: string;
-  maxLen: number;
-}> = ({ title, text, maxLen }) => {
-  const [expanded, setExpanded] = useState(false);
-  if (!text) return null;
-  const truncated = text.length > maxLen ? text.slice(0, maxLen) + '...' : text;
-
-  return (
-    <>
-      <div style={mpStyles.expandableRow}>
-        <div style={mpStyles.narrative}>{truncated}</div>
-        <button style={mpStyles.expandArrowBtn} onClick={() => setExpanded(true)} title={`展开${title}`}>
-          {'▼'}
-        </button>
-      </div>
-      {expanded && createPortal(
-        <div style={mpStyles.popupOverlay} onClick={() => setExpanded(false)}>
-          <div style={mpStyles.popupBox} onClick={(e) => e.stopPropagation()}>
-            <div style={mpStyles.popupHeader}>
-              <span style={mpStyles.popupTitle}>{title}</span>
-              <button style={mpStyles.popupCloseBtn} onClick={() => setExpanded(false)}>✕</button>
-            </div>
-            <div style={mpStyles.popupBody}>{text}</div>
-          </div>
-        </div>,
-        document.body,
-      )}
-    </>
-  );
-};
+const TRAIT_COLORS = ['#4CAF50', '#2196F3', '#FF9800', '#9C27B0', '#F44336', '#00BCD4'];
 
 export const PlayerProfilePanel: React.FC<PlayerProfilePanelProps> = ({
   playerConfig,
@@ -86,217 +39,205 @@ export const PlayerProfilePanel: React.FC<PlayerProfilePanelProps> = ({
   const partyColor = party?.color ?? '#5c8aff';
   const abilities = derivePlayerAbilities(playerConfig);
 
+  const renderTraitBar = (label: string, value: number, color: string) => {
+    const desc = value >= 80 ? '极高' : value >= 60 ? '高' : value >= 40 ? '中' : value >= 20 ? '低' : '极低';
+    const formattedValue = Math.round(value * 10) / 10;
+    return (
+      <div className="playerProfile-traitRow" key={label}>
+        <span className="playerProfile-traitLabel">{label}</span>
+        <div className="playerProfile-traitBarWrap">
+          <div className="playerProfile-traitBar" style={{ width: `${value}%`, background: color }} />
+        </div>
+        <span className="playerProfile-traitValue">{formattedValue.toFixed(1)}</span>
+        <span className="playerProfile-traitDesc">{desc}</span>
+      </div>
+    );
+  };
+
   return (
-    <div style={mpStyles.overlay} onClick={onClose}>
-      <div style={mpStyles.panel} onClick={(e) => e.stopPropagation()}>
-        {/* 头部 */}
-        <div style={mpStyles.header}>
-          <div style={{ ...mpStyles.avatar, border: `2px solid ${partyColor}` }}>
-            <span style={{ color: partyColor, fontWeight: 800, fontSize: 20 }}>
-              {(playerConfig.lastName[0] ?? '') + (playerConfig.firstName[0] ?? '')}
-            </span>
-          </div>
-          <div style={mpStyles.headerInfo}>
-            <div style={{ fontSize: 20, fontWeight: 800, color: '#e0e0e0' }}>
-              {playerConfig.lastName} {playerConfig.firstName}
-            </div>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 4 }}>
-              {party && <span style={{ ...mpStyles.partyTag, background: partyColor }}>{party.abbreviation}</span>}
-              {party && <span style={{ color: '#888', fontSize: 13 }}>{party.name}</span>}
-              <span style={{ color: '#666', fontSize: 12 }}>·</span>
-              <span style={{ color: '#aaa', fontSize: 13 }}>{playerConfig.age}岁</span>
-              <span style={{ color: '#666', fontSize: 12 }}>·</span>
-              <span style={{ color: '#aaa', fontSize: 13 }}>{playerConfig.gender === 'male' ? '男' : '女'}</span>
-            </div>
-          </div>
-          <button style={mpStyles.closeBtn} onClick={onClose}>✕</button>
-        </div>
+    <>
+    <div className="playerProfile-overlay">
+      {/* 顶部占位条 */}
+      <div className="playerProfile-topRow" />
 
-        {/* 角色标签 */}
-        <div style={mpStyles.roleRow}>
-          <span style={mpStyles.roleBadge}>新晋议员</span>
-        </div>
+      {/* 标题区 */}
+      <div className="playerProfile-titleSection">
+        <div className="playerProfile-decorLine playerProfile-decorLineTop" />
+        <h1 className="playerProfile-title" data-text="个人档案">个人档案</h1>
+        <div className="playerProfile-subtitle">ABSOLUTE MAJORITY · PROFILE</div>
+        <div className="playerProfile-decorLine playerProfile-decorLineBottom" />
+      </div>
 
-        {/* 背景 */}
-        <div style={mpStyles.section}>
-          <div style={mpStyles.sectionTitle}>背景</div>
-          <ExpandableText title="背景" text={playerConfig.background} maxLen={30} />
-        </div>
-
-        {/* 履历（简化版） */}
-        <div style={mpStyles.section}>
-          <div style={mpStyles.sectionTitle}>履历</div>
-          <div style={mpStyles.detailGrid}>
-            <div style={mpStyles.detailItem}>
-              <span style={mpStyles.detailLabel}>年龄</span>
-              <span style={mpStyles.detailValue}>{playerConfig.age}岁</span>
-            </div>
-            <div style={mpStyles.detailItem}>
-              <span style={mpStyles.detailLabel}>性别</span>
-              <span style={mpStyles.detailValue}>{playerConfig.gender === 'male' ? '男' : '女'}</span>
-            </div>
-            <div style={mpStyles.detailItem}>
-              <span style={mpStyles.detailLabel}>党派</span>
-              <span style={mpStyles.detailValue}>{party?.name ?? '未知'}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* 政治意识形态 */}
-        <div style={mpStyles.section}>
-          <div style={mpStyles.sectionTitle}>政治意识形态</div>
-          <div style={mpStyles.detailGrid}>
-            <div style={mpStyles.detailItem}>
-              <span style={mpStyles.detailLabel}>主要意识形态</span>
-              <span style={mpStyles.detailValue}>
-                {POLITICAL_IDEOLOGY_LABELS[playerConfig.politicalIdeology] ?? playerConfig.politicalIdeology}
+      {/* 主内容区 */}
+      <div className="playerProfile-content">
+        {/* 头部卡片 */}
+        <div className="playerProfile-headerCard" style={{ ['--party-color' as string]: partyColor }}>
+          <div className="playerProfile-headerLeft">
+            <div
+              className="playerProfile-avatar"
+              style={{ borderColor: partyColor, boxShadow: `0 0 28px ${partyColor}55` }}
+            >
+              <span style={{ color: partyColor }}>
+                {(playerConfig.lastName[0] ?? '') + (playerConfig.firstName[0] ?? '')}
               </span>
             </div>
-            <div style={mpStyles.detailItem}>
-              <span style={mpStyles.detailLabel}>经济立场</span>
-              <span style={mpStyles.detailValue}>
-                {getEconomicLabel(playerConfig.economicAxis)}
-              </span>
-            </div>
-            <div style={mpStyles.detailItem}>
-              <span style={mpStyles.detailLabel}>社会立场</span>
-              <span style={mpStyles.detailValue}>
-                {getSocialLabel(playerConfig.socialAxis)}
-              </span>
+            <div className="playerProfile-headerInfo">
+              <div className="playerProfile-playerTitle">众议院议员 · MEMBER OF THE DIET</div>
+              <div className="playerProfile-playerName">
+                {playerConfig.lastName} {playerConfig.firstName}
+              </div>
+              <div className="playerProfile-metaRow">
+                {party && (
+                  <span className="playerProfile-partyChip" style={{ background: partyColor }}>
+                    {party.abbreviation}
+                  </span>
+                )}
+                {party && <span className="playerProfile-partyName">{party.name}</span>}
+                <span className="playerProfile-divider">·</span>
+                <span className="playerProfile-metaValue">{playerConfig.age}岁</span>
+                <span className="playerProfile-divider">·</span>
+                <span className="playerProfile-metaValue">{playerConfig.gender === 'male' ? '男' : '女'}</span>
+              </div>
+              <div className="playerProfile-roleRow">
+                <span className="playerProfile-roleBadge">新晋议员 · FRESHMAN</span>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* 性格特质 */}
-        {playerConfig.personalityTraits.length > 0 && (
-          <div style={mpStyles.section}>
-            <div style={mpStyles.sectionTitle}>性格特质</div>
-            <div style={mpStyles.goalList}>
-              {playerConfig.personalityTraits.map((t, i) => (
-                <span key={i} style={{
-                  ...mpStyles.goalTag,
-                  background: ['#4CAF50', '#2196F3', '#FF9800', '#9C27B0', '#F44336'][i % 5],
-                  color: 'white',
-                }}>
-                  {PERSONALITY_TRAIT_LABELS[t] ?? t}
-                </span>
-              ))}
+        {/* 两栏布局 */}
+        <div className="playerProfile-grid">
+          {/* 左栏 */}
+          <div className="playerProfile-col">
+            <div className="playerProfile-section">
+              <div className="playerProfile-sectionTitle">
+                <span className="playerProfile-sectionBullet" />
+                背景 · BACKGROUND
+              </div>
+              <div className="playerProfile-narrative">{playerConfig.background}</div>
+            </div>
+
+            <div className="playerProfile-section">
+              <div className="playerProfile-sectionTitle">
+                <span className="playerProfile-sectionBullet" />
+                履历 · CAREER
+              </div>
+              <div className="playerProfile-detailGrid">
+                <div className="playerProfile-detailItem">
+                  <span className="playerProfile-detailLabel">年龄</span>
+                  <span className="playerProfile-detailValue">{playerConfig.age} 岁</span>
+                </div>
+                <div className="playerProfile-detailItem">
+                  <span className="playerProfile-detailLabel">性别</span>
+                  <span className="playerProfile-detailValue">{playerConfig.gender === 'male' ? '男' : '女'}</span>
+                </div>
+                <div className="playerProfile-detailItem">
+                  <span className="playerProfile-detailLabel">所属党派</span>
+                  <span className="playerProfile-detailValue">{party?.name ?? '未知'}</span>
+                </div>
+                <div className="playerProfile-detailItem">
+                  <span className="playerProfile-detailLabel">党派简称</span>
+                  <span className="playerProfile-detailValue">{party?.abbreviation ?? '—'}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="playerProfile-section">
+              <div className="playerProfile-sectionTitle">
+                <span className="playerProfile-sectionBullet" />
+                政治意识形态 · IDEOLOGY
+              </div>
+              <div className="playerProfile-detailGrid">
+                <div className="playerProfile-detailItem">
+                  <span className="playerProfile-detailLabel">主要意识形态</span>
+                  <span className="playerProfile-detailValue">
+                    {POLITICAL_IDEOLOGY_LABELS[playerConfig.politicalIdeology] ?? playerConfig.politicalIdeology}
+                  </span>
+                </div>
+                <div className="playerProfile-detailItem">
+                  <span className="playerProfile-detailLabel">经济立场</span>
+                  <span className="playerProfile-detailValue">
+                    {getEconomicLabel(playerConfig.economicAxis)}（{playerConfig.economicAxis}）
+                  </span>
+                </div>
+                <div className="playerProfile-detailItem">
+                  <span className="playerProfile-detailLabel">社会立场</span>
+                  <span className="playerProfile-detailValue">
+                    {getSocialLabel(playerConfig.socialAxis)}（{playerConfig.socialAxis}）
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {playerConfig.personalityTraits.length > 0 && (
+              <div className="playerProfile-section">
+                <div className="playerProfile-sectionTitle">
+                  <span className="playerProfile-sectionBullet" />
+                  性格特质 · TRAITS
+                </div>
+                <div className="playerProfile-traitList">
+                  {playerConfig.personalityTraits.map((t, i) => (
+                    <span
+                      key={i}
+                      className="playerProfile-traitChip"
+                      style={{
+                        background: `${TRAIT_COLORS[i % TRAIT_COLORS.length]}33`,
+                        borderColor: TRAIT_COLORS[i % TRAIT_COLORS.length],
+                        color: TRAIT_COLORS[i % TRAIT_COLORS.length],
+                      }}
+                    >
+                      {PERSONALITY_TRAIT_LABELS[t] ?? t}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* 右栏 */}
+          <div className="playerProfile-col">
+            <div className="playerProfile-section">
+              <div className="playerProfile-sectionTitle">
+                <span className="playerProfile-sectionBullet" />
+                政治目标 · GOAL
+              </div>
+              <div className="playerProfile-narrative">{playerConfig.politicalGoal}</div>
+            </div>
+
+            <div className="playerProfile-section">
+              <div className="playerProfile-sectionTitle">
+                <span className="playerProfile-sectionBullet" />
+                政治能力 · ABILITIES
+              </div>
+              <div className="playerProfile-traitBlock">
+                {renderTraitBar('野心', abilities.ambition, partyColor)}
+                {renderTraitBar('忠诚', abilities.loyalty, '#66BB6A')}
+                {renderTraitBar('腐败倾向', abilities.corruption, '#EF5350')}
+                {renderTraitBar('知名度', abilities.popularity, '#42A5F5')}
+                {renderTraitBar('媒体技巧', abilities.mediaSkill, '#AB47BC')}
+                {renderTraitBar('谈判技巧', abilities.negotiationSkill, '#26A69A')}
+              </div>
+            </div>
+
+            <div className="playerProfile-section">
+              <div className="playerProfile-sectionTitle">
+                <span className="playerProfile-sectionBullet" />
+                当前状态 · STATUS
+              </div>
+              <div className="playerProfile-traitBlock">
+                {renderTraitBar('压力指数', playerStress, '#EF5350')}
+                {renderTraitBar('健康指数', playerHealth, '#66BB6A')}
+              </div>
             </div>
           </div>
-        )}
-
-        {/* 政治能力 */}
-        <div style={mpStyles.section}>
-          <div style={mpStyles.sectionTitle}>政治能力</div>
-          {traitBar('野心', abilities.ambition, partyColor)}
-          {traitBar('忠诚', abilities.loyalty, '#66BB6A')}
-          {traitBar('腐败倾向', abilities.corruption, '#EF5350')}
-          {traitBar('知名度', abilities.popularity, '#42A5F5')}
-          {traitBar('媒体技巧', abilities.mediaSkill, '#AB47BC')}
-          {traitBar('谈判技巧', abilities.negotiationSkill, '#26A69A')}
-        </div>
-
-        {/* 当前状态 */}
-        <div style={mpStyles.section}>
-          <div style={mpStyles.sectionTitle}>当前状态</div>
-          <div style={{ display: 'flex', gap: 16, flexDirection: 'column' }}>
-            {traitBar('压力指数', playerStress, '#EF5350')}
-            {traitBar('健康指数', playerHealth, '#66BB6A')}
-          </div>
-        </div>
-
-        {/* 政治目标 */}
-        <div style={mpStyles.section}>
-          <div style={mpStyles.sectionTitle}>政治目标</div>
-          <ExpandableText title="政治目标" text={playerConfig.politicalGoal} maxLen={15} />
         </div>
       </div>
     </div>
+    {/* 关闭按钮：作为 overlay 的兄弟节点（而非子节点），脱离 backdrop-filter 包含块，
+        确保 position:fixed 相对视口定位，不随内容滚动 */}
+    <button className="playerProfile-closeBtn" onClick={onClose} title="关闭" aria-label="关闭">
+      ✕
+    </button>
+    </>
   );
-};
-
-const FONT_SERIF = '"Noto Serif SC", "Source Han Serif SC", Georgia, serif';
-const COLOR_BORDER = 'rgba(192, 168, 130, 0.18)';
-
-const mpStyles: Record<string, React.CSSProperties> = {
-  overlay: {
-    position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex',
-    alignItems: 'center', justifyContent: 'center', zIndex: 2000, backdropFilter: 'blur(4px)',
-  },
-  panel: {
-    width: 440, maxHeight: '85vh', background: 'rgba(0,0,0,0.65)',
-    borderRadius: 4, border: `1px solid ${COLOR_BORDER}`, overflowY: 'auto', padding: 20,
-    backdropFilter: 'blur(12px)', boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-  },
-  header: { display: 'flex', gap: 14, alignItems: 'center', marginBottom: 12 },
-  avatar: {
-    width: 52, height: 52, borderRadius: '50%',
-    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-    background: 'rgba(0,0,0,0.3)',
-  },
-  headerInfo: { flex: 1, minWidth: 0 },
-  closeBtn: {
-    background: 'none', border: 'none', color: '#666', fontSize: 20, cursor: 'pointer',
-    padding: '4px 8px', borderRadius: 4,
-  },
-  partyTag: {
-    padding: '2px 10px', borderRadius: 3, color: '#fff', fontSize: 11, fontWeight: 700,
-  },
-  roleRow: { display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' },
-  roleBadge: {
-    padding: '2px 8px', borderRadius: 3, border: '1px solid #FFD600', color: '#FFD600',
-    fontSize: 11, fontWeight: 600,
-  },
-  section: { marginBottom: 14 },
-  sectionTitle: { fontSize: 12, color: '#888', fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase' as const, marginBottom: 8, fontFamily: FONT_SERIF },
-  narrative: { fontSize: 13, color: '#bbb', lineHeight: 1.7, background: 'rgba(0,0,0,0.2)', padding: '8px 12px', borderRadius: 4, border: `1px solid ${COLOR_BORDER}` },
-  detailGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 16px' },
-  detailItem: { display: 'flex', gap: 6, fontSize: 12 },
-  detailLabel: { color: '#666', fontWeight: 600, minWidth: 48 },
-  detailValue: { color: '#bbb' },
-  traitRow: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 },
-  traitLabel: { fontSize: 11, color: '#777', fontWeight: 600, width: 55, flexShrink: 0 },
-  traitBarWrap: { flex: 1, height: 6, background: 'rgba(0,0,0,0.3)', borderRadius: 3, overflow: 'hidden' },
-  traitBar: { height: '100%', borderRadius: 3, transition: 'width 0.3s' },
-  traitValue: { fontSize: 11, color: '#aaa', fontWeight: 700, width: 24, textAlign: 'right' as const, flexShrink: 0 },
-  traitDesc: { fontSize: 10, color: '#555', width: 24, flexShrink: 0 },
-  goalList: { display: 'flex', gap: 4, flexWrap: 'wrap' },
-  goalTag: {
-    padding: '3px 10px', borderRadius: 4, border: `1px solid ${COLOR_BORDER}`, background: 'rgba(0,0,0,0.3)',
-    color: '#8ab4ff', fontSize: 11,
-  },
-  // 可展开行
-  expandableRow: {
-    display: 'flex',
-    alignItems: 'flex-start',
-    gap: 6,
-  },
-  expandArrowBtn: {
-    background: 'none', border: 'none', color: '#5c8aff', fontSize: 11, cursor: 'pointer',
-    padding: '8px 4px 8px 0', flexShrink: 0, lineHeight: 1,
-  },
-  // 弹出窗口
-  popupOverlay: {
-    position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex',
-    alignItems: 'center', justifyContent: 'center', zIndex: 2100, backdropFilter: 'blur(2px)',
-  },
-  popupBox: {
-    width: 380, maxHeight: '60vh', background: 'rgba(0,0,0,0.65)',
-    borderRadius: 4, border: `1px solid ${COLOR_BORDER}`, overflow: 'hidden',
-    backdropFilter: 'blur(12px)', boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-  },
-  popupHeader: {
-    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-    padding: '12px 16px', borderBottom: `1px solid ${COLOR_BORDER}`,
-  },
-  popupTitle: {
-    fontSize: 14, fontWeight: 700, color: '#e0e0e0',
-  },
-  popupCloseBtn: {
-    background: 'none', border: 'none', color: '#666', fontSize: 16, cursor: 'pointer',
-    padding: '2px 6px', borderRadius: 4,
-  },
-  popupBody: {
-    padding: '16px', fontSize: 13, color: '#bbb', lineHeight: 1.8, overflowY: 'auto', maxHeight: '50vh',
-  },
 };

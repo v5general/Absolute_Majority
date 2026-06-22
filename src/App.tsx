@@ -8,6 +8,8 @@ import { CommitteeDashboard } from './components/CommitteeDashboard';
 import { GalgameDialog } from './components/GalgameDialog';
 import { CharacterCreation } from './components/CharacterCreation';
 import { PlayerProfilePanel } from './components/PlayerProfilePanel';
+import { PartyOverview } from './components/PartyOverview';
+import { MainHall } from './components/MainHall';
 import { MainMenu, saveGame, loadGame, hasSave, deleteSave } from './components/MainMenu';
 import { GAME_START_TIME } from './config/ruleConfig';
 import type { GameState } from './types';
@@ -34,36 +36,30 @@ const TABS = [
 const GameInner: React.FC = () => {
   const { state, setPlayerConfig, nextTurn, isThinking, thinkingLogs } = useGame();
   const [showProfile, setShowProfile] = useState(false);
+  const [showParties, setShowParties] = useState(false);
   const [activeTab, setActiveTab] = useState(0);
+  // 主界面（事务所）与局势界面之间切换；角色创建后默认进入事务所
+  const [view, setView] = useState<'hall' | 'situation'>('hall');
 
   // 任意界面切换时都滚动到顶部
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
-  }, [state.playerConfig, activeTab]);
+  }, [state.playerConfig, activeTab, view]);
 
-  // 玩家资料面板打开时锁定页面滚动
+  // 党派一览 / 个人档案 打开时，锁定底层事务所的滚动（但蒙层自身仍可滚动）
+  // 不能用 body{position:fixed}，那会丢失滚动位置；用 overflow:hidden 即可，
+  // 因为蒙层是 position:fixed 自带独立滚动容器，不受 body overflow 影响。
   useEffect(() => {
-    if (showProfile) {
-      const scrollY = window.scrollY;
-      document.body.style.position = 'fixed';
-      document.body.style.top = `-${scrollY}px`;
-      document.body.style.left = '0';
-      document.body.style.right = '0';
+    if (showProfile || showParties) {
+      const prev = document.body.style.overflow;
       document.body.style.overflow = 'hidden';
       return () => {
-        document.body.style.position = '';
-        document.body.style.top = '';
-        document.body.style.left = '';
-        document.body.style.right = '';
-        document.body.style.overflow = '';
-        window.scrollTo(0, scrollY);
+        document.body.style.overflow = prev;
       };
-    } else {
-      document.body.style.overflow = '';
     }
-  }, [showProfile]);
+  }, [showProfile, showParties]);
 
   // 执政联盟席位计算
   const gov = state.government;
@@ -79,6 +75,47 @@ const GameInner: React.FC = () => {
   // GameInner 仅在有玩家角色时渲染；类型守卫确保后续 playerConfig 访问安全
   if (!state.playerConfig) return null;
 
+  // ===== 主界面（事务所）=====
+  // 角色创建后默认进入；提供进入下一回合、打开局势/党派一览/个人档案的入口。
+  // 党派一览 / 个人档案 以"模糊蒙层"形式浮在事务所之上（事务所仍可见但被模糊化）。
+  if (view === 'hall') {
+    return (
+      <div style={styles.app}>
+        <MainHall
+          onOpenSituation={() => setView('situation')}
+          onOpenProfile={() => setShowProfile(true)}
+          onOpenParties={() => setShowParties(true)}
+          onNextTurn={nextTurn}
+          isThinking={isThinking}
+        />
+
+        {/* 党派一览：模糊蒙层覆盖在事务所之上 */}
+        {showParties && (
+          <PartyOverview onBack={() => setShowParties(false)} />
+        )}
+
+        {/* 个人档案：模糊蒙层覆盖在事务所之上 */}
+        {showProfile && state.playerConfig && (
+          <PlayerProfilePanel
+            playerConfig={state.playerConfig}
+            party={state.parties.find(p => p.id === state.playerConfig?.partyId)}
+            playerStress={state.playerStress ?? 15}
+            playerHealth={state.playerHealth ?? 85}
+            onClose={() => setShowProfile(false)}
+          />
+        )}
+
+        {/* 回合推演中：全屏加载占位 */}
+        {isThinking && <LoadingScreen label="AI 推演中" subLabel="COMPUTING" />}
+
+        {/* 事件对话弹窗（任何视图都需要存在以承接 AI 事件） */}
+        <GalgameDialog />
+      </div>
+    );
+  }
+
+  // ===== 局势界面（国会局势仪表盘）=====
+  // 不再有"下一回合"按钮（移到事务所），用"返回事务所"按钮取代。
   return (
     <div style={styles.app}>
       {/* 全屏背景图（WebP优先，PNG回退，响应式） */}
@@ -90,15 +127,11 @@ const GameInner: React.FC = () => {
       <header style={styles.headerRow}>
         <div style={styles.headerLeft}>
           <button
-            style={{
-              ...styles.nextTurnBtn,
-              ...(isThinking ? styles.nextTurnBtnDisabled : {}),
-              cursor: isThinking ? 'wait' : 'pointer',
-            }}
-            onClick={nextTurn}
-            disabled={isThinking}
+            style={styles.backBtn}
+            onClick={() => setView('hall')}
+            title="返回主界面"
           >
-            {isThinking ? 'AI 推演中...' : '下一回合'}
+            ◀ 返回事务所
           </button>
         </div>
         <div style={styles.headerCenter}>
@@ -289,10 +322,11 @@ function getHashRoute(): Route {
 
 // ===== 启动前资源预加载 =====
 
-/** 需要预加载的全屏背景图（启动界面、角色创建、主界面） */
+/** 需要预加载的全屏背景图（启动界面、角色创建、事务所、局势界面） */
 const PRELOAD_BACKGROUNDS = [
   '/main_menu_bg.png',
   '/character-create-bg.png',
+  '/main_hall_bg.png',
   '/game_bg.png',
 ];
 
@@ -618,6 +652,22 @@ const styles: Record<string, React.CSSProperties> = {
     boxShadow: 'none',
     opacity: 0.5,
     color: '#666',
+  },
+  // 返回事务所按钮（取代局势界面的"下一回合"按钮）
+  backBtn: {
+    padding: '10px 24px',
+    borderRadius: 2,
+    background: 'rgba(0,0,0,0.6)',
+    backdropFilter: 'blur(8px)',
+    border: `1px solid ${COLOR_BORDER_ACTIVE}`,
+    color: COLOR_GOLD,
+    fontSize: 14,
+    fontWeight: 700,
+    cursor: 'pointer',
+    letterSpacing: 2,
+    fontFamily: FONT_SERIF,
+    boxShadow: '0 0 16px rgba(192,168,130,0.1)',
+    transition: 'all 0.2s',
   },
   // 推演日志条
   logBar: {

@@ -1,0 +1,876 @@
+/* ===== 事务所主界面 (Firm / Main Hall) - P社风格 ===== */
+
+/* 字体引入（与全局一致） */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700;900&family=Cinzel:wght@400;700&display=swap');
+
+/* ===== 全屏容器 ===== */
+.mainHall-screen {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  background: #000;
+  font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", "SimSun", serif;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+/* ===== 背景图 - 渐入式缩小动画 ===== */
+.mainHall-bgImage {
+  transform: scale(1.12);
+  opacity: 0;
+  animation: mainHallBgZoomOut 1.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes mainHallBgZoomOut {
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* ===== 暗角渐变遮罩（叠加多层渐变营造剧场感） ===== */
+.mainHall-vignette {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse at center, rgba(0,0,0,0.18) 0%, rgba(0,0,0,0.42) 60%, rgba(0,0,0,0.72) 100%),
+    linear-gradient(180deg, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0) 25%, rgba(0,0,0,0) 75%, rgba(0,0,0,0.45) 100%);
+  pointer-events: none;
+}
+
+/* ===== 通用淡入上移动画 ===== */
+@keyframes mainHallFadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ============================================ */
+/* ===== 顶部行：左侧徽章 + 右上角玩家档案卡 ===== */
+/* ============================================ */
+.mainHall-topRow {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+  padding: 3.5vh 3vw 1vh;
+}
+
+.mainHall-playerCard {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 20px 12px 14px;
+  background: linear-gradient(135deg, rgba(5, 8, 14, 0.78), rgba(20, 18, 14, 0.88));
+  border: 1px solid rgba(192, 168, 130, 0.4);
+  border-radius: 3px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  cursor: pointer;
+  font-family: "Noto Serif SC", serif;
+  color: inherit;
+  text-align: left;
+  transition: transform 0.26s ease, border-color 0.26s ease, box-shadow 0.26s ease;
+  max-width: 420px;
+  flex-shrink: 0;
+  opacity: 0;
+  animation: mainHallFadeUp 0.9s ease-out forwards;
+  animation-delay: 0.35s;
+  overflow: hidden;
+  position: relative;
+}
+
+/* 卡片右侧装饰条（标注引线感） */
+.mainHall-playerCard::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2px;
+  height: 50%;
+  background: linear-gradient(180deg, transparent, rgba(232, 217, 176, 0.55), transparent);
+}
+
+.mainHall-playerCard:hover {
+  border-color: rgba(232, 217, 176, 0.7);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 0 20px rgba(192, 168, 130, 0.22);
+  transform: translateY(-1px);
+}
+
+.mainHall-playerAvatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 2px solid;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at center, rgba(0,0,0,0.5), rgba(0,0,0,0.3));
+  flex-shrink: 0;
+}
+
+.mainHall-playerAvatar span {
+  font-size: 24px;
+  font-weight: 800;
+  font-family: "Noto Serif SC", serif;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+}
+
+.mainHall-playerInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.mainHall-playerTitle {
+  font-size: 9px;
+  letter-spacing: 0.3em;
+  color: rgba(192, 168, 130, 0.5);
+  text-transform: uppercase;
+  font-family: "Cinzel", serif;
+  margin-bottom: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mainHall-playerName {
+  font-size: 19px;
+  font-weight: 800;
+  color: rgba(232, 217, 176, 0.95);
+  letter-spacing: 0.12em;
+  margin-bottom: 5px;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+  font-family: "Noto Serif SC", serif;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mainHall-playerParty {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  flex-wrap: wrap;
+}
+
+.mainHall-partyDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 6px currentColor;
+}
+
+.mainHall-partyName {
+  font-weight: 700;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+}
+
+.mainHall-partyAbbr {
+  font-size: 11px;
+  color: rgba(192, 168, 130, 0.55);
+}
+
+.mainHall-statusTag {
+  margin-left: 4px;
+  padding: 1px 8px;
+  border-radius: 2px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  font-family: "Noto Serif SC", serif;
+}
+
+.mainHall-statusRuling {
+  background: rgba(46, 125, 50, 0.4);
+  border: 1px solid rgba(102, 187, 106, 0.6);
+  color: rgba(165, 214, 167, 1);
+}
+
+.mainHall-statusOpposition {
+  background: rgba(198, 40, 40, 0.4);
+  border: 1px solid rgba(239, 83, 80, 0.55);
+  color: rgba(239, 154, 154, 1);
+}
+
+/* ============================================ */
+/* ===== 左上角：状态徽章组                  ===== */
+/* ============================================ */
+.mainHall-badges {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  opacity: 0;
+  animation: mainHallFadeUp 0.9s ease-out forwards;
+  animation-delay: 0.55s;
+  flex: 1;
+  min-width: 0;
+}
+
+.mainHall-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 20px;
+  background: linear-gradient(135deg, rgba(5, 8, 14, 0.7), rgba(20, 18, 14, 0.82));
+  border: 1px solid rgba(192, 168, 130, 0.28);
+  border-radius: 3px;
+  min-width: 116px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.mainHall-badgeSession {
+  border-color: rgba(192, 168, 130, 0.48);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 0 16px rgba(192, 168, 130, 0.12);
+}
+
+.mainHall-badgeLabel {
+  font-size: 9px;
+  letter-spacing: 0.4em;
+  color: rgba(192, 168, 130, 0.5);
+  font-family: "Cinzel", serif;
+  text-transform: uppercase;
+  margin-bottom: 3px;
+}
+
+.mainHall-badgeValue {
+  font-size: 14px;
+  font-weight: 700;
+  color: rgba(212, 197, 160, 0.95);
+  letter-spacing: 0.1em;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+}
+
+.mainHall-badgeSub {
+  font-size: 10px;
+  color: rgba(192, 168, 130, 0.55);
+  margin-top: 3px;
+  letter-spacing: 0.2em;
+}
+
+/* ============================================ */
+/* ===== 居中标题区                          ===== */
+/* ============================================ */
+.mainHall-titleSection {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2vh 4vw 1vh;
+  opacity: 0;
+  animation: mainHallFadeUp 0.9s ease-out forwards;
+  animation-delay: 0.3s;
+}
+
+.mainHall-decorLine {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(192, 168, 130, 0.6), transparent);
+  box-shadow: 0 0 8px rgba(192, 168, 130, 0.3);
+}
+
+.mainHall-decorLineTop {
+  width: 320px;
+  margin-bottom: 14px;
+}
+
+.mainHall-decorLineBottom {
+  width: 220px;
+  margin-top: 14px;
+  background: linear-gradient(90deg, transparent, rgba(192, 168, 130, 0.4), transparent);
+}
+
+.mainHall-title {
+  margin: 0;
+  font-size: clamp(40px, 5.6vw, 64px);
+  font-weight: 900;
+  letter-spacing: 0.4em;
+  text-indent: 0.4em;
+  font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", serif;
+  background: linear-gradient(180deg, #E8D9B0 0%, #D4C5A0 30%, #A08B6B 70%, #8B7355 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1.1;
+  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.8);
+  filter: drop-shadow(0 0 20px rgba(192, 168, 130, 0.2));
+  position: relative;
+}
+
+.mainHall-title::after {
+  content: attr(data-text);
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: -1;
+  background: linear-gradient(180deg, #E8D9B0, #A08B6B);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: blur(8px);
+  opacity: 0.35;
+}
+
+.mainHall-subtitle {
+  font-size: clamp(10px, 1.1vw, 13px);
+  letter-spacing: 0.5em;
+  color: rgba(192, 168, 130, 0.5);
+  margin-top: 14px;
+  font-family: "Cinzel", serif;
+  text-transform: uppercase;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+}
+
+/* ============================================ */
+/* ===== 加点延伸式标注（两侧分布）          ===== */
+/* ============================================ */
+.mainHall-annotations {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 32px;
+  padding: 4vh 4vw;
+  max-width: 1280px;
+  margin: 0 auto;
+  opacity: 0;
+  animation: mainHallFadeUp 1s ease-out forwards;
+  animation-delay: 0.85s;
+}
+
+.mainHall-annotationCol {
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+  flex: 1;
+  max-width: 380px;
+}
+
+.mainHall-annotationLeft  { align-items: flex-start; }
+.mainHall-annotationRight { align-items: flex-end; }
+
+.mainHall-annotation {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+}
+
+/* 左侧标注：[标签] ——线—— ● */
+.mainHall-annotationLeft .mainHall-annotation {
+  flex-direction: row;
+}
+
+/* 右侧标注：● ——线—— [标签] */
+.mainHall-annotationRight .mainHall-annotation {
+  flex-direction: row-reverse;
+}
+
+/* ===== 标注圆点（视觉锚） ===== */
+.mainHall-annotationDot {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: rgba(232, 217, 176, 0.95);
+  border: 1px solid rgba(232, 217, 176, 0.9);
+  box-shadow:
+    0 0 12px rgba(232, 217, 176, 0.7),
+    inset 0 0 4px rgba(255, 250, 230, 0.6);
+  flex-shrink: 0;
+  position: relative;
+}
+
+/* 圆点呼吸光环 */
+.mainHall-annotationDot::before {
+  content: '';
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
+  border: 1px solid rgba(192, 168, 130, 0.3);
+  animation: mainHallDotPulse 2.6s ease-in-out infinite;
+}
+
+/* 圆点外延小线（标志延伸起点） */
+.mainHall-annotationDot::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 8px;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(232, 217, 176, 0.7), transparent);
+  transform: translateY(-50%);
+}
+
+.mainHall-annotationLeft .mainHall-annotationDot::after {
+  right: -8px;
+  background: linear-gradient(270deg, rgba(232, 217, 176, 0.7), transparent);
+}
+
+.mainHall-annotationRight .mainHall-annotationDot::after {
+  left: -8px;
+  background: linear-gradient(90deg, rgba(232, 217, 176, 0.7), transparent);
+}
+
+@keyframes mainHallDotPulse {
+  0%, 100% { opacity: 0.25; transform: scale(1); }
+  50%      { opacity: 0.75; transform: scale(1.35); }
+}
+
+/* ===== 引线 ===== */
+.mainHall-annotationLine {
+  width: 60px;
+  height: 1px;
+  flex-shrink: 0;
+  background: linear-gradient(90deg, rgba(192, 168, 130, 0.7), rgba(192, 168, 130, 0.25));
+  position: relative;
+}
+
+/* 引线中点小圆点（标注刻度感） */
+.mainHall-annotationLine::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: rgba(192, 168, 130, 0.5);
+}
+
+.mainHall-annotationLeft .mainHall-annotationLine {
+  background: linear-gradient(90deg, rgba(192, 168, 130, 0.25), rgba(192, 168, 130, 0.7));
+}
+
+.mainHall-annotationRight .mainHall-annotationLine {
+  background: linear-gradient(90deg, rgba(192, 168, 130, 0.7), rgba(192, 168, 130, 0.25));
+}
+
+/* ===== 标注按钮（动作型标注） ===== */
+.mainHall-annotationBtn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 22px;
+  background: linear-gradient(135deg, rgba(5, 8, 14, 0.72), rgba(20, 18, 14, 0.84));
+  border: 1px solid rgba(192, 168, 130, 0.32);
+  border-radius: 3px;
+  color: rgba(212, 197, 160, 0.88);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.26s ease, border-color 0.26s ease, background 0.26s ease, box-shadow 0.26s ease;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  font-family: "Noto Serif SC", serif;
+}
+
+.mainHall-annotationBtn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(192, 168, 130, 0.12),
+    rgba(212, 197, 160, 0.22),
+    transparent
+  );
+  transform: skewX(-20deg);
+  transition: left 0.5s ease;
+  pointer-events: none;
+}
+
+.mainHall-annotationBtn:hover::before {
+  left: 150%;
+  transition: left 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.mainHall-annotationBtn:hover {
+  border-color: rgba(232, 217, 176, 0.7);
+  background: linear-gradient(135deg, rgba(5, 8, 14, 0.82), rgba(20, 18, 14, 0.92));
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 0 18px rgba(192, 168, 130, 0.2);
+  transform: translateY(-1px);
+}
+
+.mainHall-annotationBtn:active {
+  transform: translateY(0);
+}
+
+.mainHall-annotationIcon {
+  font-size: 12px;
+  color: rgba(232, 217, 176, 0.7);
+}
+
+.mainHall-annotationText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+}
+
+.mainHall-annotationLabel {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  text-indent: 0.3em;
+}
+
+.mainHall-annotationSub {
+  font-size: 9px;
+  letter-spacing: 0.4em;
+  color: rgba(192, 168, 130, 0.4);
+  font-family: "Cinzel", serif;
+  text-transform: uppercase;
+}
+
+/* ===== 标注信息盒（数据型标注） ===== */
+.mainHall-annotationStatBox {
+  padding: 10px 18px;
+  background: linear-gradient(135deg, rgba(5, 8, 14, 0.7), rgba(20, 18, 14, 0.8));
+  border: 1px solid rgba(192, 168, 130, 0.25);
+  border-radius: 3px;
+  backdrop-filter: blur(6px);
+  min-width: 220px;
+  text-align: left;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.mainHall-annotationStatBoxRight {
+  text-align: right;
+}
+
+.mainHall-annotationStatLabel {
+  font-size: 9px;
+  letter-spacing: 0.3em;
+  color: rgba(192, 168, 130, 0.55);
+  margin-bottom: 5px;
+  font-family: "Cinzel", serif;
+  text-transform: uppercase;
+}
+
+.mainHall-annotationStatValue {
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1;
+  margin-bottom: 5px;
+  font-family: "Noto Serif SC", serif;
+  letter-spacing: 0.03em;
+}
+
+.mainHall-statDenom {
+  font-size: 12px;
+  color: rgba(192, 168, 130, 0.5);
+  font-weight: 600;
+  margin-left: 3px;
+}
+
+.mainHall-statGold   { color: rgba(255, 214, 0, 1);   text-shadow: 0 0 14px rgba(255, 214, 0, 0.4); }
+.mainHall-statGreen  { color: rgba(102, 187, 106, 1); text-shadow: 0 0 14px rgba(102, 187, 106, 0.4); }
+.mainHall-statOrange { color: rgba(255, 167, 38, 1);  text-shadow: 0 0 14px rgba(255, 167, 38, 0.4); }
+.mainHall-statRed    { color: rgba(239, 83, 80, 1);   text-shadow: 0 0 14px rgba(239, 83, 80, 0.4); }
+
+.mainHall-annotationStatHint {
+  font-size: 10px;
+  color: rgba(192, 168, 130, 0.55);
+  margin-top: 3px;
+  letter-spacing: 0.05em;
+}
+
+.mainHall-statBar {
+  height: 3px;
+  background: rgba(0,0,0,0.4);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 5px;
+}
+
+.mainHall-statBarFill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.5s ease-out;
+  opacity: 0.9;
+}
+
+/* ============================================ */
+/* ===== 中央主操作：推进一回合              ===== */
+/* ============================================ */
+.mainHall-nextTurnWrap {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  justify-content: center;
+  padding: 2vh 4vw 4vh;
+  opacity: 0;
+  animation: mainHallNextTurnAppear 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation-delay: 1.1s;
+}
+
+.mainHall-nextTurnBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 18px 64px;
+  background: linear-gradient(135deg, rgba(28, 20, 12, 0.88), rgba(48, 38, 24, 0.94));
+  border: 1px solid rgba(212, 197, 160, 0.6);
+  border-radius: 3px;
+  color: rgba(232, 217, 176, 0.95);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  font-family: "Noto Serif SC", serif;
+  transition: all 0.3s ease;
+  box-shadow:
+    0 6px 24px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 0 28px rgba(192, 168, 130, 0.2);
+}
+
+@keyframes mainHallNextTurnAppear {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.mainHall-nextTurnBtn::after {
+  content: '';
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2px;
+  height: 40%;
+  background: linear-gradient(180deg, transparent, rgba(212, 197, 160, 0.5), transparent);
+  opacity: 0.6;
+}
+
+.mainHall-nextTurnBtn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(212, 197, 160, 0.22),
+    rgba(232, 217, 176, 0.38),
+    rgba(212, 197, 160, 0.22),
+    transparent
+  );
+  transform: skewX(-20deg);
+  transition: left 0.6s ease;
+  pointer-events: none;
+}
+
+.mainHall-nextTurnBtn:hover::before {
+  left: 150%;
+  transition: left 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.mainHall-nextTurnBtn:hover:not(:disabled) {
+  border-color: rgba(232, 217, 176, 0.9);
+  background: linear-gradient(135deg, rgba(40, 30, 18, 0.92), rgba(60, 48, 30, 0.96));
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.7),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 0 40px rgba(192, 168, 130, 0.35);
+  transform: translateY(-2px);
+}
+
+.mainHall-nextTurnBtn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.mainHall-nextTurnBtnDisabled {
+  opacity: 0.5;
+  cursor: wait;
+  border-color: rgba(192, 168, 130, 0.25);
+}
+
+.mainHall-nextTurnArrow {
+  font-size: 13px;
+  color: rgba(232, 217, 176, 0.85);
+  letter-spacing: -0.1em;
+}
+
+.mainHall-nextTurnLabel {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 0.4em;
+  text-indent: 0.4em;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+}
+
+.mainHall-nextTurnSub {
+  font-size: 10px;
+  letter-spacing: 0.5em;
+  color: rgba(192, 168, 130, 0.55);
+  font-family: "Cinzel", serif;
+  text-transform: uppercase;
+  margin-left: 4px;
+}
+
+/* ============================================ */
+/* ===== 底部会期信息                        ===== */
+/* ============================================ */
+.mainHall-sessionInfo {
+  position: relative;
+  z-index: 2;
+  max-width: 880px;
+  margin: 0 auto 5vh;
+  padding: 14px 24px;
+  background: rgba(0,0,0,0.55);
+  border: 1px solid rgba(192, 168, 130, 0.22);
+  border-radius: 3px;
+  backdrop-filter: blur(6px);
+  opacity: 0;
+  animation: mainHallFadeUp 1s ease-out forwards;
+  animation-delay: 1.3s;
+}
+
+.mainHall-sessionInfo::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(180deg, transparent, rgba(192, 168, 130, 0.5), transparent);
+}
+
+.mainHall-sessionHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.mainHall-sessionBullet {
+  width: 6px;
+  height: 6px;
+  background: rgba(192, 168, 130, 0.6);
+  border-radius: 50%;
+  box-shadow: 0 0 6px rgba(192, 168, 130, 0.4);
+}
+
+.mainHall-sessionTitle {
+  font-size: 11px;
+  letter-spacing: 0.4em;
+  color: rgba(192, 168, 130, 0.6);
+  font-family: "Cinzel", serif;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.mainHall-sessionText {
+  font-size: 13px;
+  color: rgba(212, 197, 160, 0.78);
+  line-height: 1.75;
+  font-family: "Noto Serif SC", serif;
+  letter-spacing: 0.04em;
+}
+
+/* ============================================ */
+/* ===== 响应式                              ===== */
+/* ============================================ */
+@media (max-width: 1024px) {
+  .mainHall-playerCard {
+    max-width: 340px;
+  }
+  .mainHall-playerTitle { font-size: 8px; }
+  .mainHall-playerName { font-size: 16px; }
+}
+
+@media (max-width: 900px) {
+  /* 顶部行堆叠：徽章在上，玩家卡在下（右对齐） */
+  .mainHall-topRow {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  .mainHall-playerCard {
+    max-width: none;
+    align-self: flex-end;
+    width: auto;
+  }
+  .mainHall-playerAvatar {
+    width: 44px;
+    height: 44px;
+  }
+  .mainHall-playerAvatar span { font-size: 20px; }
+
+  .mainHall-annotations {
+    flex-direction: column;
+    gap: 22px;
+  }
+  .mainHall-annotationCol {
+    max-width: 100%;
+    width: 100%;
+  }
+  .mainHall-annotationLeft,
+  .mainHall-annotationRight {
+    align-items: stretch;
+  }
+  .mainHall-annotationStatBox {
+    min-width: 0;
+    flex: 1;
+  }
+  .mainHall-annotationStatBoxRight {
+    text-align: left;
+  }
+}
+
+@media (max-width: 600px) {
+  .mainHall-topRow {
+    padding: 2.5vh 4vw 1vh;
+  }
+
+  .mainHall-playerCard {
+    width: 100%;
+    align-self: stretch;
+    padding: 10px 14px;
+  }
+
+  .mainHall-badges {
+    gap: 8px;
+  }
+  .mainHall-badge {
+    min-width: 0;
+    flex: 1;
+    padding: 6px 10px;
+  }
+  .mainHall-badgeValue { font-size: 12px; }
+  .mainHall-badgeLabel { font-size: 8px; }
+  .mainHall-badgeSub { font-size: 9px; }
+
+  .mainHall-decorLineTop { width: 220px; }
+  .mainHall-decorLineBottom { width: 160px; }
+
+  .mainHall-annotationLine { width: 32px; }
+
+  .mainHall-annotationBtn {
+    padding: 10px 16px;
+  }
+  .mainHall-annotationLabel { font-size: 13px; }
+
+  .mainHall-nextTurnBtn {
+    padding: 14px 28px;
+    width: 100%;
+  }
+  .mainHall-nextTurnLabel { font-size: 18px; }
+
+  .mainHall-sessionInfo {
+    margin: 0 12px 4vh;
+    padding: 12px 18px;
+  }
+}
