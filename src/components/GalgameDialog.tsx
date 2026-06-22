@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useGame } from '../hooks/useGameState';
-import type { Party } from '../types';
+import type { Party, ChoiceEffect } from '../types';
 
 /**
  * Galgame 风格的事件弹窗
@@ -10,7 +10,7 @@ import type { Party } from '../types';
  * - AI 对自由文本的回应实时展示
  */
 export const GalgameDialog: React.FC = () => {
-  const { state, activeEvent, advanceDialog, finishTyping, makeChoice, submitFreeText, dismissEvent } = useGame();
+  const { state, activeEvent, advanceDialog, finishTyping, makeChoice, submitFreeText, continueConversation, dismissEvent } = useGame();
 
   const [displayedText, setDisplayedText] = useState('');
   const [showConsequence, setShowConsequence] = useState(false);
@@ -285,11 +285,7 @@ export const GalgameDialog: React.FC = () => {
                 style={styles.continueBtn}
                 onClick={() => {
                   setFreeTextInput('');
-                  setActiveEvent((prev) => ({
-                    ...prev!,
-                    showChoices: false,
-                    freeTextResponse: undefined,
-                  }));
+                  continueConversation();
                 }}
               >
                 继续对话
@@ -336,7 +332,6 @@ export const GalgameDialog: React.FC = () => {
           || (activeEvent.freeTextResponse && (
             <EffectSummary
               choice={{
-                id: 'free_text',
                 text: '',
                 effects: activeEvent.freeTextResponse.effects,
               }}
@@ -361,7 +356,7 @@ const Portrait: React.FC<{ party: Party }> = ({ party }) => (
 );
 
 /** 效果展示面板 */
-const EffectSummary: React.FC<{ choice: { text: string; effects: Record<string, unknown> }; parties: Party[] }> = ({ choice, parties }) => {
+const EffectSummary: React.FC<{ choice: { text: string; effects: ChoiceEffect }; parties: Party[] }> = ({ choice, parties }) => {
   const partyMap = new Map(parties.map((p) => [p.id, p]));
   const effects = choice.effects as {
     supportDelta?: Record<string, number>;

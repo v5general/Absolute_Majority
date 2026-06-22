@@ -30,3 +30,11 @@
   }
 }
 
+/*
+ * 启动加载界面：金色文字呼吸闪烁
+ */
+@keyframes loadingPulse {
+  0%, 100% { opacity: 0.45; }
+  50%      { opacity: 1; }
+}
+

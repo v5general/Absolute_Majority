@@ -468,7 +468,7 @@ export function recruitToCoalition(
 
   // 先收集所有不被替换的部长名字
   const survivingMinisters = government.ministers.filter(
-    (m) => !safePosts.includes(m.post),
+    (m) => !(safePosts as readonly CabinetPost[]).includes(m.post),
   );
   for (const m of survivingMinisters) {
     usedNames.add(m.personName);

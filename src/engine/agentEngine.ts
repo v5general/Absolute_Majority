@@ -140,9 +140,11 @@ interface LLMIntentOutput {
   }>;
 }
 
-/** 随机选取推文模板池中的一条 */
-function pickReasoning(pool: string[]): string {
-  return pool[Math.floor(Math.random() * pool.length)];
+/** 随机选取推理模板池中的一条，返回可带入参数调用的字符串生成函数 */
+function pickReasoning<TArgs extends unknown[]>(
+  pool: ((...args: TArgs) => string)[],
+): (...args: TArgs) => string {
+  return (...args: TArgs) => pool[Math.floor(Math.random() * pool.length)](...args);
 }
 
 // ===== 推理文本多样性池 =====

@@ -218,7 +218,7 @@ export function generatePersonality(
   let negotiationSkill: number;
   let stress: number;
   let health: number;
-  let hiddenGoals: HiddenGoal[];
+  let hiddenGoals: HiddenGoal[] = [];
 
   // === 生成性格特质 (1-3个) ===
   const personalityTraits = preset
@@ -351,7 +351,7 @@ function generatePersonalityTraits(
   if (isLeader) {
     likelyTraits = ['charismatic', 'decisive', 'ambitious_trait', 'aggressive', 'diplomatic', 'cautious', 'stubborn', 'cynical'];
   } else if (isMinister) {
-    likelyTraits = ['pragmatic', 'diplomatic', 'analytical', 'cautious', 'diligent', 'corrupt', 'deceitful'];
+    likelyTraits = ['pragmatic', 'diplomatic', 'analytical', 'cautious', 'diligent', 'greedy', 'deceitful'];
   } else if (isCommitteeChairman) {
     likelyTraits = ['moderate', 'traditional', 'progressive', 'analytical', 'diligent'];
   } else {

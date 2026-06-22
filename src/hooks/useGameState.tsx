@@ -116,6 +116,9 @@ interface GameContextValue {
   /** 提交自由文本（AI 对话） */
   submitFreeText: (text: string) => void;
 
+  /** 继续自由文本对话：清除上一轮 AI 回应，回到输入态 */
+  continueConversation: () => void;
+
   /** 关闭事件弹窗，处理下一个事件 */
   dismissEvent: () => void;
 
@@ -140,6 +143,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode; savedState?: Ga
   const [isThinking, setIsThinking] = useState(false);
   const [thinkingLogs, setThinkingLogs] = useState<ThinkingLogEntry[]>([]);
   const isRunningRef = useRef(false);
+  // 始终持有最新 activeEvent 的 ref，供 useCallback 内的异步流程安全读取
+  const activeEventRef = useRef<ActiveEvent | null>(null);
+  useEffect(() => { activeEventRef.current = activeEvent; }, [activeEvent]);
 
   // 自动保存：state 变化时写入 localStorage
   useEffect(() => {
@@ -436,9 +442,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode; savedState?: Ga
     // 异步调用 LLM
     (async () => {
       try {
-        // 从 activeEvent 快照获取配置
-        let currentEvent: ActiveEvent | null = null;
-        setActiveEvent((prev) => { currentEvent = prev; return prev; });
+        // 从 activeEvent ref 读取最新事件快照
+        const currentEvent = activeEventRef.current;
 
         if (!currentEvent?.event.freeText) return;
 
@@ -457,8 +462,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode; savedState?: Ga
           .map(pid => state.parties.find(p => p.id === pid)?.abbreviation)
           .join('、') || '无';
         const seatsStr = state.parties.map(p => p.abbreviation + p.projectedSeats + '席').join('、');
-        const playerParty = state.playerConfig
-          ? state.parties.find(p => p.id === state.playerConfig.partyId)
+        const playerConfig = state.playerConfig;
+        const playerParty = playerConfig
+          ? state.parties.find(p => p.id === playerConfig.partyId)
           : null;
         const speakerStr = freeTextConfig.speakerId
           ? (state.parties.find(p => p.id === freeTextConfig.speakerId)?.name || '某党')
@@ -567,13 +573,13 @@ ${currentEvent.conversationHistory?.map(h => `你：${h.playerInput}\n对方：$
 
           // 累积新的 effects
           Object.entries(result.effects.supportDelta || {}).forEach(([party, delta]) => {
-            currentEffects.supportDelta![party] = (currentEffects.supportDelta![party] || 0) + delta;
+            currentEffects.supportDelta![party] = (currentEffects.supportDelta![party] || 0) + Number(delta);
           });
           Object.entries(result.effects.fundsDelta || {}).forEach(([party, delta]) => {
-            currentEffects.fundsDelta![party] = (currentEffects.fundsDelta![party] || 0) + delta;
+            currentEffects.fundsDelta![party] = (currentEffects.fundsDelta![party] || 0) + Number(delta);
           });
           Object.entries(result.effects.relationDelta || {}).forEach(([relation, delta]) => {
-            currentEffects.relationDelta![relation] = (currentEffects.relationDelta![relation] || 0) + delta;
+            currentEffects.relationDelta![relation] = (currentEffects.relationDelta![relation] || 0) + Number(delta);
           });
           if (result.effects.metricsDelta) {
             currentEffects.metricsDelta = {
@@ -667,6 +673,14 @@ ${currentEvent.conversationHistory?.map(h => `你：${h.playerInput}\n对方：$
     });
   }, [popNextAIEvent]);
 
+  /** 继续自由文本对话：清除上一轮 AI 回应与选项，回到可输入态 */
+  const continueConversation = useCallback(() => {
+    setActiveEvent((prev) => {
+      if (!prev) return prev;
+      return { ...prev, showChoices: false, freeTextResponse: undefined, isWaitingFreeText: false };
+    });
+  }, []);
+
   return (
     <GameContext.Provider
       value={{
@@ -680,6 +694,7 @@ ${currentEvent.conversationHistory?.map(h => `你：${h.playerInput}\n对方：$
         finishTyping,
         makeChoice,
         submitFreeText,
+        continueConversation,
         dismissEvent,
         nextTurn,
       }}

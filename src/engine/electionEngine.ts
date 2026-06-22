@@ -85,7 +85,7 @@ export function runElectionV2(
   for (const p of parties) seatTotals[p.id] = 0;
 
   // 确定性随机：固定种子保证每次初始化结果相同
-  let _seed = ELECTION_CONFIG.electionSeed;
+  let _seed: number = ELECTION_CONFIG.electionSeed;
   const deterministicRandom = () => {
     _seed = (_seed * 1103515245 + 12345) & 0x7fffffff;
     return _seed / 0x7fffffff;
@@ -184,7 +184,7 @@ export function generateCandidatePopularity(
   const result: Record<string, number> = {};
   for (const [key, mp] of Object.entries(mpPersonalities)) {
     if (mp.isLeader) {
-      result[mp.personName] = mp.popularity * 0.6 + mp.mediaSkill * 0.3 + mp.charisma * 0.1;
+      result[mp.personName] = mp.popularity * 0.6 + mp.mediaSkill * 0.3 + mp.negotiationSkill * 0.1;
     }
   }
   return result;

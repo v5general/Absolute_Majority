@@ -35,6 +35,8 @@ export type {
   DialogSegment,
   PoliticalEvent,
   ActiveEvent,
+  FreeTextResponse,
+  ThinkingLogEntry,
 } from './event';
 
 export type {

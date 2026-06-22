@@ -10,7 +10,7 @@ import { CharacterCreation } from './components/CharacterCreation';
 import { PlayerProfilePanel } from './components/PlayerProfilePanel';
 import { MainMenu, saveGame, loadGame, hasSave, deleteSave } from './components/MainMenu';
 import { GAME_START_TIME } from './config/ruleConfig';
-import type { ThinkingLogEntry, GameState } from './types';
+import type { GameState } from './types';
 
 /** 根据回合数计算月份标签（回合1=大选后第一个月） */
 const MONTH_NAMES = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
@@ -75,6 +75,9 @@ const GameInner: React.FC = () => {
     : 0;
   const hasSupermajority = coalitionSeats >= 134;
   const isMinority = gov?.isMinority ?? false;
+
+  // GameInner 仅在有玩家角色时渲染；类型守卫确保后续 playerConfig 访问安全
+  if (!state.playerConfig) return null;
 
   return (
     <div style={styles.app}>
@@ -282,8 +285,71 @@ function getHashRoute(): Route {
   return 'menu';
 }
 
+// ===== 启动前资源预加载 =====
+
+/** 需要预加载的全屏背景图（启动界面、角色创建、主界面） */
+const PRELOAD_BACKGROUNDS = [
+  '/main_menu_bg.png',
+  '/character-create-bg.png',
+  '/game_bg.png',
+];
+
+/** 预加载单张图片，加载完成或失败均 resolve（失败不阻塞启动） */
+function preloadImage(src: string): Promise<void> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve();
+    img.onerror = () => resolve();
+    img.src = src;
+  });
+}
+
+/** 启动加载占位界面（黑底金色衬线，与整体风格一致） */
+const LoadingScreen: React.FC = () => (
+  <div style={{
+    position: 'fixed',
+    inset: 0,
+    background: '#000',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 9999,
+  }}>
+    <div style={{
+      fontSize: 30,
+      fontWeight: 800,
+      letterSpacing: 10,
+      fontFamily: '"Noto Serif SC", "Source Han Serif SC", Georgia, serif',
+      background: 'linear-gradient(180deg, #D4C5A0, #A08B6B)',
+      WebkitBackgroundClip: 'text',
+      WebkitTextFillColor: 'transparent',
+      animation: 'loadingPulse 1.4s ease-in-out infinite',
+    }}>
+      加载中
+    </div>
+    <div style={{
+      fontSize: 11,
+      letterSpacing: 5,
+      marginTop: 14,
+      color: 'rgba(192,168,130,0.4)',
+      fontFamily: '"Noto Serif SC", "Source Han Serif SC", Georgia, serif',
+    }}>
+      LOADING
+    </div>
+  </div>
+);
+
 const App: React.FC = () => {
   const [route, setRoute] = useState<Route>(getHashRoute);
+  const [assetsReady, setAssetsReady] = useState(false);
+
+  // 启动时预加载所有界面背景；设安全超时（8s）避免网络问题阻塞启动
+  useEffect(() => {
+    const preload = Promise.all(PRELOAD_BACKGROUNDS.map(preloadImage));
+    const timeout = new Promise<void>((resolve) => setTimeout(resolve, 8000));
+    Promise.race([preload, timeout]).then(() => setAssetsReady(true));
+  }, []);
 
   useEffect(() => {
     const onHashChange = () => setRoute(getHashRoute());
@@ -294,6 +360,8 @@ const App: React.FC = () => {
   const navigate = useCallback((r: Route) => {
     window.location.hash = '#/' + r;
   }, []);
+
+  if (!assetsReady) return <LoadingScreen />;
 
   if (route === 'menu') {
     return (

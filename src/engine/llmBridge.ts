@@ -156,9 +156,6 @@ export async function askLLM(
           { role: 'system', content: systemPrompt.slice(0, 100) + '...' },
           { role: 'user', content: userPrompt.slice(0, 100) + '...' },
         ],
-        temperature,
-        max_tokens: maxTokens,
-        response_format: responseFormat,
       }));
       return null;
     }
@@ -333,9 +330,6 @@ export async function askLLMText(
           { role: 'system', content: systemPrompt.slice(0, 100) + '...' },
           { role: 'user', content: userPrompt.slice(0, 100) + '...' },
         ],
-        temperature,
-        max_tokens: maxTokens,
-        response_format: responseFormat,
       }));
       return null;
     }
