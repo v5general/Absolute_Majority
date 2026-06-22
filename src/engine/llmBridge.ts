@@ -491,7 +491,10 @@ function attemptRepairJSON(jsonStr: string): string {
 }
 
 /**
- * 调用 LLM 获取自由文本回复（JSON 格式）
+ * 调用 LLM 获取自由文本回复（非 JSON）。
+ * 用于角色创建时的政治目标、背景故事等纯文本生成。
+ * 不发送 response_format: json_object —— DeepSeek/OpenAI 等服务商
+ * 要求使用 json_object 时 prompt 必须包含 "json" 字样，否则返回 400。
  */
 export async function askLLMText(
   systemPrompt: string,
@@ -510,12 +513,6 @@ export async function askLLMText(
       temperature: 0.9,
       max_tokens: 1500,
     };
-
-    // 只有非 flash 模型才尝试使用 response_format
-    // flash 模型通常不支持 JSON 模式
-    if (!config.model.includes('flash')) {
-      requestBody.response_format = { type: 'json_object' };
-    }
 
     console.log(`[LLM] askLLMText → ${getChatUrl()} (mobile=${isMobileDevice()}, stream=true)`);
     const content = await callChatCompletion(getChatUrl(), requestBody, config, REQUEST_TIMEOUT_MS);
