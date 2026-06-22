@@ -432,41 +432,51 @@ const styles: Record<string, React.CSSProperties> = {
     inset: 0,
     backgroundColor: 'rgba(0,0,0,0.6)',
     display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: 'stretch',
+    justifyContent: 'stretch',
     zIndex: 1000,
     backdropFilter: 'blur(6px)',
   },
   window: {
-    width: 780,
-    maxWidth: '95vw',
-    maxHeight: '90vh',
-    background: 'rgba(0,0,0,0.65)',
-    borderRadius: 4,
-    border: `2px solid ${COLOR_BORDER}`,
-    overflow: 'hidden',
+    // 用 position:fixed + inset:0 而不是 100vw/100vh —— 后者在 iOS Safari 上
+    // 会被动态工具栏截断，inset:0 由浏览器直接算到安全区内，所有设备都能正确铺满
+    position: 'fixed',
+    inset: 0,
+    width: '100%',
+    height: '100%',
+    // 底部留白：让对话框（被 flex:1 的 sceneArea 顶到底边）整体上移一些，
+    // 避免紧贴屏幕底部。clamp 在手机/桌面间自适应。
+    paddingBottom: 'clamp(80px, 12vh, 180px)',
+    background: 'rgba(0,0,0,0.88)',
+    borderRadius: 0,
+    border: 'none',
+    overflowY: 'auto' as const,
+    overflowX: 'hidden' as const,
     display: 'flex',
     flexDirection: 'column',
+    boxSizing: 'border-box' as const,
     backdropFilter: 'blur(12px)',
-    boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
   },
   titleBar: {
+    // 标题栏铺满整行（不再 max-width:820 居中），事件名称自然落到屏幕左侧
     display: 'flex',
     alignItems: 'center',
     gap: 10,
-    padding: '10px 16px',
+    padding: '12px clamp(20px, 4vw, 48px)',
     background: 'rgba(0,0,0,0.35)',
     borderBottom: `1px solid ${COLOR_BORDER}`,
+    width: '100%',
+    boxSizing: 'border-box' as const,
   },
   severityBadge: {
     color: COLOR_GOLD,
     fontWeight: 800,
-    fontSize: 14,
+    fontSize: 'clamp(14px, 1.4vw, 18px)',
     letterSpacing: 2,
   },
   titleText: {
     color: COLOR_GOLD,
-    fontSize: 16,
+    fontSize: 'clamp(16px, 1.8vw, 22px)',
     fontWeight: 700,
     flex: 1,
     fontFamily: FONT_SERIF,
@@ -492,6 +502,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontFamily: FONT_SERIF,
   },
   sceneArea: {
+    flex: 1,
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
@@ -505,8 +516,10 @@ const styles: Record<string, React.CSSProperties> = {
     gap: 6,
   },
   portraitCircle: {
-    width: 72,
-    height: 72,
+    // clamp() 让立绘在小屏（手机）保持 72px，在大屏（桌面）放大到最多 144px，
+    // 中间区间跟随视口宽度等比缩放，避免全屏后立绘小得看不清
+    width: 'clamp(72px, 10vw, 144px)',
+    height: 'clamp(72px, 10vw, 144px)',
     borderRadius: '50%',
     border: '3px solid',
     display: 'flex',
@@ -515,16 +528,16 @@ const styles: Record<string, React.CSSProperties> = {
     background: 'rgba(0,0,0,0.3)',
   },
   portraitAbbr: {
-    fontSize: 22,
+    fontSize: 'clamp(20px, 2.6vw, 36px)',
     fontWeight: 800,
   },
   portraitName: {
-    fontSize: 13,
+    fontSize: 'clamp(13px, 1.4vw, 18px)',
     fontWeight: 600,
     fontFamily: FONT_SERIF,
   },
   portraitParty: {
-    fontSize: 11,
+    fontSize: 'clamp(11px, 1.1vw, 14px)',
     color: '#888',
   },
   narratorIcon: {
@@ -534,13 +547,15 @@ const styles: Record<string, React.CSSProperties> = {
   },
   dialogBox: {
     position: 'relative',
-    margin: '8px 16px',
+    margin: '8px auto',
     padding: '28px 20px 16px',
     background: 'rgba(0,0,0,0.4)',
     borderRadius: 4,
     border: `2px solid ${COLOR_BORDER}`,
     minHeight: 100,
     cursor: 'pointer',
+    width: 'calc(100% - 32px)',
+    maxWidth: 1200,
   },
   namePlate: {
     position: 'absolute',
@@ -570,9 +585,13 @@ const styles: Record<string, React.CSSProperties> = {
   // 自由文本输入
   freeTextArea: {
     padding: '8px 16px 16px',
+    margin: '0 auto',
+    maxWidth: 1200,
+    width: '100%',
     display: 'flex',
     flexDirection: 'column',
     gap: 8,
+    boxSizing: 'border-box',
   },
   freeTextInput: {
     background: 'rgba(0,0,0,0.4)',
@@ -654,6 +673,10 @@ const styles: Record<string, React.CSSProperties> = {
     flexDirection: 'column',
     gap: 8,
     padding: '8px 16px 16px',
+    margin: '0 auto',
+    maxWidth: 1200,
+    width: '100%',
+    boxSizing: 'border-box' as const,
   },
   choiceBtn: {
     background: 'rgba(0,0,0,0.4)',
@@ -669,11 +692,14 @@ const styles: Record<string, React.CSSProperties> = {
     fontFamily: FONT_SERIF,
   },
   effectPanel: {
-    margin: '0 16px 16px',
+    margin: '0 auto 16px',
     padding: '10px 14px',
     background: 'rgba(0,0,0,0.4)',
     borderRadius: 4,
     border: `2px solid ${COLOR_BORDER}`,
+    width: 'calc(100% - 32px)',
+    maxWidth: 1200,
+    boxSizing: 'border-box' as const,
   },
   effectTitle: {
     fontSize: 12,
@@ -696,9 +722,13 @@ const styles: Record<string, React.CSSProperties> = {
   // 多轮对话
   multiRoundArea: {
     padding: '12px 16px',
+    margin: '0 auto',
+    maxWidth: 1200,
+    width: '100%',
     display: 'flex',
     flexDirection: 'column',
     gap: 12,
+    boxSizing: 'border-box' as const,
   },
   conversationHistory: {
     maxHeight: 120,
