@@ -39,7 +39,16 @@ export type AIIntentType =
   | 'media_campaign'      // 发起媒体攻势
   | 'backroom_deal'       // 密室交易
   | 'faction_defect'      // 派系叛离
-  | 'stress_event';       // 压力事件
+  | 'stress_event'        // 压力事件
+  // --- 程序性 intent（Phase G Q6） ---
+  | 'political_capital_change'  // 政治资本变化（玩家或 NPC）
+  | 'fundraising'               // 玩家主动募款行动（非 AI）
+  | 'no_confidence_proposal'    // 不信任案提案（程序性，与 no_confidence 区分：含目标首相/联署）
+  | 'dissolution_decision'      // 首相解散众议院决策
+  | 'leadership_campaign'       // 党首选举活动（含挑战者、现任、派阀背书）
+  | 'bill_draft'                // 法案起草（程序性，含目标委员会）
+  | 'parliament_questioning'    // 国会质询（含质询方、被质询大臣、议题、时间）
+  | 'committee_deliberation';   // 委员会审议（含委员会、法案、审议类型、结果）
 
 /** AI 行动意图 */
 export interface AIIntent {
@@ -233,6 +242,31 @@ export interface ElectionResult {
   majorityThreshold: number;
   /** 各选区分配结果 districtId -> partyId -> seats */
   districtResults: Record<string, Record<string, number>>;
+  /**
+   * 全国比例代表层结果（Phase G Q1：110+90 并行制）
+   * key = partyId，value = 全国比例代表 90 席中分得的席位数
+   * `undefined` / 空 = 旧版纯 D'Hondt 结果
+   */
+  nationalProportionalResults?: Record<string, number>;
+}
+
+/**
+ * 会派（Parliamentary Group）— Phase G Q5
+ *
+ * 议员必须加入会派。会派不完全等于政党：多个小党可组成共同会派。
+ * 会派规模决定：委员会席位分配权、国会质询时间、法案优先权、国会发言权。
+ *
+ * 党首辩论时间按会派席位比例分配（180 分钟，最小保障 5 分钟）。
+ */
+export interface ParliamentaryGroup {
+  /** 会派 ID（通常 = 主导党 id 或 "coalition-xxx"） */
+  id: string;
+  /** 会派显示名 */
+  name: string;
+  /** 会派成员党 ID 列表（单党会派只有一个元素） */
+  memberPartyIds: string[];
+  /** 会派总席位（= ∑ memberPartyIds 的 seats） */
+  totalSeats: number;
 }
 
 /** 联合谈判中的一方 */
@@ -321,6 +355,23 @@ export interface GameState {
    * undefined = 未接入，simulate 等工具会自动初始化。
    */
   dramaState?: import('../engine/dramaEngine').DramaState;
+  /**
+   * 会派列表（Phase G Q5：党首辩论机制）。
+   * undefined = 旧存档，parliamentaryGroupEngine 会自动初始化。
+   */
+  parliamentaryGroups?: ParliamentaryGroup[];
+  /**
+   * 上次党首辩论事件生成的月份（Phase G Q5）。
+   * 用于"每月至少生成一次辩论事件"的检测。
+   * undefined = 未生成过。
+   */
+  lastDebateMonth?: number;
+  /**
+   * 连续低支持率回合计数（Phase G 第七章触发条件 5）。
+   * 用于"连续 6 回合支持率 < 25% → 触发党首选举"。
+   * 仅跟踪玩家所在党。
+   */
+  consecutiveLowSupportTurns?: number;
 }
 
 // ===== 委员会类型 =====

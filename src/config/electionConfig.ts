@@ -1,19 +1,44 @@
 /**
  * 选举规则配置
- * 所有选举相关的参数都应提取到这里
- * 与 districtConfig.ts 的 11 比例代表区块保持一致
+ *
+ * Phase G Q1 决策：并行制 110 直接 + 90 全国比例代表 = 200 席
+ *   - 直接层：11 大选区 × 10 直接席 = 110
+ *   - 比例层：全国单一选区 D'Hondt（5% 阈值）= 90
+ *
+ * 与 districtConfig.ts 的 11 比例代表区块保持一致。
  */
 
 import { TOTAL_NPC_SEATS } from './districtConfig';
 
+/** 每个大选区（区块）分配的直接席位数 */
+export const DIRECT_SEATS_PER_BLOCK = 10;
+
+/** 全国比例代表层总席位数 */
+export const PROPORTIONAL_SEATS_TOTAL = 90;
+
+/** 进入全国比例代表分配的政党门槛（得票率） */
+export const PROPORTIONAL_THRESHOLD_PERCENT = 5;
+
 /** 选举系统参数 */
 export const ELECTION_CONFIG = {
-  /** NPC 席位数（由 11 比例代表区块席位合计得出） */
+  /**
+   * 直接席总 数 = 11 区块 × DIRECT_SEATS_PER_BLOCK
+   * 与 districtConfig 的 PROPORTIONAL_BLOCKS 共同定义选举层结构。
+   */
+  get directSeatsTotal(): number {
+    return DIRECT_SEATS_PER_BLOCK * 11;
+  },
+  /** NPC 席位数（兼容旧字段：= directSeatsTotal + proportionalSeatsTotal - 1 玩家席） */
   get constituencySeats(): number {
     return TOTAL_NPC_SEATS;
   },
-  /** 比例代表席位数（已整合进区块，保留兼容字段 = 0） */
-  proportionalSeats: 0,
+  /**
+   * 全国比例代表总席位数。
+   *
+   * Phase G Q1：语义已改变 — 不再是 0（已整合进区块），
+   * 而是 90 席的全国比例代表层。
+   */
+  proportionalSeats: PROPORTIONAL_SEATS_TOTAL,
   /** 总席位数（NPC + 1 玩家） */
   get totalSeats(): number {
     return TOTAL_NPC_SEATS + 1;
@@ -80,3 +105,4 @@ export const VOTER_CONFIG = {
   /** 投票率波动范围（%） */
   turnoutVolatility: 15,
 } as const;
+

@@ -17,7 +17,7 @@ import { createInitialDramaState } from '../engine/dramaEngine';
  * 生成初始游戏状态
  *
  * 完整集成所有系统：
- * - 选举 V2（120选区 + 80比例代表）
+ * - 选举 V2（Phase G Q1：110 直接 + 90 全国比例代表 = 200）
  * - 派阀初始化（除 ULP 外所有政党）
  * - 背景生成（每个议员）
  * - 职业初始化（双轨制）
@@ -48,7 +48,7 @@ export function createInitialState(): GameState {
     dramaState: createInitialDramaState(),
   };
 
-  // 1. 执行选举 V2（规则.txt 公式：120选区 + 80比例代表）
+  // 1. 执行选举 V2（Phase G Q1：110 直接 + 90 全国比例代表 = 200 席）
   const electionResult = runElectionV2(
     base.parties,
     base.districts,

@@ -28,7 +28,12 @@ export interface ProportionalBlock {
   nameEn: string;
   /** 该区块包含的都道府县 */
   prefectures: string[];
-  /** 分配的席位总数 */
+  /**
+   * 分配的席位总数。
+   *
+   * Phase G Q1：每个区块固定 10 席（DIRECT_SEATS_PER_BLOCK = 10），
+   * 直接层总计 110 席。原"按选民人口比例分配"已废弃以简化系统。
+   */
   totalSeats: number;
   /** 选民人数（近似值） */
   voterCount: number;
@@ -41,8 +46,12 @@ export interface ProportionalBlock {
 /**
  * 11 个比例代表区块
  *
- * 总席位 199 NPC + 1 玩家 = 200
- * 席位分配参考现实比例（按选民人口比例分配）
+ * Phase G Q1：并行制 110 直接 + 90 全国比例代表 = 200 席
+ *   - 每个区块固定 10 个直接席位（DIRECT_SEATS_PER_BLOCK = 10）
+ *   - 总直接席 = 11 × 10 = 110 NPC 直接席
+ *   - 全国比例代表层 90 席独立计算（见 electionConfig / electionEngine）
+ *
+ * NPC = 110 直接 + 89 比例 = 199（玩家占用第 200 席，加入某党时该党 +1）
  */
 export const PROPORTIONAL_BLOCKS: ProportionalBlock[] = [
   {
@@ -50,7 +59,7 @@ export const PROPORTIONAL_BLOCKS: ProportionalBlock[] = [
     name: '北海道',
     nameEn: 'Hokkaidō',
     prefectures: ['北海道'],
-    totalSeats: 12,
+    totalSeats: 10,
     voterCount: 4_300_000,
     politicalTraits: ['摇摆', '工会影响', '农业渔业'],
     supportByParty: {
@@ -67,7 +76,7 @@ export const PROPORTIONAL_BLOCKS: ProportionalBlock[] = [
     name: '东北',
     nameEn: 'Tōhoku',
     prefectures: ['青森', '岩手', '宫城', '秋田', '山形', '福岛'],
-    totalSeats: 14,
+    totalSeats: 10,
     voterCount: 7_200_000,
     politicalTraits: ['摇摆', '传统农业', '工会背景'],
     supportByParty: {
@@ -84,7 +93,7 @@ export const PROPORTIONAL_BLOCKS: ProportionalBlock[] = [
     name: '北关东',
     nameEn: 'Kitakantō',
     prefectures: ['茨城', '栃木', '群马', '埼玉'],
-    totalSeats: 20,
+    totalSeats: 10,
     voterCount: 11_000_000,
     politicalTraits: ['年轻化', '郊区都市', '经济敏感', '中间选民'],
     supportByParty: {
@@ -101,7 +110,7 @@ export const PROPORTIONAL_BLOCKS: ProportionalBlock[] = [
     name: '南关东',
     nameEn: 'Minamikantō',
     prefectures: ['千叶', '神奈川'],
-    totalSeats: 22,
+    totalSeats: 10,
     voterCount: 12_500_000,
     politicalTraits: ['极度都市化', '舆论敏感', '年轻选民', '中间选民最多'],
     supportByParty: {
@@ -118,7 +127,7 @@ export const PROPORTIONAL_BLOCKS: ProportionalBlock[] = [
     name: '东京',
     nameEn: 'Tōkyō',
     prefectures: ['东京'],
-    totalSeats: 25,
+    totalSeats: 10,
     voterCount: 11_500_000,
     politicalTraits: ['首都', '极度都市化', '舆论极其敏感', '中间选民最多'],
     supportByParty: {
@@ -135,7 +144,7 @@ export const PROPORTIONAL_BLOCKS: ProportionalBlock[] = [
     name: '北陆信越',
     nameEn: 'Hokuriku-Shinetsu',
     prefectures: ['新潟', '富山', '石川', '福井', '山梨', '长野'],
-    totalSeats: 13,
+    totalSeats: 10,
     voterCount: 5_800_000,
     politicalTraits: ['保守铁票仓', '门阀政治', '地方土建利益'],
     supportByParty: {
@@ -152,7 +161,7 @@ export const PROPORTIONAL_BLOCKS: ProportionalBlock[] = [
     name: '东海',
     nameEn: 'Tōkai',
     prefectures: ['岐阜', '静冈', '爱知', '三重'],
-    totalSeats: 22,
+    totalSeats: 10,
     voterCount: 11_000_000,
     politicalTraits: ['保守铁票仓', '制造业中心', '地方土建利益'],
     supportByParty: {
@@ -169,7 +178,7 @@ export const PROPORTIONAL_BLOCKS: ProportionalBlock[] = [
     name: '近畿',
     nameEn: 'Kinki',
     prefectures: ['滋贺', '京都', '大阪', '兵库', '奈良', '和歌山'],
-    totalSeats: 30,
+    totalSeats: 10,
     voterCount: 15_000_000,
     politicalTraits: ['改革派大本营', '民粹根据地', '传统大党翻车区'],
     supportByParty: {
@@ -186,7 +195,7 @@ export const PROPORTIONAL_BLOCKS: ProportionalBlock[] = [
     name: '中国',
     nameEn: 'Chūgoku',
     prefectures: ['鸟取', '岛根', '冈山', '广岛', '山口'],
-    totalSeats: 13,
+    totalSeats: 10,
     voterCount: 6_000_000,
     politicalTraits: ['保守铁票仓', '门阀政治', '地方利益集团'],
     supportByParty: {
@@ -203,7 +212,7 @@ export const PROPORTIONAL_BLOCKS: ProportionalBlock[] = [
     name: '四国',
     nameEn: 'Shikoku',
     prefectures: ['德岛', '香川', '爱媛', '高知'],
-    totalSeats: 8,
+    totalSeats: 10,
     voterCount: 3_200_000,
     politicalTraits: ['保守铁票仓', '门阀政治', '农村利益'],
     supportByParty: {
@@ -220,7 +229,7 @@ export const PROPORTIONAL_BLOCKS: ProportionalBlock[] = [
     name: '九州',
     nameEn: 'Kyūshū',
     prefectures: ['福冈', '佐贺', '长崎', '熊本', '大分', '宫崎', '鹿儿岛', '冲绳'],
-    totalSeats: 20,
+    totalSeats: 10,
     voterCount: 11_000_000,
     politicalTraits: ['两极分化', '防卫外交议题', '美军基地', '冲绳特殊性'],
     supportByParty: {
@@ -234,8 +243,16 @@ export const PROPORTIONAL_BLOCKS: ProportionalBlock[] = [
   },
 ];
 
-/** 总 NPC 席位数 */
+/** 总 NPC 直接席位数（11 区块 × 10）= 110 */
 export const TOTAL_NPC_SEATS = PROPORTIONAL_BLOCKS.reduce((sum, b) => sum + b.totalSeats, 0);
+
+/**
+ * 全国比例代表层总席位数。
+ *
+ * Phase G Q1：90 席按全国政党票 D'Hondt 分配（5% 阈值）。
+ * 与 electionConfig.PROPORTIONAL_SEATS_TOTAL 保持同步。
+ */
+export const PROPORTIONAL_SEATS_TOTAL = 90;
 
 /** 区块 ID -> 区块数据的查找映射 */
 export const BLOCK_BY_ID: Record<string, ProportionalBlock> = Object.fromEntries(

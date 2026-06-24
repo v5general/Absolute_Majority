@@ -14,6 +14,11 @@ export interface ChoiceEffect {
     turnoutRate?: number;
     swingVoterRatio?: number;
   };
+  /**
+   * 对议员政治资本的影响（Phase G Q3）
+   * key = "partyId:personName"，value = delta（可正可负）
+   */
+  capitalDelta?: Record<string, number>;
 }
 
 /** 事件中的一个选项 */

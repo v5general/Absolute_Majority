@@ -175,6 +175,22 @@ export interface MPPersonality {
   /** 谈判技巧（0=固执己见，100=交易大师） */
   negotiationSkill: number;
 
+  // --- 政治资本 (Phase G Q3) ---
+  /**
+   * 政治资本 (0-100，默认 30)
+   *
+   * 议员个人的政治影响力储备。来源于法案通过、成功质询、媒体正面报道、
+   * 委员会成绩、派阀支持。消耗于争议法案、组阁/改组、派系协调、提前解散、修宪。
+   *
+   * 与 Party.funds（党派资金，党派层面）并存：
+   *   - funds / funding = 党派层资金
+   *   - politicalCapital = 议员个人政治影响力
+   *
+   * 不足 20 时所有政治行动成功率 ×0.7。
+   * `undefined` = 旧存档，politicalCapitalEngine 会自动初始化。
+   */
+  politicalCapital?: number;
+
   // --- 性格特质 (1-3个，CK3风格) ---
   personalityTraits: PersonalityTrait[];
 
