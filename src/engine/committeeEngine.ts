@@ -10,7 +10,8 @@ import type {
   Ideology,
 } from '../types';
 import { COMMITTEE_LABELS } from '../types';
-import { validateCommitteeVote } from './rulesEngine';
+import { validateCommitteeVote, getChairmanWeightMultiplier } from './rulesEngine';
+import type { ChairmanVoteContext } from '../config/gameBalance';
 
 /**
  * 委员会引擎
@@ -672,20 +673,28 @@ export function committee_amendment(
 /**
  * 委员会表决：模拟委员会内部投票
  *
- * 规则约束：表决前必须达到法定人数（规则 #2）
- * 委员长拥有 1.5x 权重。
+ * 规则约束：表决前必须达到法定人数（规则 #2）。
+ *
+ * Phase G Q4：委员长权重按审议动作类型细分（废除原硬编码 1.5×）：
+ *   - 推进法案（push）：×1.3
+ *   - 搁置法案（shelve）：×1.5
+ *   - 修正法案（amend）：×1.2
+ * 默认（未指定 context）：×1.3（与原 1.5 相比偏向推进）。
  */
 export function committee_vote(
   bill: Bill,
   committee: Committee,
   parties: Party[],
   relations: RelationEntry[],
+  voteContext: ChairmanVoteContext = 'push',
 ): { votesFor: number; votesAgainst: number } {
   // 规则 #2：法定人数检查
   const quorumValidation = validateCommitteeVote(committee);
   if (!quorumValidation.valid) {
     return { votesFor: 0, votesAgainst: 0 };
   }
+
+  const chairmanWeight = getChairmanWeightMultiplier(voteContext);
 
   let votesFor = 0;
   let votesAgainst = 0;
@@ -697,7 +706,7 @@ export function committee_vote(
     // 只计算出席的委员
     if (!committee.presentMembers.includes(member.personName)) continue;
 
-    const weight = member.personName === committee.chairman.personName ? 1.5 : 1;
+    const weight = member.personName === committee.chairman.personName ? chairmanWeight : 1;
 
     const isSameParty = member.partyId === bill.proposerPartyId;
     const rel = relations.find(

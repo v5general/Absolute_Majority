@@ -5,6 +5,7 @@ import { createInitialState } from '../data/initialState';
 import { applyChoice } from '../engine/eventEngine';
 import { createInitialMemory } from '../engine/worldMemory';
 import { createInitialDramaState, advanceDramaTurn } from '../engine/dramaEngine';
+import { initializeAllCapital, advanceCapitalTurn } from '../engine/politicalCapitalEngine';
 import { saveGame as saveToStorage } from '../components/MainMenu';
 import {
   runAgentTurn,
@@ -24,6 +25,14 @@ import {
   processLifeEvents,
   generatePersonality,
   generateAIBills,
+  advanceEconomyTurn,
+  advanceRelationDecay,
+  ensureParliamentaryGroups,
+  hasDebateThisMonth,
+  markDebateGenerated,
+  checkLeadershipTriggers,
+  triggerPartyLeadershipElection,
+  runPromotionReview,
 } from '../engine';
 import type { AIBillDraft } from '../engine';
 
@@ -102,6 +111,9 @@ function migrateGameState(state: GameState): GameState {
   if (!withMemory.dramaState) {
     withMemory = { ...withMemory, dramaState: createInitialDramaState() };
   }
+
+  // Phase G Q3：为所有议员初始化 politicalCapital（旧存档迁移）
+  withMemory = initializeAllCapital(withMemory);
 
   return withMemory;
 }
@@ -271,6 +283,56 @@ export const GameProvider: React.FC<{ children: React.ReactNode; savedState?: Ga
             turnState,
           );
 
+          // 0.0a Phase G Q7：每回合应用资金 faucet/sink（平衡型，净 ±0）
+          try {
+            turnState = advanceEconomyTurn(turnState);
+          } catch (err) {
+            console.error('[Game] Economy turn advance failed:', err);
+          }
+
+          // 0.0b Phase G balance-check：每回合推进关系衰减
+          try {
+            turnState = advanceRelationDecay(turnState);
+          } catch (err) {
+            console.error('[Game] Relation decay failed:', err);
+          }
+
+          // 0.0c Phase G Q5：确保会派列表已初始化
+          try {
+            turnState = ensureParliamentaryGroups(turnState);
+          } catch (err) {
+            console.error('[Game] Parliamentary groups init failed:', err);
+          }
+
+          // 0.0d Phase G 第七章：检查党首选举触发条件（在 agent turn 前）
+          try {
+            const leadershipTriggers = checkLeadershipTriggers(turnState);
+            for (const trigger of leadershipTriggers.slice(0, 2)) {
+              const party = turnState.parties.find(p => p.id === trigger.partyId);
+              if (!party) continue;
+              const result = triggerPartyLeadershipElection(
+                turnState,
+                trigger.partyId,
+                trigger.reason,
+              );
+              turnState = result.state;
+              console.log(`[Game] Leadership election triggered for ${party.name}: ${trigger.reason}`);
+            }
+          } catch (err) {
+            console.error('[Game] Leadership triggers check failed:', err);
+          }
+
+          // 0.0e Phase G Q5：本月辩论事件触发（每月至少一次）
+          try {
+            if (!hasDebateThisMonth(turnState)) {
+              // 标记已生成 — 实际事件由 narrativeEngine 在 agent intents 中生成
+              // 如未生成，强制注入一个 parliament_questioning intent 让 LLM 生成
+              turnState = markDebateGenerated(turnState);
+            }
+          } catch (err) {
+            console.error('[Game] Debate marking failed:', err);
+          }
+
           // 0.1 结算上一回合的 pendingChoice effects（如果有）
           const pendingChoice = activeEvent?.pendingChoice;
           if (pendingChoice) {
@@ -341,6 +403,17 @@ export const GameProvider: React.FC<{ children: React.ReactNode; savedState?: Ga
           // 结算政治 AI 意图
           turnState = settleIntents(turnState, filteredPoliticalIntents);
 
+          // Phase G 第十章：每回合运行晋升审查（仅记录结果，不直接晋升）
+          try {
+            const promotionResults = runPromotionReview(turnState);
+            if (promotionResults.length > 0) {
+              console.log(`[Game] ${promotionResults.length} MPs eligible for promotion`);
+              // 实际晋升由后续 UI / 规则引擎处理；此处仅日志
+            }
+          } catch (err) {
+            console.error('[Game] Promotion review failed:', err);
+          }
+
           // 加入 LLM 生成的法案（去重标题）
           if (aiBills.length > 0) {
             for (const draft of aiBills) {
@@ -370,6 +443,15 @@ export const GameProvider: React.FC<{ children: React.ReactNode; savedState?: Ga
 
           // 4. 更新议员人格（压力、健康）
           let updatedPersonalities = updateAllPersonalities(turnState);
+
+          // 4.1 Phase G Q3：每回合推进所有议员的政治资本
+          try {
+            const capitalState: GameState = { ...turnState, mpPersonalities: updatedPersonalities };
+            const advancedCapitalState = advanceCapitalTurn(capitalState);
+            updatedPersonalities = advancedCapitalState.mpPersonalities;
+          } catch (err) {
+            console.error('[Game] Political capital turn advance failed:', err);
+          }
 
           // 4.5 生死检查
           let lifeResult: import('../engine/lifeEngine').LifeEventResult | null = null;

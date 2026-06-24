@@ -1,7 +1,19 @@
 import type { PartyRank, ParliamentRank, CareerState } from '../types/career';
-import { PARTY_RANKS, PARLIAMENT_RANKS } from '../types/career';
+import { PARTY_RANKS, PARLIAMENT_RANKS, getPartyRankLabel } from '../types/career';
 import type { MPPersonality } from '../types/mp';
 import type { Party, Government, Committee, CabinetPost } from '../types/game';
+import { PROMOTION_THRESHOLDS } from '../config/gameBalance';
+
+/**
+ * Career Engine — 双轨制职业系统
+ *
+ * Phase G Q2：党内 8 级（删青年局干部，新增政策委员会委员长）+ 国会 9 级（保留政务官）。
+ * 党派别名通过 getPartyRankLabel(partyId, rank) 应用（如 ULP 的"主席"）。
+ *
+ * 晋升阈值（Phase G 第十章）：
+ *   - 党内：loyalty > 70 + capital > 30 + 党龄 > 6 回合
+ *   - 国会：资历 > 8 回合 + 委员会成绩 > 60
+ */
 
 /** 初始化议员职业状态 */
 export function initializeCareer(
@@ -12,17 +24,33 @@ export function initializeCareer(
 ): CareerState {
   const personName = mp.personName;
 
-  // 党内路线
+  // === 党内路线（新 8 级） ===
+  // 0=普通党员, 1=党务干部, 2=政策委员会委员, 3=政策委员会委员长,
+  // 4=副干事长, 5=干事长, 6=副党首, 7=党首
   let partyRankIndex = 0;
   if (personName === party.leader) {
     partyRankIndex = PARTY_RANKS.length - 1; // 党首
   } else if (party.members.includes(personName)) {
-    partyRankIndex = 2 + (mp.ambition > 60 ? 1 : 0); // 政策委员会成员 or 党务干部
+    // 核心成员：根据野心/谈判力分流
+    if (mp.ambition > 75 && mp.negotiationSkill > 70) {
+      partyRankIndex = 5; // 干事长
+    } else if (mp.ambition > 60) {
+      partyRankIndex = 4; // 副干事长
+    } else if (mp.loyalty > 70 && mp.mediaSkill > 60) {
+      partyRankIndex = 3; // 政策委员会委员长
+    } else {
+      partyRankIndex = 2; // 政策委员会委员
+    }
   } else {
-    partyRankIndex = mp.loyalty > 70 ? 1 : 0; // 青年局干部 or 普通党员
+    // 普通党员：根据忠诚度分流
+    if (mp.loyalty > 70 && mp.ambition > 50) {
+      partyRankIndex = 1; // 党务干部
+    } else {
+      partyRankIndex = 0; // 普通党员
+    }
   }
 
-  // 国会路线
+  // === 国会路线（保留 9 级） ===
   let parliamentRankIndex = 0;
 
   // 检查是否为总理大臣
@@ -56,6 +84,16 @@ export function initializeCareer(
   };
 }
 
+/**
+ * 获取党内职位在该党派下的显示名称（含别名）。
+ *
+ * 例如：ULP 的"党首"显示为"主席"；改革民主党的"政策委员会委员长"显示为"政调会长"。
+ * 未配置别名时返回 PartyRank 原文。
+ */
+export function getPartyRankDisplayName(partyId: string, rank: PartyRank): string {
+  return getPartyRankLabel(partyId, rank);
+}
+
 /** 根据内阁职位获取国会路线等级 */
 function getMinisterRankIndex(post: CabinetPost): number {
   switch (post) {
@@ -70,37 +108,64 @@ function getMinisterRankIndex(post: CabinetPost): number {
   }
 }
 
+// ============================================================================
+// 晋升检查（Phase G 第十章量化阈值）
+// ============================================================================
+
 /** 检查党内晋升资格 */
 export function checkPartyPromotion(
   mp: MPPersonality,
   career: CareerState,
   party: Party,
-): { eligible: boolean; nextRank: PartyRank | null } {
+): { eligible: boolean; nextRank: PartyRank | null; reason?: string } {
   if (career.partyRankIndex >= PARTY_RANKS.length - 1) {
-    return { eligible: false, nextRank: null }; // 已是党首
+    return { eligible: false, nextRank: null, reason: '已是党首' };
   }
 
-  const score = calculatePromotionScore(mp, {
-    loyalty: mp.loyalty / 100,
-    factionSupport: 0.5,
-    politicalCapital: mp.negotiationSkill / 100,
-    partyReputation: mp.mediaSkill / 100,
-    electionPerformance: mp.popularity / 100,
-  });
+  const partyAgeTurns = (mp.career ? career.partyRankIndex : 0) >= 0 ? estimatePartyAgeTurns(mp) : 0;
+  const capital = mp.politicalCapital ?? 30;
+  const thresholds = PROMOTION_THRESHOLDS.party;
 
-  const nextIndex = career.partyRankIndex + 1;
-  const threshold = 0.4 + nextIndex * 0.08; // 越高职位需要越高分数
-  return { eligible: score >= threshold, nextRank: PARTY_RANKS[nextIndex] };
+  // 量化阈值：loyalty > 70 + capital > 30 + 党龄 > 6 回合
+  const loyaltyPass = mp.loyalty > thresholds.loyalty;
+  const capitalPass = capital > thresholds.capital;
+  const agePass = partyAgeTurns > thresholds.partyAgeTurns;
+
+  if (!loyaltyPass) return { eligible: false, nextRank: PARTY_RANKS[career.partyRankIndex + 1], reason: `忠诚度 ${mp.loyalty.toFixed(0)} ≤ ${thresholds.loyalty}` };
+  if (!capitalPass) return { eligible: false, nextRank: PARTY_RANKS[career.partyRankIndex + 1], reason: `政治资本 ${capital.toFixed(0)} ≤ ${thresholds.capital}` };
+  if (!agePass) return { eligible: false, nextRank: PARTY_RANKS[career.partyRankIndex + 1], reason: `党龄 ${partyAgeTurns} ≤ ${thresholds.partyAgeTurns}` };
+
+  return { eligible: true, nextRank: PARTY_RANKS[career.partyRankIndex + 1] };
 }
 
-/** 检查国会晋升资格 */
+/** 检查国会晋升资格（资历 > 8 回合 + 委员会成绩 > 60） */
 export function checkParliamentPromotion(
   mp: MPPersonality,
   career: CareerState,
   government: Government | null,
   committees: Committee[],
-): { eligible: boolean; nextRank: ParliamentRank | null } {
-  // 国会路线由实际职位决定，不主动晋升
+): { eligible: boolean; nextRank: ParliamentRank | null; reason?: string } {
+  if (career.parliamentRankIndex >= PARLIAMENT_RANKS.length - 1) {
+    return { eligible: false, nextRank: null, reason: '已是内阁总理大臣' };
+  }
+
+  // 国会晋升由实际职位决定（委员长、大臣等），不主动晋升普通议员
+  // 但若满足条件，可标记为"具备晋升潜力"
+  const seniorityTurns = estimateSeniorityTurns(mp);
+  const committeePerformance = estimateCommitteePerformance(mp, committees);
+  const thresholds = PROMOTION_THRESHOLDS.parliament;
+
+  const seniorityPass = seniorityTurns > thresholds.seniorityTurns;
+  const performancePass = committeePerformance > thresholds.committeePerformance;
+
+  // 国会路线主要是职位驱动，资格检查仅返回"是否准备好下一级"
+  if (career.parliamentRankIndex < 3 && seniorityPass && performancePass) {
+    return {
+      eligible: true,
+      nextRank: PARLIAMENT_RANKS[Math.min(career.parliamentRankIndex + 1, PARLIAMENT_RANKS.length - 1)],
+    };
+  }
+
   return { eligible: false, nextRank: null };
 }
 
@@ -124,6 +189,79 @@ export function calculatePromotionScore(
   );
 }
 
+/** 估算党龄（回合）— 基于年龄、职业等级、是否有 career 数据 */
+function estimatePartyAgeTurns(mp: MPPersonality): number {
+  // 静态估算：年龄 - 25（假设 25 岁入党）的 1/3 作为党龄回合代理
+  // 实际游戏中应由 useGameState 跟踪 mp.partyJoinedTurn
+  const estimate = Math.max(0, Math.floor((mp.age - 25) / 3));
+  return Math.min(48, estimate); // 上限 48 回合（一届任期）
+}
+
+/** 估算资历（回合）— 与党龄类似但更注重大选次数 */
+function estimateSeniorityTurns(mp: MPPersonality): number {
+  return estimatePartyAgeTurns(mp);
+}
+
+/** 估算委员会成绩 — 基于谈判力、知名度、是否为委员长 */
+function estimateCommitteePerformance(mp: MPPersonality, committees: Committee[]): number {
+  let score = mp.negotiationSkill * 0.4 + mp.popularity * 0.3;
+  if (mp.isCommitteeChairman) score += 30;
+  // 在任何委员会任职加分
+  for (const c of committees) {
+    if (c.members.some(m => m.personName === mp.personName)) {
+      score += 10;
+      break;
+    }
+  }
+  return Math.min(100, score);
+}
+
+// ============================================================================
+// 统一晋升审查入口（Phase G 第十章）
+// ============================================================================
+
+export interface PromotionReviewResult {
+  mpKey: string;
+  partyPromotion: { eligible: boolean; nextRank: PartyRank | null; reason?: string };
+  parliamentPromotion: { eligible: boolean; nextRank: ParliamentRank | null };
+}
+
+/**
+ * 运行所有议员的晋升审查。
+ *
+ * Phase G 第十章：每回合调用，检测所有 NPC / 玩家的晋升资格。
+ * 仅返回审查结果，实际晋升由调用方（useGameState）应用。
+ *
+ * 注：不直接修改状态以保持纯函数特性；UI 层可基于结果展示晋升通知，
+ *    rulesEngine 后续负责实际数值变更。
+ */
+export function runPromotionReview(state: import('../types').GameState): PromotionReviewResult[] {
+  const results: PromotionReviewResult[] = [];
+
+  for (const [mpKey, mp] of Object.entries(state.mpPersonalities)) {
+    if (mp.deceased) continue;
+    if (!mp.career) continue;
+
+    const party = state.parties.find(p => p.id === mp.partyId);
+    if (!party) continue;
+
+    const partyPromotion = checkPartyPromotion(mp, mp.career, party);
+    const parliamentPromotion = checkParliamentPromotion(
+      mp, mp.career, state.government, state.committees,
+    );
+
+    if (partyPromotion.eligible || parliamentPromotion.eligible) {
+      results.push({ mpKey, partyPromotion, parliamentPromotion });
+    }
+  }
+
+  return results;
+}
+
+// ============================================================================
+// 党首选举（保留原接口，扩展由 leadershipElectionEngine 处理）
+// ============================================================================
+
 /** 运行党首选举 */
 export function runPartyLeadershipElection(
   party: Party,
@@ -136,8 +274,9 @@ export function runPartyLeadershipElection(
   for (const candidateId of candidates) {
     const mp = mpPersonalities[candidateId];
     if (!mp) continue;
-    // 投票权重: 影响力+人气+谈判力
-    votes[candidateId] = mp.popularity + mp.negotiationSkill * 0.5 + mp.ambition * 0.3;
+    // 投票权重: 影响力+人气+谈判力+政治资本
+    const capital = mp.politicalCapital ?? 30;
+    votes[candidateId] = mp.popularity + mp.negotiationSkill * 0.5 + mp.ambition * 0.3 + capital * 0.4;
   }
 
   let winner = candidates[0];
@@ -152,12 +291,12 @@ export function runPartyLeadershipElection(
   return { winner, votes };
 }
 
-/** 检查党首选举触发条件 */
+/** 检查党首选举触发条件（已扩展至 5 触发条件，详见 leadershipElectionEngine） */
 export function checkLeadershipElectionTriggers(
   party: Party,
   _recentElectionResult?: unknown,
 ): boolean {
-  // 党首支持率 < 25% 时可能触发
+  // 旧接口保留：党首支持率 < 25% 时可能触发
   return party.currentSupport < 25;
 }
 

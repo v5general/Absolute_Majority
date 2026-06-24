@@ -220,6 +220,19 @@ export function checkArcTrigger(
     return shouldAdvanceArc(drama, state) ? drama.activeArc.type : null;
   }
 
+  // === Phase G 第十二章：turn-based 强制规则（与选举周期对齐） ===
+  // 1. turn >= 44 且 activeArc == null：强制 election_earthquake
+  //    （任期届满倒计时 = 0，大选必然发生）
+  if (state.turn >= 44 && !drama.completedArcs.some(c => c.type === 'election_earthquake')) {
+    return 'election_earthquake';
+  }
+
+  // 2. 不信任案通过瞬间：强制 dissolution_crisis
+  //    （由 rulesEngine 触发，此处不重复检测；保留钩子）
+
+  // 3. 派阀挑战成功：强制 faction_revolt
+  //    （已在 getCandidateArcs 中通过 faction loyalty 检测）
+
   // tension 极高时直接进入候选评估（绕过 turnsSinceCrisis 检查）
   // 这样高 tension 不会被冷却期推迟
   if (drama.tension >= CRISIS_THRESHOLD) {

@@ -180,3 +180,66 @@ export type {
   CompletedArc,
   ArcType,
 } from './dramaEngine';
+// Phase G Q3 — Political Capital Engine
+export {
+  initializeCapital,
+  initializeAllCapital,
+  grantCapital,
+  spendCapital,
+  getCapital,
+  getCapitalSuccessRate,
+  advanceCapitalTurn,
+} from './politicalCapitalEngine';
+export type { CapitalChangeEvent } from './politicalCapitalEngine';
+// Phase G Q4 — Rules engine additions (already exported above; just collecting new symbols)
+export {
+  isBudgetMultiplierActive,
+  applyCampaignMultipliers,
+  getChairmanWeightMultiplier,
+  isStrongRelationCapped,
+} from './rulesEngine';
+// Phase G Q5 — Parliamentary Group Engine
+export {
+  initializeParliamentaryGroups,
+  getQuestionTimeAllocation,
+  getGroupByParty,
+  recalcGroupSeats,
+  hasDebateThisMonth,
+  markDebateGenerated,
+  ensureParliamentaryGroups,
+  TOTAL_DEBATE_TIME_PER_MONTH,
+  MIN_DEBATE_TIME_PER_GROUP,
+} from './parliamentaryGroupEngine';
+export type { QuestionTimeAllocation } from './parliamentaryGroupEngine';
+// Phase G 第七章 — Leadership Election Engine
+export {
+  checkLeadershipTriggers,
+  runLeadershipVote,
+  triggerPartyLeadershipElection,
+} from './leadershipElectionEngine';
+export type {
+  LeadershipTriggerReason,
+  LeadershipTrigger,
+  LeadershipVoteResult,
+} from './leadershipElectionEngine';
+// Phase G 第十章 — Promotion review
+export {
+  runPromotionReview,
+  getPartyRankDisplayName,
+} from './careerEngine';
+export type { PromotionReviewResult } from './careerEngine';
+// Phase G Q7 — Economy Engine
+export {
+  advanceEconomyTurn,
+  runFundraising,
+  applyDonationEvent,
+  getNetFaucetSinkPerTurn,
+} from './economyEngine';
+// Phase G balance-check — Relation Engine
+export {
+  advanceRelationDecay,
+  applyCapToNewRelation,
+  getGrindFactor as getGrindFactorExternal,
+  getRelationNetworkStats,
+} from './relationEngine';
+export type { RelationNetworkStats } from './relationEngine';

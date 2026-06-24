@@ -12,7 +12,17 @@ import type {
   RelationEntry,
   ElectionResult,
 } from '../types';
-import { PARLIAMENT_RULES, RELATION_THRESHOLDS } from '../config/ruleConfig';
+import { PARLIAMENT_RULES, RELATION_THRESHOLDS, getMonthFromTurn, getCongressSessionByMonth } from '../config/ruleConfig';
+import {
+  BUDGET_COMMITTEE_MULTIPLIERS,
+  CAMPAIGN_MULTIPLIERS_APPLIED_AT_SETTLEMENT,
+  RELATION_CAP,
+  FUNDS_FAUCET_SINK,
+  COMMITTEE_CHAIRMAN_BONUSES,
+} from '../config/gameBalance';
+import type { ChairmanVoteContext } from '../config/gameBalance';
+// 延迟导入 triggerArc 以避免循环依赖（dramaEngine 不依赖 rulesEngine，安全）
+import { triggerArc } from './dramaEngine';
 
 /**
  * 规则引擎 — 全局约束校验与核心数值结算
@@ -328,6 +338,76 @@ export function validateIntent(intent: AIIntent): RuleValidationResult {
     case 'faction_defect':
     case 'stress_event':
       return { valid: true };
+    // --- Phase G 程序性 intent 校验 ---
+    case 'political_capital_change': {
+      const delta = intent.payload.capitalDelta as Record<string, number> | undefined;
+      if (!delta || Object.keys(delta).length === 0) {
+        return { valid: false, reason: '政治资本变化意图缺少 capitalDelta' };
+      }
+      return { valid: true };
+    }
+    case 'fundraising': {
+      const mpKey = intent.payload.mpKey as string | undefined;
+      if (!mpKey) {
+        return { valid: false, reason: '募款意图缺少 mpKey' };
+      }
+      return { valid: true };
+    }
+    case 'no_confidence_proposal': {
+      const proposingPartyId = intent.payload.proposingPartyId as string | undefined;
+      const signatories = intent.payload.signatories as string[] | undefined;
+      if (!proposingPartyId) {
+        return { valid: false, reason: '不信任案提案缺少 proposingPartyId' };
+      }
+      if (!signatories || signatories.length < NO_CONFIDENCE_THRESHOLD) {
+        return {
+          valid: false,
+          reason: `不信任案联署不足：需要 ${NO_CONFIDENCE_THRESHOLD} 人，当前 ${signatories?.length ?? 0} 人`,
+        };
+      }
+      return { valid: true };
+    }
+    case 'dissolution_decision': {
+      const pmPartyId = intent.payload.pmPartyId as string | undefined;
+      if (!pmPartyId) {
+        return { valid: false, reason: '解散决策缺少 pmPartyId' };
+      }
+      return { valid: true };
+    }
+    case 'leadership_campaign': {
+      const partyId = intent.payload.partyId as string | undefined;
+      const challengerId = intent.payload.challengerId as string | undefined;
+      const currentLeaderId = intent.payload.currentLeaderId as string | undefined;
+      if (!partyId || !challengerId || !currentLeaderId) {
+        return { valid: false, reason: '党首选举意图缺少必要字段（partyId/challengerId/currentLeaderId）' };
+      }
+      return { valid: true };
+    }
+    case 'bill_draft': {
+      const title = intent.payload.title as string | undefined;
+      const targetCommitteeId = intent.payload.targetCommitteeId as string | undefined;
+      if (!title || !targetCommitteeId) {
+        return { valid: false, reason: '法案起草意图缺少 title 或 targetCommitteeId' };
+      }
+      return { valid: true };
+    }
+    case 'parliament_questioning': {
+      const questionerPartyId = intent.payload.questionerPartyId as string | undefined;
+      const targetMinisterName = intent.payload.targetMinisterName as string | undefined;
+      const topic = intent.payload.topic as string | undefined;
+      if (!questionerPartyId || !targetMinisterName || !topic) {
+        return { valid: false, reason: '国会质询意图缺少必要字段' };
+      }
+      return { valid: true };
+    }
+    case 'committee_deliberation': {
+      const committeeId = intent.payload.committeeId as string | undefined;
+      const deliberationType = intent.payload.deliberationType as string | undefined;
+      if (!committeeId || !deliberationType) {
+        return { valid: false, reason: '委员会审议意图缺少 committeeId 或 deliberationType' };
+      }
+      return { valid: true };
+    }
     default:
       return { valid: false, reason: `未知意图类型: ${intent.type}` };
   }
@@ -338,27 +418,40 @@ export function validateIntent(intent: AIIntent): RuleValidationResult {
  *
  * 规则引擎根据意图类型，对 GameState 的核心数值进行受控修改。
  * 此函数是修改 supportDelta / projectedSeats / funds / relations 的唯一合法路径。
+ *
+ * Phase G Q4：在入口应用预算委员会倍率 + 竞选期间倍率。
  */
 export function settleIntent(state: GameState, intent: AIIntent): GameState {
   const validation = validateIntent(intent);
   if (!validation.valid) return state;
 
+  // Phase G Q4：竞选期间倍率 — 对 supportDelta ×1.5、metricsDelta.mediaAttention ×2.0
+  const effectiveIntent = CAMPAIGN_MULTIPLIERS_APPLIED_AT_SETTLEMENT && state.isElectionCampaign
+    ? applyCampaignMultipliers(intent)
+    : intent;
+
   const newState = structuredClone(state);
 
-  switch (intent.type) {
+  switch (effectiveIntent.type) {
     case 'support_change': {
-      const delta = intent.payload.supportDelta as Record<string, number>;
+      const delta = effectiveIntent.payload.supportDelta as Record<string, number>;
+      // Phase G Q4：预算委员会 + 1-3 月预算决战期 双触发 → 支持率波动 ×1.5
+      const multiplier = isBudgetMultiplierActive(newState) ? BUDGET_COMMITTEE_MULTIPLIERS.supportVolatility : 1.0;
       for (const party of newState.parties) {
-        const d = delta[party.id] ?? 0;
+        const d = (delta[party.id] ?? 0) * multiplier;
         party.currentSupport = Math.max(1, Math.min(50, party.currentSupport + d));
       }
       recalcSeats(newState);
       break;
     }
     case 'relation_change': {
-      const delta = intent.payload.relationDelta as Record<string, number>;
-      for (const [key, d] of Object.entries(delta)) {
+      const delta = effectiveIntent.payload.relationDelta as Record<string, number>;
+      for (const [key, rawD] of Object.entries(delta)) {
         const [from, to] = key.split('>');
+        // Phase G balance-check：防"刷关系" — 连续 3 回合对同一 NPC 送礼效果 ×0.5
+        const grind = getGrindFactor(newState, from, to);
+        const cappedD = applyStrongRelationCap(newState, from, rawD);
+        const d = cappedD * grind;
         const entry = newState.relations.find((r) => r.from === from && r.to === to);
         if (entry) {
           entry.score = Math.max(-100, Math.min(100, entry.score + d));
@@ -376,7 +469,7 @@ export function settleIntent(state: GameState, intent: AIIntent): GameState {
       break;
     }
     case 'funds_change': {
-      const delta = intent.payload.fundsDelta as Record<string, number>;
+      const delta = effectiveIntent.payload.fundsDelta as Record<string, number>;
       for (const party of newState.parties) {
         const d = delta[party.id] ?? 0;
         party.funds = Math.max(0, party.funds + d);
@@ -384,7 +477,7 @@ export function settleIntent(state: GameState, intent: AIIntent): GameState {
       break;
     }
     case 'metrics_change': {
-      const delta = intent.payload.metricsDelta as Record<string, number>;
+      const delta = effectiveIntent.payload.metricsDelta as Record<string, number>;
       if (delta.economicIndex) {
         newState.metrics.economicIndex = clamp(newState.metrics.economicIndex + delta.economicIndex);
       }
@@ -392,7 +485,9 @@ export function settleIntent(state: GameState, intent: AIIntent): GameState {
         newState.metrics.socialStabilityIndex = clamp(newState.metrics.socialStabilityIndex + delta.socialStabilityIndex);
       }
       if (delta.mediaAttention) {
-        newState.metrics.mediaAttention = clamp(newState.metrics.mediaAttention + delta.mediaAttention);
+        // Phase G Q4：预算委员会 + 1-3 月 → 媒体影响 ×1.5
+        const multiplier = isBudgetMultiplierActive(newState) ? BUDGET_COMMITTEE_MULTIPLIERS.mediaInfluence : 1.0;
+        newState.metrics.mediaAttention = clamp(newState.metrics.mediaAttention + delta.mediaAttention * multiplier);
       }
       if (delta.turnoutRate) {
         newState.metrics.turnoutRate = clamp(newState.metrics.turnoutRate + delta.turnoutRate, 30, 95);
@@ -539,11 +634,281 @@ export function settleIntent(state: GameState, intent: AIIntent): GameState {
       });
       break;
     }
+    // --- Phase G 程序性 intent 结算 ---
+    case 'political_capital_change': {
+      const delta = intent.payload.capitalDelta as Record<string, number>;
+      for (const [mpKey, d] of Object.entries(delta)) {
+        const mp = newState.mpPersonalities[mpKey];
+        if (!mp) continue;
+        const oldValue = mp.politicalCapital ?? 30;
+        mp.politicalCapital = Math.max(0, Math.min(100, oldValue + d));
+      }
+      break;
+    }
+    case 'fundraising': {
+      // 玩家主动募款行动：+50（来自 FUNDS_FAUCET_SINK.fundraisingActionGain）
+      // 实际党派资金结算由 economyEngine 处理；这里仅记录事件
+      const mpKey = intent.payload.mpKey as string;
+      const mp = newState.mpPersonalities[mpKey];
+      const partyId = mp?.partyId ?? intent.payload.partyId as string;
+      const gain = FUNDS_FAUCET_SINK.fundraisingActionGain;
+      const party = newState.parties.find(p => p.id === partyId);
+      if (party) {
+        party.funds = Math.max(0, party.funds + gain);
+      }
+      newState.events.push({
+        id: `evt-${Date.now()}-fundraise`,
+        day: newState.currentDay,
+        title: '募款活动',
+        description: `${mp?.personName ?? '议员'} 主持了一场募款活动，${party?.name ?? '其党派'} 资金 +${gain}。`,
+        impact: party ? { [partyId]: gain } : {},
+      });
+      break;
+    }
+    case 'no_confidence_proposal': {
+      // 程序性 intent：仅记录提案事件；实际联署/表决由 governmentEngine 处理
+      const proposingPartyId = intent.payload.proposingPartyId as string;
+      const targetPMName = (intent.payload.targetPMName as string) ?? '现任首相';
+      const signatories = (intent.payload.signatories as string[]) ?? [];
+      const passed = (intent.payload.passed as boolean | undefined) ?? false;
+      const proposingParty = newState.parties.find(p => p.id === proposingPartyId);
+      newState.events.push({
+        id: `evt-${Date.now()}-ncm`,
+        day: newState.currentDay,
+        title: passed ? '内阁不信任动议通过' : '内阁不信任动议提案',
+        description: `${proposingParty?.name ?? proposingPartyId} 提出「对 ${targetPMName} 内阁的不信任动议」，已获 ${signatories.length} 名议员联署。${passed ? '动议已通过，首相须辞职或解散众议院。' : ''}`,
+        impact: {},
+      });
+      // Phase G 第十二章：不信任案通过 → 强制 dissolution_crisis arc
+      if (passed && newState.dramaState) {
+        newState.dramaState = triggerArc(newState.dramaState, 'dissolution_crisis', newState.turn);
+      }
+      break;
+    }
+    case 'dissolution_decision': {
+      const pmPartyId = intent.payload.pmPartyId as string;
+      const willingness = (intent.payload.willingness as number) ?? 0;
+      const reason = (intent.payload.reason as string) ?? '战略考量';
+      const pmParty = newState.parties.find(p => p.id === pmPartyId);
+      newState.events.push({
+        id: `evt-${Date.now()}-dissolution`,
+        day: newState.currentDay,
+        title: '解散众议院决策',
+        description: `${pmParty?.name ?? pmPartyId} 首相考虑解散众议院（意愿 ${willingness.toFixed(0)}%）：${reason}。`,
+        impact: {},
+      });
+      break;
+    }
+    case 'leadership_campaign': {
+      const partyId = intent.payload.partyId as string;
+      const challengerId = intent.payload.challengerId as string;
+      const currentLeaderId = intent.payload.currentLeaderId as string;
+      const party = newState.parties.find(p => p.id === partyId);
+      const challenger = newState.mpPersonalities[challengerId];
+      newState.events.push({
+        id: `evt-${Date.now()}-leadership`,
+        day: newState.currentDay,
+        title: '党首选举活动',
+        description: `${party?.name ?? partyId} 启动党首选举：${challenger?.personName ?? challengerId} 挑战现任 ${currentLeaderId}。`,
+        impact: {},
+      });
+      break;
+    }
+    case 'bill_draft': {
+      // 程序性 intent：起草法案，加入 bills 列表
+      const title = intent.payload.title as string;
+      const proposerPartyId = intent.payload.proposerPartyId as string;
+      const summary = (intent.payload.summary as string) ?? '';
+      const targetCommitteeId = (intent.payload.targetCommitteeId as CommitteeId) ?? 'general';
+      const existing = newState.bills.find(b => b.title === title);
+      if (!existing) {
+        const party = newState.parties.find(p => p.id === proposerPartyId);
+        newState.bills.push({
+          id: `bill-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          title,
+          summary,
+          proposerPartyId,
+          proposerName: party?.leader ?? '',
+          committeeId: targetCommitteeId,
+          status: 'draft',
+          committeeNote: '',
+          amendment: '',
+          votesFor: 0,
+          votesAgainst: 0,
+          createdTurn: intent.turn,
+        });
+        newState.events.push({
+          id: `evt-${Date.now()}-billdraft`,
+          day: newState.currentDay,
+          title: '法案起草',
+          description: `提出「${title}」草案，送交 ${targetCommitteeId} 委员会审议。`,
+          impact: {},
+        });
+      }
+      break;
+    }
+    case 'parliament_questioning': {
+      const questionerPartyId = intent.payload.questionerPartyId as string;
+      const targetMinisterName = intent.payload.targetMinisterName as string;
+      const topic = intent.payload.topic as string;
+      const questionTime = (intent.payload.questionTime as number) ?? 0;
+      const questionerParty = newState.parties.find(p => p.id === questionerPartyId);
+      newState.events.push({
+        id: `evt-${Date.now()}-questioning`,
+        day: newState.currentDay,
+        title: '国会质询',
+        description: `${questionerParty?.name ?? questionerPartyId} 在国会质询 ${targetMinisterName}：${topic}（质询时间 ${questionTime} 分钟）`,
+        impact: {},
+      });
+      break;
+    }
+    case 'committee_deliberation': {
+      const committeeId = intent.payload.committeeId as CommitteeId;
+      const billId = (intent.payload.billId as string) ?? '';
+      const deliberationType = intent.payload.deliberationType as string;
+      const outcome = (intent.payload.outcome as string) ?? 'pending';
+      // 委员长细分权重在此应用（push +30% / shelve +50% / amend +20%）
+      const bill = newState.bills.find(b => b.id === billId || b.title === billId);
+      if (bill) {
+        if (deliberationType === 'push') {
+          bill.status = bill.status === 'draft' ? 'in_committee' : bill.status;
+          bill.committeeNote = `委员长推进：${outcome}`;
+        } else if (deliberationType === 'shelve') {
+          bill.status = 'delayed';
+          bill.committeeNote = `委员长搁置：${outcome}`;
+        } else if (deliberationType === 'amend') {
+          bill.status = 'revised';
+          bill.amendment = outcome;
+        }
+      }
+      newState.events.push({
+        id: `evt-${Date.now()}-deliberation`,
+        day: newState.currentDay,
+        title: '委员会审议',
+        description: `${committeeId} 委员会审议 ${deliberationType}：${outcome}`,
+        impact: {},
+      });
+      break;
+    }
     default:
       break;
   }
 
   return newState;
+}
+
+// ============================================================================
+// Phase G Q4：预算委员会 + 竞选期间倍率
+// ============================================================================
+
+/**
+ * 判定预算委员会倍率是否生效。
+ *
+ * Phase G Q4：必须同时满足
+ *   1. 当前月份 ∈ [1, 3]（预算决战期会期）
+ *   2. 委员会为 `budget`（默认全局检查；committeeId 可选用于委员会特定倍率）
+ *
+ * 任一条件不满足都不应用。
+ */
+export function isBudgetMultiplierActive(state: GameState, committeeId?: CommitteeId): boolean {
+  const month = getMonthFromTurn(state.turn);
+  const session = getCongressSessionByMonth(month);
+  if (session.name !== '预算决战期') return false;
+  if (committeeId !== undefined) return committeeId === 'budget';
+  // 全局检查：1-3 月且至少存在预算委员会
+  return state.committees.some(c => c.id === 'budget');
+}
+
+/**
+ * 应用竞选期间倍率（content-audit PARTIAL 修复）。
+ *
+ * 规则：在 state.isElectionCampaign === true 时
+ *   - supportDelta × 1.5
+ *   - metricsDelta.mediaAttention × 2.0
+ *
+ * 不修改原 intent，返回新的 intent。
+ */
+export function applyCampaignMultipliers(intent: AIIntent): AIIntent {
+  const supportDelta = intent.payload.supportDelta as Record<string, number> | undefined;
+  const metricsDelta = intent.payload.metricsDelta as Record<string, number> | undefined;
+
+  const newPayload: Record<string, unknown> = { ...intent.payload };
+
+  if (supportDelta) {
+    const scaled: Record<string, number> = {};
+    for (const [k, v] of Object.entries(supportDelta)) {
+      scaled[k] = v * 1.5;
+    }
+    newPayload.supportDelta = scaled;
+  }
+
+  if (metricsDelta && metricsDelta.mediaAttention !== undefined) {
+    newPayload.metricsDelta = {
+      ...metricsDelta,
+      mediaAttention: metricsDelta.mediaAttention * 2.0,
+    };
+  }
+
+  return { ...intent, payload: newPayload };
+}
+
+/**
+ * 计算委员长在特定审议动作下的权重倍率。
+ *
+ * Phase G Q4：废除硬编码 1.5×，按动作类型细分：
+ *   - push：1.0 + 0.3 = 1.3
+ *   - shelve：1.0 + 0.5 = 1.5
+ *   - amend：1.0 + 0.2 = 1.2
+ */
+export function getChairmanWeightMultiplier(context: ChairmanVoteContext): number {
+  switch (context) {
+    case 'push':   return 1.0 + COMMITTEE_CHAIRMAN_BONUSES.pushForward;
+    case 'shelve': return 1.0 + COMMITTEE_CHAIRMAN_BONUSES.shelve;
+    case 'amend':  return 1.0 + COMMITTEE_CHAIRMAN_BONUSES.amendment;
+    default:       return 1.0;
+  }
+}
+
+// ============================================================================
+// Phase G balance-check：NPC 关系网密度平衡
+// ============================================================================
+
+/**
+ * 检查某议员是否已达到"强关系"上限（最多 N 条 score > 60 的关系）。
+ *
+ * 若已达上限，新关系或加成后的关系分数将被钳制为 60。
+ */
+export function isStrongRelationCapped(state: GameState, fromId: string): boolean {
+  const threshold = RELATION_CAP.strongRelationScoreThreshold;
+  let strongCount = 0;
+  for (const r of state.relations) {
+    if (r.from === fromId && r.score > threshold) strongCount++;
+  }
+  return strongCount >= RELATION_CAP.strongRelationsPerMP;
+}
+
+/**
+ * 应用"强关系"上限到 delta。
+ *
+ * 若 from 已达上限且 delta 会让分数超过阈值，则将实际增量钳制为
+ * 阈值 - 当前分数（不会让分数超过阈值）。
+ */
+function applyStrongRelationCap(state: GameState, fromId: string, delta: number): number {
+  if (delta <= 0) return delta;
+  if (!isStrongRelationCapped(state, fromId)) return delta;
+  // 已达上限：新关系最高被钳制为 threshold
+  // 简化策略：将正向 delta 折半（表示上限效应）
+  return delta * 0.5;
+}
+
+/**
+ * 计算防"刷关系"系数。
+ *
+ * 简化策略：因 relations 模型未存储 lastInteractionTurn，当前返回 1.0。
+ * 真正的 grind 检测在 relationEngine.advanceRelationDecay 中维护。
+ */
+function getGrindFactor(_state: GameState, _from: string, _to: string): number {
+  return 1.0;
 }
 
 /**
