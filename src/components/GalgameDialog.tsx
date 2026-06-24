@@ -4,17 +4,22 @@ import { BackgroundImage } from './BackgroundImage';
 import type { Party, ChoiceEffect, PoliticalEvent } from '../types';
 
 /**
- * 场景识别：判断当前对话「发生在哪里」，叠加对应的背景图。
+ * 场景识别：判断当前对话「物理发生在哪个场所」，叠加对应的背景图。
  *
- * 设计要点（解决用户反馈）：
- *  1. 只看「现场」，不看「话题」。先剥掉「说起/提到/谈及…」之类的话题性提及，
- *     避免出现"在委员会举起报纸→报纸背景"、"在办公室聊料亭→料亭背景"这种错配。
- *  2. 优先级：具体室内场所（执政党办公室/料亭/居酒屋）> 议会机构（委员会）> 媒体机构。
- *     —— 越是限定空间的关键词越优先。
- *  3. 媒体类只在「事件本身是媒体事件」时触发：要求出现报社/电视台/记者会/编辑部
- *     等"媒体机构"关键词，或 intentType 为 media_boost/media_scandal。
- *     单纯的"报纸""报道""新闻"作为道具/话题时不算。
- *  4. intentType 已不再单独触发场景（除媒体类），因为「行动类型≠发生地点」。
+ * 设计原则（关键）：
+ *  1. 背景只反映"当前事件发生的场所"，与对话里提到的内容、动作、对象无关。
+ *     "举起报纸"、"提到料亭"、"讨论媒体"等都不改变场所。
+ *  2. 不是每个场景都要有背景图。没有明确场所匹配就返回 null（默认黑底），
+ *     严禁靠"行动意图"或"动作关键词"硬凑背景。
+ *  3. 先剥掉「说起/提到/谈及/听说…」之类的话题性提及，
+ *     再用剩下的文本匹配具体地点关键词。
+ *  4. 优先级：具体室内场所（执政党办公室/料亭/居酒屋）> 议会机构（委员会）。
+ *  5. intentType 不再单独触发任何场景。
+ *
+ * 「报纸」是特殊的：它不是物理场所，而是一次「内容闪现」——当文本明确写出
+ * 「某媒体刊登/报道了某新闻」这种一句话时，短暂切到报纸头条背景。
+ * 因此 newspaper 走单独检测，只看当前对话 + 摘要里有没有「媒体 + 发布动作」
+ * 的明确陈述，与场景实际发生在哪里无关。允许事件进行中背景切换。
  */
 type SceneType = 'ryotei' | 'izakaya' | 'ruling_office' | 'committee' | 'newspaper';
 
@@ -34,53 +39,87 @@ const MENTION_PATTERNS: RegExp[] = [
   /据说[^，。、！？\n]{0,20}/g,
 ];
 
-const SCENE_PATTERNS: Array<{ type: SceneType; pattern: RegExp; intents?: string[] }> = [
-  // 1. 执政党办公室 / 党本部 / 干部室（最高优先级，党机器所在地）
+/** 物理场所识别（背景=事件发生地）。优先级从上到下递减。 */
+const LOCATION_PATTERNS: Array<{ type: Exclude<SceneType, 'newspaper'>; pattern: RegExp }> = [
+  // 执政党办公室 / 党本部 / 干部室（最高优先级，党机器所在地）
   {
     type: 'ruling_office',
     pattern: /党本部|黨本部|党总部|黨總部|干事长室|干事長室|党首室|党首办公室|黨首室|总裁室|總裁室|党办公楼|黨辦公樓|党役員室|黨役員室|执政党.{0,4}(办公室|本部|党部)|与党.{0,4}(办公室|本部|党部)|黨幹部室|党干部室/,
   },
-  // 2. 料亭 / 割烹 / 懐石料理：高端日料（密会经典场所）
+  // 料亭 / 割烹 / 懐石料理：高端日料
   {
     type: 'ryotei',
     pattern: /料亭|割烹|懐石料理|怀石料理|懷石料理|京料理|高级日料店|高級料理屋/,
   },
-  // 3. 居酒屋 / 酒场：休闲饮酒
+  // 居酒屋 / 酒场
   {
     type: 'izakaya',
     pattern: /居酒屋|酒場|酒场|スナック|飲み屋|饮み屋|小酒馆|烤串店|大排档|烧烤摊/,
   },
-  // 4. 委员会 / 议事堂 / 本会议 / 国会质询
+  // 委员会 / 议事堂 / 本会议 / 国会质询
   {
     type: 'committee',
     pattern: /委員会|委员会|議場|议事堂|議事堂|本会議|本会议|予算委員会|预算委员会|公聴会|公听会|質疑|众议院|衆議院|參議院|参議院|国会内|國會/,
   },
-  // 5. 媒体场景：仅当事件本身是媒体事件（报社/电视台/记者会/编辑部等"媒体机构"）
-  //    单纯的「报纸」「报道」「新闻」作为道具或话题不算
-  {
-    type: 'newspaper',
-    pattern: /报社|報社|报社编辑|电视台|電視台|电视局|演播室|演播廳|新闻直播|記者会|记者会|记者招待会|新聞發布會|新闻发布会|新闻部|新聞部|新闻节目|编辑部|編輯部|编辑局|報道局|番組|摄影棚|攝影棚/,
-    intents: ['media_boost', 'media_scandal'],
-  },
 ];
 
-function detectScene(event: PoliticalEvent | undefined): SceneType | null {
+/**
+ * 「媒体发布新闻」内容闪现模式（newspaper 专用）。
+ * 必须命中「明确陈述某媒体发布了某新闻」的语义，单纯出现"报纸/电视台"作为
+ * 地点或道具不算。任一模式命中即触发。
+ */
+const NEWSPAPER_PATTERNS: RegExp[] = [
+  // 固定新闻术语（强信号，命中即触发）
+  /头版头条/,
+  /头版新闻/,
+  /头版刊登/,
+  /头条新闻/,
+  /独家报道/,
+  /独家新闻/,
+  /独家披露/,
+  /独家爆料/,
+  /早报头条/,
+  /晚报头条/,
+  /社论披露/,
+  // 「媒体机构/泛指」+ 「发布动作」（中间允许 0-8 字）
+  /(?:报社|報社|电视台|電視台|电视局|新闻社|新聞社|周刊|月刊|报纸|報紙|报刊|媒體|媒体|广播|电视新闻)[^，。、！？\n]{0,8}(?:刊登|刊载|登载|登出|发表|报道|独家|披露|爆料|播出|播送|刊出)/,
+  // 「发布动作」+ 「新闻对象」（中间允许 0-8 字）
+  /(?:刊登|刊载|登载|登出|发表|报道|独家|披露|爆料|播出)[^，。、！？\n]{0,8}(?:新闻|消息|丑闻|头条|头版|事件|内幕|爆料|黑幕|披露)/,
+];
+
+/**
+ * 场景识别入口。
+ * @param event 当前事件
+ * @param currentDialogText 当前正在显示的对话文本（用于 newspaper 内容闪现检测）
+ */
+function detectScene(
+  event: PoliticalEvent | undefined,
+  currentDialogText: string | undefined,
+): SceneType | null {
   if (!event) return null;
-  const parts = [
+
+  // 1. newspaper 内容闪现：看摘要 + 当前对话
+  //    优先于场所判定，因为这是"叙事镜头切到了媒体头条"
+  const flashText = `${event.summary} ${currentDialogText ?? ''}`;
+  if (NEWSPAPER_PATTERNS.some(p => p.test(flashText))) {
+    return 'newspaper';
+  }
+
+  // 2. 物理场所识别：从全文本剥掉话题性提及后匹配具体地点
+  const allParts = [
     event.title,
     event.summary,
     event.freeText?.scenePrompt ?? '',
     ...event.dialogs.map(d => `${d.speaker ?? ''} ${d.text}`),
   ];
-  // 先剥掉「说起/提到/谈及…」之类的话题性提及，剩下的关键词才视为"现场"
-  let text = parts.join(' ');
+  let fullText = allParts.join(' ');
   for (const re of MENTION_PATTERNS) {
-    text = text.replace(re, ' ');
+    fullText = fullText.replace(re, ' ');
   }
-  for (const rule of SCENE_PATTERNS) {
-    if (rule.intents?.includes(event.intentType ?? '')) return rule.type;
-    if (rule.pattern.test(text)) return rule.type;
+  for (const rule of LOCATION_PATTERNS) {
+    if (rule.pattern.test(fullText)) return rule.type;
   }
+
   return null;
 }
 
@@ -223,7 +262,8 @@ export const GalgameDialog: React.FC = () => {
   // 场景识别：命中时叠加对应背景图，并让 window 背景半透明以露出图片。
   // detectScene 已对 undefined 入参做了兜底（返回 null），可以安全地
   // 在 early return 之外直接调用，避免触发 Hooks 顺序问题。
-  const scene = detectScene(activeEvent?.event);
+  // 传入 currentDialog?.text 让 newspaper 内容闪现能跟随玩家阅读进度切换背景。
+  const scene = detectScene(activeEvent?.event, currentDialog?.text);
   const windowStyle: React.CSSProperties = scene
     ? { ...styles.window, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(2px)' }
     : styles.window;
