@@ -309,6 +309,18 @@ export interface GameState {
   isPlayerDead?: boolean;
   /** 玩家死亡原因 */
   playerDeathCause?: string;
+  /**
+   * 跨回合世界状态记忆（LLM 推演一致性用）。
+   * 由 worldMemory.ts 维护，注入到 LLM prompt 让 NPC / 剧情延续过往设定。
+   * undefined = 旧存档，会在 migrateGameState 中自动初始化。
+   */
+  worldMemory?: import('../engine/worldMemory').WorldMemory;
+  /**
+   * 戏剧曲线状态（dramaEngine 用）。
+   * 控制 LLM 推演的戏剧节奏（tension / arc / cooldown）。
+   * undefined = 未接入，simulate 等工具会自动初始化。
+   */
+  dramaState?: import('../engine/dramaEngine').DramaState;
 }
 
 // ===== 委员会类型 =====

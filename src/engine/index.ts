@@ -145,3 +145,38 @@ export {
   handleDeath,
 } from './lifeEngine';
 export type { DeathCause, DeathEvent, LifeEventResult } from './lifeEngine';
+export {
+  createInitialMemory,
+  renderMemoryForPrompt,
+  updateMemoryOnEvent,
+  decayMemory,
+  serializeMemory,
+  deserializeMemory,
+  getMemoryStats,
+} from './worldMemory';
+export type {
+  WorldMemory,
+  PlayerMemory,
+  PlayerReputation,
+  PlayerPromise,
+  PlayerScandal,
+  PlayerArc,
+  NPCRelationship,
+  MajorEventEntry,
+  OpenThread,
+} from './worldMemory';
+export {
+  createInitialDramaState,
+  advanceDramaTurn,
+  checkArcTrigger,
+  renderDramaDirective,
+  updateDramaOnEvent,
+  triggerArc,
+  getDramaStats,
+} from './dramaEngine';
+export type {
+  DramaState,
+  ActiveArc,
+  CompletedArc,
+  ArcType,
+} from './dramaEngine';

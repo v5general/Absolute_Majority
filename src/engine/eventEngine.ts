@@ -1,5 +1,7 @@
 import type { GameState, PoliticalEvent, EventChoice, AIIntent } from '../types';
 import { createIntentFromEffects, settleIntents } from './rulesEngine';
+import { createInitialMemory, updateMemoryOnEvent, type WorldMemory } from './worldMemory';
+import { createInitialDramaState, updateDramaOnEvent, type DramaState } from './dramaEngine';
 
 /**
  * 事件引擎 — 模拟后端逻辑
@@ -11,6 +13,9 @@ import { createIntentFromEffects, settleIntents } from './rulesEngine';
  * - AI 只能提出行动意图（规则 #5）
  * - 不得直接修改议席、支持率或投票结果（规则 #6）
  * - 所有结果由规则引擎计算（规则 #4）
+ *
+ * worldMemory 集成：传入 event 参数后，applyChoice 会自动把
+ * 玩家选择累积到 state.worldMemory，供下次 LLM 推演时注入。
  */
 
 /** 从事件池中随机选取一个事件（模拟后端推送） */
@@ -25,8 +30,17 @@ export function pickNextEvent(pool: PoliticalEvent[], exclude?: string[]): Polit
  *
  * 不再直接修改 supportDelta / projectedSeats / funds / relations / metrics，
  * 而是通过 createIntentFromEffects 生成意图，再由规则引擎统一结算。
+ *
+ * @param state   当前游戏状态
+ * @param choice  玩家选择的选项
+ * @param event   可选：玩家响应的事件本身。传入后会累积到 worldMemory。
+ *                不传则不更新记忆（向后兼容旧调用）。
  */
-export function applyChoice(state: GameState, choice: EventChoice): GameState {
+export function applyChoice(
+  state: GameState,
+  choice: EventChoice,
+  event?: PoliticalEvent,
+): GameState {
   // 生成 AI 意图（规则 #5：AI 只能提出行动意图）
   const intents: AIIntent[] = createIntentFromEffects(
     `event-choice-${choice.id}`,
@@ -50,6 +64,16 @@ export function applyChoice(state: GameState, choice: EventChoice): GameState {
     description: `支持率、关系、大盘数据已通过规则引擎更新`,
     impact: choice.effects.supportDelta ?? {},
   });
+
+  // 累积到 worldMemory（若提供了 event）
+  if (event) {
+    const prevMemory: WorldMemory = newState.worldMemory ?? createInitialMemory();
+    newState.worldMemory = updateMemoryOnEvent(prevMemory, newState, event, choice);
+
+    // 同步推进戏剧曲线（severity ≥ 4 触发危机后冷却，推进 arc 幕）
+    const prevDrama: DramaState = newState.dramaState ?? createInitialDramaState();
+    newState.dramaState = updateDramaOnEvent(prevDrama, event, newState.turn);
+  }
 
   return newState;
 }

@@ -3,6 +3,8 @@ import type { GameState, ActiveEvent, PoliticalEvent, EventChoice, PlayerConfig,
 import type { MPPersonality, PersonalityTrait, PoliticalIdeology } from '../types/mp';
 import { createInitialState } from '../data/initialState';
 import { applyChoice } from '../engine/eventEngine';
+import { createInitialMemory } from '../engine/worldMemory';
+import { createInitialDramaState, advanceDramaTurn } from '../engine/dramaEngine';
 import { saveGame as saveToStorage } from '../components/MainMenu';
 import {
   runAgentTurn,
@@ -88,10 +90,20 @@ function migrateGameState(state: GameState): GameState {
       playerHealth: state.playerHealth ?? 85,
       playerStress: state.playerStress ?? 15,
       isPlayerDead: state.isPlayerDead ?? false,
+      worldMemory: state.worldMemory ?? createInitialMemory(),
+      dramaState: state.dramaState ?? createInitialDramaState(),
     };
   }
 
-  return needsMigration ? { ...state, mpPersonalities: migratedPersonalities } : state;
+  // worldMemory / dramaState 兜底（旧存档未含此字段时自动初始化）
+  let withMemory: GameState = state.worldMemory
+    ? { ...state, mpPersonalities: migratedPersonalities }
+    : { ...state, mpPersonalities: migratedPersonalities, worldMemory: createInitialMemory() };
+  if (!withMemory.dramaState) {
+    withMemory = { ...withMemory, dramaState: createInitialDramaState() };
+  }
+
+  return withMemory;
 }
 
 // ===== Context 定义 =====
@@ -253,11 +265,18 @@ export const GameProvider: React.FC<{ children: React.ReactNode; savedState?: Ga
           // 0. 回合开始：推进法案决策链、处理过期法案
           let turnState = { ...oldState };
 
+          // 0.0 推进戏剧曲线（每回合 +5 tension，会期调整）
+          turnState.dramaState = advanceDramaTurn(
+            turnState.dramaState ?? createInitialDramaState(),
+            turnState,
+          );
+
           // 0.1 结算上一回合的 pendingChoice effects（如果有）
           const pendingChoice = activeEvent?.pendingChoice;
           if (pendingChoice) {
             console.log('[Game] Settling pending choice effects:', pendingChoice);
-            turnState = applyChoice(turnState, pendingChoice);
+            // 同时传入事件，让 applyChoice 把玩家选择累积到 worldMemory
+            turnState = applyChoice(turnState, pendingChoice, activeEvent?.event);
           }
 
           // 处理过期法案

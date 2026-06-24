@@ -20,6 +20,8 @@ import type { AgentIntent, PlayerConfig } from '../types';
 import { askLLMJSON, isLLMAvailable, isMobileDevice } from './llmBridge';
 import { getBackgroundNarrative } from './backgroundEngine';
 import { getMonthFromTurn, getYearFromTurn, getCongressSessionByMonth } from '../config/ruleConfig';
+import { renderMemoryForPrompt } from './worldMemory';
+import { renderDramaDirective } from './dramaEngine';
 
 // ===== 意图类型基本规则 =====
 
@@ -343,7 +345,8 @@ function buildEventUserPrompt(
 职业: ${playerCareer}
 背景: ${playerBg}
 ${playerMP?.factionId ? `所属派阀: ${playerMP.factionId}` : ''}
-
+${renderMemoryForPrompt(state.worldMemory ?? null, state, state.turn)}
+${renderDramaDirective(state.dramaState ?? null, state)}
 === 本次事件 ===
 事件类型: ${intent.intent_type}
 类型说明: ${rule?.description ?? '政治事件'}

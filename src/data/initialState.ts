@@ -10,6 +10,8 @@ import {
   generateCandidatePopularity,
   initializeFactions,
 } from '../engine';
+import { createInitialMemory } from '../engine/worldMemory';
+import { createInitialDramaState } from '../engine/dramaEngine';
 
 /**
  * 生成初始游戏状态
@@ -42,6 +44,8 @@ export function createInitialState(): GameState {
     turn: 1,
     turnsUntilElection: 48,
     isElectionCampaign: false,
+    worldMemory: createInitialMemory(),
+    dramaState: createInitialDramaState(),
   };
 
   // 1. 执行选举 V2（规则.txt 公式：120选区 + 80比例代表）
