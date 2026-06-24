@@ -4,22 +4,84 @@ import { BackgroundImage } from './BackgroundImage';
 import type { Party, ChoiceEffect, PoliticalEvent } from '../types';
 
 /**
- * 检测当前事件是否是「料亭」类密会场景。
- * 命中条件（满足任一）：
- *  - intentType === 'opposition_coalition'（在野联盟密会，prompt 里明确提到料亭）
- *  - 事件标题/摘要/对话/scenePrompt 文本里出现料亭、割烹、隠れ家、個室、密会 等关键词
+ * 场景识别：判断当前对话「发生在哪里」，叠加对应的背景图。
+ *
+ * 设计要点（解决用户反馈）：
+ *  1. 只看「现场」，不看「话题」。先剥掉「说起/提到/谈及…」之类的话题性提及，
+ *     避免出现"在委员会举起报纸→报纸背景"、"在办公室聊料亭→料亭背景"这种错配。
+ *  2. 优先级：具体室内场所（执政党办公室/料亭/居酒屋）> 议会机构（委员会）> 媒体机构。
+ *     —— 越是限定空间的关键词越优先。
+ *  3. 媒体类只在「事件本身是媒体事件」时触发：要求出现报社/电视台/记者会/编辑部
+ *     等"媒体机构"关键词，或 intentType 为 media_boost/media_scandal。
+ *     单纯的"报纸""报道""新闻"作为道具/话题时不算。
+ *  4. intentType 已不再单独触发场景（除媒体类），因为「行动类型≠发生地点」。
  */
-const RYOTEI_KEYWORDS = /料亭|割烹|隠れ家|個室|密会|私室|高級料理屋/;
-function isRyoteiScene(event: PoliticalEvent | undefined): boolean {
-  if (!event) return false;
-  if (event.intentType === 'opposition_coalition') return true;
+type SceneType = 'ryotei' | 'izakaya' | 'ruling_office' | 'committee' | 'newspaper';
+
+/** 话题性提及动词 + 后面 0-20 字（被提及的对象）。这些只表示"聊到"，不表示"现场"。 */
+const MENTION_PATTERNS: RegExp[] = [
+  /说起[^，。、！？\n]{0,20}/g,
+  /提到[^，。、！？\n]{0,20}/g,
+  /谈及[^，。、！？\n]{0,20}/g,
+  /谈到[^，。、！？\n]{0,20}/g,
+  /聊到[^，。、！？\n]{0,20}/g,
+  /聊起[^，。、！？\n]{0,20}/g,
+  /听说[^，。、！？\n]{0,20}/g,
+  /回忆起?[^，。、！？\n]{0,20}/g,
+  /想起[^，。、！？\n]{0,20}/g,
+  /想到[^，。、！？\n]{0,20}/g,
+  /传闻[^，。、！？\n]{0,20}/g,
+  /据说[^，。、！？\n]{0,20}/g,
+];
+
+const SCENE_PATTERNS: Array<{ type: SceneType; pattern: RegExp; intents?: string[] }> = [
+  // 1. 执政党办公室 / 党本部 / 干部室（最高优先级，党机器所在地）
+  {
+    type: 'ruling_office',
+    pattern: /党本部|黨本部|党总部|黨總部|干事长室|干事長室|党首室|党首办公室|黨首室|总裁室|總裁室|党办公楼|黨辦公樓|党役員室|黨役員室|执政党.{0,4}(办公室|本部|党部)|与党.{0,4}(办公室|本部|党部)|黨幹部室|党干部室/,
+  },
+  // 2. 料亭 / 割烹 / 懐石料理：高端日料（密会经典场所）
+  {
+    type: 'ryotei',
+    pattern: /料亭|割烹|懐石料理|怀石料理|懷石料理|京料理|高级日料店|高級料理屋/,
+  },
+  // 3. 居酒屋 / 酒场：休闲饮酒
+  {
+    type: 'izakaya',
+    pattern: /居酒屋|酒場|酒场|スナック|飲み屋|饮み屋|小酒馆|烤串店|大排档|烧烤摊/,
+  },
+  // 4. 委员会 / 议事堂 / 本会议 / 国会质询
+  {
+    type: 'committee',
+    pattern: /委員会|委员会|議場|议事堂|議事堂|本会議|本会议|予算委員会|预算委员会|公聴会|公听会|質疑|众议院|衆議院|參議院|参議院|国会内|國會/,
+  },
+  // 5. 媒体场景：仅当事件本身是媒体事件（报社/电视台/记者会/编辑部等"媒体机构"）
+  //    单纯的「报纸」「报道」「新闻」作为道具或话题不算
+  {
+    type: 'newspaper',
+    pattern: /报社|報社|报社编辑|电视台|電視台|电视局|演播室|演播廳|新闻直播|記者会|记者会|记者招待会|新聞發布會|新闻发布会|新闻部|新聞部|新闻节目|编辑部|編輯部|编辑局|報道局|番組|摄影棚|攝影棚/,
+    intents: ['media_boost', 'media_scandal'],
+  },
+];
+
+function detectScene(event: PoliticalEvent | undefined): SceneType | null {
+  if (!event) return null;
   const parts = [
     event.title,
     event.summary,
     event.freeText?.scenePrompt ?? '',
     ...event.dialogs.map(d => `${d.speaker ?? ''} ${d.text}`),
   ];
-  return RYOTEI_KEYWORDS.test(parts.join(' '));
+  // 先剥掉「说起/提到/谈及…」之类的话题性提及，剩下的关键词才视为"现场"
+  let text = parts.join(' ');
+  for (const re of MENTION_PATTERNS) {
+    text = text.replace(re, ' ');
+  }
+  for (const rule of SCENE_PATTERNS) {
+    if (rule.intents?.includes(event.intentType ?? '')) return rule.type;
+    if (rule.pattern.test(text)) return rule.type;
+  }
+  return null;
 }
 
 /**
@@ -158,18 +220,18 @@ export const GalgameDialog: React.FC = () => {
   const showFreeTextInput = hasFreeText && activeEvent.showChoices && !activeEvent.resolved;
   const showFixedChoices = !hasFreeText && activeEvent.showChoices && !activeEvent.resolved;
 
-  // 检测料亭密会场景：命中时叠加场景背景图，并让 window 背景半透明以露出图片。
-  // 注意 isRyoteiScene 已对 undefined 入参做了兜底（返回 false），可以安全地
+  // 场景识别：命中时叠加对应背景图，并让 window 背景半透明以露出图片。
+  // detectScene 已对 undefined 入参做了兜底（返回 null），可以安全地
   // 在 early return 之外直接调用，避免触发 Hooks 顺序问题。
-  const ryotei = isRyoteiScene(activeEvent?.event);
-  const windowStyle: React.CSSProperties = ryotei
+  const scene = detectScene(activeEvent?.event);
+  const windowStyle: React.CSSProperties = scene
     ? { ...styles.window, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(2px)' }
     : styles.window;
 
   return (
     <div style={styles.overlay} onClick={handleOverlayClick}>
-      {/* 料亭场景背景图：命中时自动加载（WebP/PNG 自适应），未提供图片文件时静默不渲染 */}
-      {ryotei && <BackgroundImage image="scene-ryotei" />}
+      {/* 场景背景图：命中时自动加载（WebP/PNG 自适应），未提供图片文件时静默不渲染 */}
+      {scene && <BackgroundImage image={`scene-${scene}`} />}
       <div style={windowStyle} onClick={handleWindowClick}>
         {/* 标题栏 */}
         <div style={styles.titleBar}>
