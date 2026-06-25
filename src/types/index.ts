@@ -25,6 +25,7 @@ export type {
   Committee,
   BillStatus,
   Bill,
+  ParliamentaryGroup,
 } from './game';
 
 export { CABINET_POST_LABELS, COMMITTEE_LABELS, BILL_STATUS_LABELS } from './game';
@@ -70,7 +71,7 @@ export type {
   CareerState,
 } from './career';
 
-export { PARTY_RANKS, PARLIAMENT_RANKS } from './career';
+export { PARTY_RANKS, PARLIAMENT_RANKS, PARTY_RANK_ALIASES, getPartyRankLabel } from './career';
 
 export type {
   FamilyOrigin,

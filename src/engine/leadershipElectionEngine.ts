@@ -85,7 +85,10 @@ export function checkLeadershipTriggers(
     // 条件 4：派阀挑战 — factionEngine.canChallengeLeader
     if (party.factions && party.factions.length > 0) {
       try {
-        const challengeable = canChallengeLeader(party, party.factions);
+        // 任一派阀满足挑战条件即触发
+        const challengeable = party.factions.some(faction =>
+          canChallengeLeader(faction, party, party.currentSupport),
+        );
         if (challengeable) {
           triggers.push({
             partyId: party.id,
