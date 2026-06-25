@@ -8,18 +8,15 @@ import {
 } from '../config/electionConfig';
 
 /**
- * 选举引擎（Phase G Q1：并行制 110 直接 + 90 全国比例代表 = 200 席）
+ * 选举引擎（Phase G Q1：并行制 110 直接 + N 全国比例代表 = 总席位）
  *
  * 直接层（110 席 = 11 大选区 × 10 直接席）：
- *   - 每党在每块派出 10 候选人（leader + 核心成员 + 后排填充）
- *   - 候选人层面得分 = 0.4×partySupport + 0.3×candidatePopularity
- *                      + 0.2×districtLeaning + 0.1×random
- *   - 跨党派合并，按得分排序取 top 10 → 直接议席
+ *   - 每块内使用 D'Hondt 按 supportByParty 比例分配 10 席
  *
- * 比例层（90 席）：
+ * 比例层（可配置席位数 = totalSeats − 110）：
  *   - 全国政党票 = Σ(voterCount[block] × supportByParty[block][party]) for each block
  *   - 5% 阈值过滤
- *   - D'Hondt 法在合格政党之间分 90 席
+ *   - D'Hondt 法在合格政党之间分配
  *
  * 合并：
  *   partyResults.seats = 直接席 + 比例席
@@ -37,13 +34,6 @@ export const CAMPAIGN_VOLATILITY_MULTIPLIER = ELECTION_CONFIG.campaignVolatility
 
 /** 竞选行动类型 */
 export type CampaignAction = 'campaign' | 'media_attack' | 'policy_announcement' | 'coalition_signal' | 'debate';
-
-/** 候选人得分上下文（直接层候选人评估用） */
-interface CandidateScore {
-  partyId: string;
-  candidateName: string;
-  score: number;
-}
 
 // ============================================================================
 // V1 兼容接口（旧 D'Hondt，向后保留）
@@ -200,11 +190,6 @@ function allocateDirectSeats(
   for (const district of districts) {
     const directSeats = Math.min(DIRECT_SEATS_PER_BLOCK, district.totalSeats);
 
-    // 为每党生成候选人列表（保留供后续使用，不影响 D'Hondt 分配）
-    for (const party of parties) {
-      buildCandidateListForParty(party, directSeats);
-    }
-
     // 块内 D'Hondt：按 supportByParty 分配 directSeats 席
     const blockResult = dhondt(parties, district.supportByParty, directSeats);
 
@@ -238,26 +223,6 @@ function buildCandidateListForParty(party: Party, count: number): string[] {
     filler++;
   }
   return candidates.slice(0, count);
-}
-
-/** 候选人个人支持度兜底：基于党派 charisma + 序号衰减 */
-function fallbackCandidatePopularity(
-  party: Party,
-  _name: string,
-  index: number,
-  rng: () => number,
-): number {
-  const base = party.charisma;
-  // 后排候选人（index >= 1）有衰减
-  const decay = Math.max(0, 1 - index * 0.15);
-  const noise = (rng() - 0.5) * 10;
-  return Math.max(5, Math.min(95, base * decay + noise));
-}
-
-/** 竞选期间候选人曝光度提升 */
-function applyCampaignCandidateBoost(score: number, isCampaign: boolean): number {
-  if (!isCampaign) return score;
-  return score * CAMPAIGN_MEDIA_MULTIPLIER * ELECTION_CONFIG.campaignExposureBoost;
 }
 
 // ============================================================================

@@ -45,6 +45,48 @@ export const NO_CONFIDENCE_THRESHOLD = PARLIAMENT_RULES.noConfidenceThreshold;
 /** 委员会法定人数比例（超过半数） */
 export const QUORUM_RATIO = PARLIAMENT_RULES.quorumRatio;
 
+/** 意识形态光谱顺序（本地副本，避免循环导入） */
+const IDEOLOGY_ORDER: import('../types').Ideology[] = [
+  'far-left', 'left', 'center-left', 'center', 'center-right', 'right', 'far-right',
+];
+
+/** 意识形态距离（本地副本，避免循环导入） */
+function ideologyDistance(a: import('../types').Ideology, b: import('../types').Ideology): number {
+  return Math.abs(IDEOLOGY_ORDER.indexOf(a) - IDEOLOGY_ORDER.indexOf(b));
+}
+
+/** 确定性随机数生成器（用于 settle，确保可复现） */
+function seededRandom(seed: number): () => number {
+  let s = Math.abs(seed) + 1;
+  return () => {
+    s = (s * 1103515245 + 12345) & 0x7fffffff;
+    return s / 0x7fffffff;
+  };
+}
+
+/** 从 intent id + turn 派生确定性种子 */
+function intentSeed(intent: AIIntent, state: GameState, salt: number = 0): number {
+  let hash = state.turn * 31 + salt;
+  for (let i = 0; i < intent.id.length; i++) hash = ((hash << 5) - hash + intent.id.charCodeAt(i)) | 0;
+  return hash;
+}
+
+/** 推送事件到 state（统一入口，避免 copypaste） */
+function pushEvent(
+  state: GameState,
+  title: string,
+  description: string,
+  impact: Record<string, number> = {},
+): void {
+  state.events.push({
+    id: `evt-${Date.now()}-${Math.floor(Math.random() * 100000)}`,
+    day: state.currentDay,
+    title,
+    description,
+    impact,
+  });
+}
+
 // ===== 不信任案规则 =====
 
 /**
@@ -409,6 +451,61 @@ export function validateIntent(intent: AIIntent): RuleValidationResult {
       }
       return { valid: true };
     }
+    case 'bill_vote': {
+      const billId = intent.payload.billId as string | undefined;
+      if (!billId) {
+        return { valid: false, reason: '全院表决意图缺少 billId' };
+      }
+      return { valid: true };
+    }
+    case 'committee_review': {
+      const committeeId = intent.payload.committeeId as string | undefined;
+      const billId = intent.payload.billId as string | undefined;
+      if (!committeeId || !billId) {
+        return { valid: false, reason: '委员会审查意图缺少 committeeId 或 billId' };
+      }
+      return { valid: true };
+    }
+    case 'committee_vote': {
+      const committeeId = intent.payload.committeeId as string | undefined;
+      const billId = intent.payload.billId as string | undefined;
+      if (!committeeId || !billId) {
+        return { valid: false, reason: '委员会表决意图缺少 committeeId 或 billId' };
+      }
+      return { valid: true };
+    }
+    case 'coalition_negotiation': {
+      const proposerPartyId = intent.payload.proposerPartyId as string | undefined;
+      const targetPartyId = intent.payload.targetPartyId as string | undefined;
+      if (!proposerPartyId || !targetPartyId) {
+        return { valid: false, reason: '联盟谈判意图缺少 proposerPartyId 或 targetPartyId' };
+      }
+      return { valid: true };
+    }
+    case 'cabinet_reshuffle': {
+      const pmPartyId = intent.payload.pmPartyId as string | undefined;
+      if (!pmPartyId) {
+        return { valid: false, reason: '内阁改组意图缺少 pmPartyId' };
+      }
+      return { valid: true };
+    }
+    case 'leadership_challenge': {
+      const partyId = intent.payload.partyId as string | undefined;
+      const challengerId = intent.payload.challengerId as string | undefined;
+      const currentLeaderId = intent.payload.currentLeaderId as string | undefined;
+      if (!partyId || !challengerId || !currentLeaderId) {
+        return { valid: false, reason: '党首挑战意图缺少 partyId、challengerId 或 currentLeaderId' };
+      }
+      return { valid: true };
+    }
+    case 'policy_announcement': {
+      const partyId = intent.payload.partyId as string | undefined;
+      const policyArea = intent.payload.policyArea as string | undefined;
+      if (!partyId || !policyArea) {
+        return { valid: false, reason: '政策宣示意图缺少 partyId 或 policyArea' };
+      }
+      return { valid: true };
+    }
     default:
       return { valid: false, reason: `未知意图类型: ${intent.type}` };
   }
@@ -610,13 +707,28 @@ export function settleIntent(state: GameState, intent: AIIntent): GameState {
       break;
     }
     case 'faction_defect': {
-      newState.events.push({
-        id: `evt-${Date.now()}-defect`,
-        day: newState.currentDay,
-        title: '派系叛离',
-        description: `${intent.payload.mpName as string} 脱离了原有派系。`,
-        impact: {},
-      });
+      const mpName = intent.payload.mpName as string;
+      const partyId = intent.payload.partyId as string;
+      const factionId = intent.payload.factionId as string | undefined;
+      const party = newState.parties.find(p => p.id === partyId);
+      if (party && party.factions && factionId) {
+        const faction = party.factions.find(f => f.id === factionId);
+        if (faction && faction.members.includes(mpName)) {
+          faction.members = faction.members.filter(m => m !== mpName);
+          faction.influence = Math.max(1, faction.influence - 3);
+          // 修正反馈循环：忠诚度不降至触发阈值以下（防止连锁叛离）
+          const minLoyaltyAfterDefect = 45; // 保持在触发阈值 40 之上
+          faction.loyalty = Math.max(minLoyaltyAfterDefect, faction.loyalty - 5);
+        }
+      }
+      const mpKey = `${partyId}:${mpName}`;
+      const mp = newState.mpPersonalities[mpKey];
+      if (mp) {
+        mp.factionId = undefined;
+        mp.loyalty = Math.max(0, mp.loyalty - 10);
+      }
+      pushEvent(newState, '派系叛离',
+        `${mpName} 脱离了${factionId ? `派系 ${factionId}` : '原有派系'}，党内忠诚度下降。`);
       break;
     }
     case 'stress_event': {
@@ -814,6 +926,202 @@ export function settleIntent(state: GameState, intent: AIIntent): GameState {
         description: `${committeeId} 委员会审议 ${deliberationType}：${outcome}`,
         impact: {},
       });
+      break;
+    }
+    case 'bill_vote': {
+      const billId = intent.payload.billId as string;
+      const bill = newState.bills.find(b => b.id === billId);
+      if (bill) {
+        bill.status = 'voting';
+        // 全院表决：与 committeeEngine.committee_vote 一致使用 relScore * 0.3 权重
+        let votesFor = 0;
+        let votesAgainst = 0;
+        for (const party of newState.parties) {
+          const rel = newState.relations.find(
+            r => r.from === party.id && r.to === bill.proposerPartyId,
+          );
+          const relScore = rel ? rel.score : 0;
+          const isSameParty = party.id === bill.proposerPartyId;
+          const billParty = newState.parties.find(p => p.id === bill.proposerPartyId);
+          const idDist = ideologyDistance(party.ideology, billParty?.ideology ?? 'center');
+          let favorScore = 50 + relScore * 0.3;
+          if (isSameParty) favorScore += 30;
+          favorScore -= idDist * 6;
+          const favorRatio = Math.max(0, Math.min(1, favorScore / 100));
+          const partyVotes = party.projectedSeats;
+          votesFor += Math.round(partyVotes * favorRatio);
+          votesAgainst += partyVotes - Math.round(partyVotes * favorRatio);
+        }
+        bill.votesFor = votesFor;
+        bill.votesAgainst = votesAgainst;
+        bill.status = votesFor > votesAgainst ? 'implemented' : 'rejected';
+      }
+      pushEvent(newState, '全院表决',
+        `法案 "${bill?.title ?? billId}" 经全院表决${bill?.status === 'implemented' ? '通过' : '未通过'}（赞成 ${bill?.votesFor ?? 0}，反对 ${bill?.votesAgainst ?? 0}）。`);
+      break;
+    }
+    case 'committee_review': {
+      const committeeId = intent.payload.committeeId as CommitteeId;
+      const billId = intent.payload.billId as string;
+      const bill = newState.bills.find(b => b.id === billId);
+      const committee = newState.committees.find(c => c.id === committeeId);
+      if (bill && committee) {
+        const chairmanParty = newState.parties.find(p => p.id === committee.chairman.partyId);
+        const billParty = newState.parties.find(p => p.id === bill.proposerPartyId);
+        const rel = newState.relations.find(r => r.from === committee.chairman.partyId && r.to === bill.proposerPartyId);
+        const relScore = rel ? rel.score : 0;
+        const idDist = ideologyDistance(
+          chairmanParty?.ideology ?? 'center',
+          billParty?.ideology ?? 'center',
+        );
+        const passChance = 50 + relScore * 0.5 - idDist * 8 + (committee.efficiency - 50) * 0.3;
+        if (passChance >= 65) {
+          bill.status = 'revised';
+          bill.committeeNote = '审议通过，无修正';
+        } else if (passChance >= 40) {
+          bill.status = 'revised';
+          bill.amendment = `修正案：经${committeeId}委员会审议修改`;
+          bill.committeeNote = '审议通过，含修正案';
+        } else if (passChance >= 20) {
+          bill.status = 'delayed';
+          bill.committeeNote = '审议搁置（软性）';
+        } else {
+          bill.status = 'delayed';
+          bill.committeeNote = '审议搁置（强硬）';
+        }
+        pushEvent(newState, '委员会审查',
+          `${committeeId} 委员会审查法案 "${bill.title}"：${bill.committeeNote}`);
+      } else {
+        pushEvent(newState, '委员会审查失败',
+          `委员会审查意图缺少有效法案或委员会（billId=${billId}, committeeId=${committeeId}）`);
+      }
+      break;
+    }
+    case 'committee_vote': {
+      const committeeId = intent.payload.committeeId as CommitteeId;
+      const billId = intent.payload.billId as string;
+      const bill = newState.bills.find(b => b.id === billId);
+      const committee = newState.committees.find(c => c.id === committeeId);
+      if (bill && committee) {
+        let votesFor = 0;
+        let votesAgainst = 0;
+        for (const member of committee.members) {
+          if (!committee.presentMembers.includes(member.personName)) continue;
+          const isChairman = member.personName === committee.chairman.personName;
+          const isSameParty = member.partyId === bill.proposerPartyId;
+          const rel = newState.relations.find(r => r.from === member.partyId && r.to === bill.proposerPartyId);
+          const relScore = rel ? rel.score : 0;
+          let favorScore = 50 + relScore * 0.3;
+          if (isSameParty) favorScore += 30;
+          const memberParty = newState.parties.find(p => p.id === member.partyId);
+          const billParty = newState.parties.find(p => p.id === bill.proposerPartyId);
+          const idDist = ideologyDistance(memberParty?.ideology ?? 'center', billParty?.ideology ?? 'center');
+          favorScore -= idDist * 6;
+          const voteWeight = isChairman ? getChairmanWeightMultiplier((intent.payload.voteContext as ChairmanVoteContext) ?? 'push') : 1;
+          if (favorScore >= 45) votesFor += voteWeight;
+          else votesAgainst += voteWeight;
+        }
+        bill.votesFor = votesFor;
+        bill.votesAgainst = votesAgainst;
+        bill.status = votesFor > votesAgainst ? 'revised' : 'rejected';
+        pushEvent(newState, '委员会表决',
+          `${committeeId} 委员会表决 "${bill.title}"：赞成 ${votesFor}，反对 ${votesAgainst}。`);
+      } else {
+        pushEvent(newState, '委员会表决失败',
+          `委员会表决意图缺少有效法案或委员会（billId=${billId}, committeeId=${committeeId}）`);
+      }
+      break;
+    }
+    case 'coalition_negotiation': {
+      const proposerPartyId = intent.payload.proposerPartyId as string;
+      const targetPartyId = intent.payload.targetPartyId as string;
+      if (newState.government) {
+        // 简化联盟谈判：检查意愿度，满足条件则加入执政联盟
+        const targetParty = newState.parties.find(p => p.id === targetPartyId);
+        const rulingParty = newState.parties.find(p => p.id === proposerPartyId);
+        if (targetParty && rulingParty) {
+          const rel = newState.relations.find(r => r.from === targetPartyId && r.to === proposerPartyId);
+          const relScore = rel ? rel.score : 0;
+          const idDist = ideologyDistance(targetParty.ideology, rulingParty.ideology);
+          const willingness = 30 + relScore * 0.5 - idDist * 10;
+          if (willingness >= 45 && !newState.government.rulingCoalition.includes(targetPartyId)) {
+            newState.government.rulingCoalition.push(targetPartyId);
+            newState.government.opposition = newState.government.opposition.filter(o => o !== targetPartyId);
+            // 简化稳定性重算
+            const coalitionSeats = newState.government.rulingCoalition.reduce((s, pid) => {
+              const p = newState.parties.find(pp => pp.id === pid);
+              return s + (p?.projectedSeats ?? 0);
+            }, 0);
+            const seatMargin = Math.min(40, Math.max(0, ((coalitionSeats / newState.metrics.totalSeats) - 0.5) * 200));
+            newState.government.stability = Math.min(100, Math.max(0, seatMargin + 30));
+          }
+        }
+        const success = newState.government.rulingCoalition.includes(targetPartyId);
+        pushEvent(newState, '联盟谈判',
+          `${proposerPartyId} 与 ${targetPartyId} 进行联盟谈判${success ? '，达成协议' : '，谈判破裂'}。`);
+      }
+      break;
+    }
+    case 'cabinet_reshuffle': {
+      const pmPartyId = intent.payload.pmPartyId as string;
+      const scope = (intent.payload.scope as string) ?? 'partial';
+      const rng = seededRandom(intentSeed(intent, newState, 1));
+      if (newState.government) {
+        const reshuffleCount = scope === 'full'
+          ? Math.floor(newState.government.ministers.length * 0.5)
+          : 1 + Math.floor(rng() * 3);
+        const shuffled = [...newState.government.ministers];
+        // 修正：预先缓存移除数量，避免 splice 收缩 shuffled.length 导致循环提前终止
+        const targetRemove = Math.min(reshuffleCount, shuffled.length);
+        for (let i = 0; i < targetRemove; i++) {
+          const idx = Math.floor(rng() * shuffled.length);
+          shuffled.splice(idx, 1);
+        }
+        newState.government.ministers = shuffled;
+        const stabilityDelta = (intent.payload.stabilityDelta as number) ?? 10;
+        newState.government.stability = Math.min(100, Math.max(0,
+          (newState.government.stability ?? 50) + stabilityDelta,
+        ));
+      }
+      pushEvent(newState, '内阁改组',
+        `首相（${pmPartyId}）宣布内阁${scope === 'full' ? '全面' : '部分'}改组。`);
+      break;
+    }
+    case 'leadership_challenge': {
+      const partyId = intent.payload.partyId as string;
+      const challengerId = intent.payload.challengerId as string;
+      const currentLeaderId = intent.payload.currentLeaderId as string;
+      const party = newState.parties.find(p => p.id === partyId);
+      const rng = seededRandom(intentSeed(intent, newState, 2));
+      if (party) {
+        // 发起挑战：降低党内支持、触发派阀站队（确定性 RNG）
+        const supportPenalty = -(2 + Math.floor(rng() * 4));
+        party.currentSupport = Math.max(1, Math.min(50, party.currentSupport + supportPenalty));
+        if (party.factions) {
+          for (const faction of party.factions) {
+            if (rng() < 0.3) faction.loyalty = Math.max(0, faction.loyalty - 5);
+          }
+        }
+        recalcSeats(newState);
+      }
+      pushEvent(newState, '党首挑战',
+        `${challengerId.split(':').pop() ?? challengerId} 正式对现任党首 ${currentLeaderId.split(':').pop() ?? currentLeaderId} 发起挑战！党内陷入分裂。`);
+      break;
+    }
+    case 'policy_announcement': {
+      const partyId = intent.payload.partyId as string;
+      const policyArea = intent.payload.policyArea as string;
+      const audience = (intent.payload.targetAudience as string) ?? 'general';
+      const party = newState.parties.find(p => p.id === partyId);
+      if (party) {
+        const rng = seededRandom(intentSeed(intent, newState, 3));
+        const supportGain = audience === 'core' ? 2 : audience === 'swing' ? 1.5 : 1;
+        const noise = (rng() - 0.5) * 0.5;
+        party.currentSupport = Math.max(1, Math.min(50, party.currentSupport + supportGain + noise));
+        recalcSeats(newState);
+      }
+      pushEvent(newState, '政策宣示',
+        `${party?.name ?? partyId} 发布${policyArea}领域新政策。`);
       break;
     }
     default:

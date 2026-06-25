@@ -51,7 +51,7 @@ export interface ProportionalBlock {
  *   - 总直接席 = 11 × 10 = 110 NPC 直接席
  *   - 全国比例代表层 90 席独立计算（见 electionConfig / electionEngine）
  *
- * NPC = 110 直接 + 89 比例 = 199（玩家占用第 200 席，加入某党时该党 +1）
+ * NPC = 110 直接 + 89 比例 = 199（玩家占第 200 席 / 1 比例代表席）
  */
 export const PROPORTIONAL_BLOCKS: ProportionalBlock[] = [
   {

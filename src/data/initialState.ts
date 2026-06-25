@@ -29,11 +29,12 @@ import { createInitialDramaState } from '../engine/dramaEngine';
  * 玩家选择党派后该党席位 +1（见 useGameState.setPlayerConfig）
  */
 export function createInitialState(): GameState {
+  // 深拷贝所有导入常量，防止 mutation 污染源数据
   const base: GameState = {
-    parties: initialParties,
-    relations: initialRelations,
-    metrics: initialMetrics,
-    districts: initialDistricts,
+    parties: JSON.parse(JSON.stringify(initialParties)),
+    relations: JSON.parse(JSON.stringify(initialRelations)),
+    metrics: JSON.parse(JSON.stringify(initialMetrics)),
+    districts: JSON.parse(JSON.stringify(initialDistricts)),
     events: [],
     government: null,
     committees: [],
@@ -50,8 +51,8 @@ export function createInitialState(): GameState {
     dramaState: createInitialDramaState(),
   };
 
-  // 1. 执行选举 V2：199 NPC 席（玩家为第 200 席，加入政党时 +1）
-  //    110 直接 + 89 全国比例代表 = 199
+  // 1. 执行选举 V2：199 NPC 席（110 直接 + 89 比例代表）
+  //    玩家为第 200 席（占 1 个比例代表席），加入某党时该党 +1
   const npcSeats = base.metrics.totalSeats - 1; // 199
   const npcMajority = Math.floor(npcSeats / 2) + 1; // 100
   const electionResult = runElectionV2(
@@ -59,9 +60,12 @@ export function createInitialState(): GameState {
     base.districts,
     npcSeats,
     npcMajority,
-    {}, // 初始无候选人个人支持率，使用默认值
+    {},
     false,
   );
+  // 修正元数据为完整议会数值（200 席 / 101 过半），玩家席位由 setPlayerConfig 补足
+  electionResult.totalSeats = base.metrics.totalSeats;           // 200
+  electionResult.majorityThreshold = base.metrics.majorityThreshold; // 101
 
   // 更新各党 projectedSeats 为实际选举结果
   for (const pr of electionResult.partyResults) {

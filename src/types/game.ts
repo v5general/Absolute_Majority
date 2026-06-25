@@ -48,7 +48,15 @@ export type AIIntentType =
   | 'leadership_campaign'       // 党首选举活动（含挑战者、现任、派阀背书）
   | 'bill_draft'                // 法案起草（程序性，含目标委员会）
   | 'parliament_questioning'    // 国会质询（含质询方、被质询大臣、议题、时间）
-  | 'committee_deliberation';   // 委员会审议（含委员会、法案、审议类型、结果）
+  | 'committee_deliberation'    // 委员会审议（含委员会、法案、审议类型、结果）
+  // --- 补全程序性 intent（Phase G Q6 第 2 批） ---
+  | 'bill_vote'                 // 全院表决（程序性，含法案、票数、结果）
+  | 'committee_review'          // 委员会审查（程序性，含委员会、法案、审查结果）
+  | 'committee_vote'            // 委员会表决（程序性，含委员会、法案、票数）
+  | 'coalition_negotiation'     // 联盟谈判（程序性，含发起方、目标方、条件）
+  | 'cabinet_reshuffle'         // 内阁改组（程序性，含改组范围、人事变动）
+  | 'leadership_challenge'      // 党首挑战（程序性，含正式提名、联署、投票）
+  | 'policy_announcement';      // 政策宣示（程序性，含政策领域、目标受众、预期效果）
 
 /** AI 行动意图 */
 export interface AIIntent {

@@ -111,6 +111,42 @@ const INTENT_RULES: Record<string, IntentRule> = {
     severity: 2,
     guidance: '常任委员会审议法案，委员长可推进、搁置或修正。场景在委员会会议室，闭门审议，游说与妥协并存。',
   },
+  // --- Phase G Q6 第 2 批：补全 8 个程序性 intent ---
+  bill_vote: {
+    description: '众议院全院表决法案',
+    severity: 5,
+    guidance: '法案提交全院表决，各党按席位投票。议长宣布结果，法案通过或否决。场景在众议院议事厅，所有议员出席，媒体直播。这是法案成为法律的最后关卡。',
+  },
+  committee_review: {
+    description: '委员会审查法案内容',
+    severity: 3,
+    guidance: '委员会对法案进行实质性审查，委员长主导议程，各党派委员提出修正意见。可推进、搁置或要求修正。场景在委员会会议室，闭门审议。',
+  },
+  committee_vote: {
+    description: '委员会对法案进行表决',
+    severity: 4,
+    guidance: '委员会内部就法案进行正式投票，委员长加权票（推进×1.3/搁置×1.5/修正×1.2）。表决结果决定法案能否进入全院审议。场景在委员会会议室。',
+  },
+  coalition_negotiation: {
+    description: '政党间进行联盟谈判',
+    severity: 4,
+    guidance: '执政党与在野党就组建联合政府进行多轮谈判，涉及内阁职位分配、政策妥协、权力平衡。场景在党本部密室或首相官邸，充满政治博弈与利益交换。',
+  },
+  leadership_challenge: {
+    description: '党内正式发起党首挑战',
+    severity: 5,
+    guidance: '党内某位有野心的议员正式对现任党首发起挑战，触发党首选举。挑战需要获得足够联署支持，派阀在此期间密集站队。场景在党大会或党干部会，党内分裂氛围浓厚。',
+  },
+  policy_announcement: {
+    description: '政党或议员发布重大政策宣示',
+    severity: 2,
+    guidance: '政党领袖或发言人就特定政策领域发表正式声明，面向核心支持者、摇摆选民或全体公众。可能涉及税制、劳动、防卫、医疗等领域。场景在记者会、国会演说或街头集会。',
+  },
+  faction_defect: {
+    description: '议员脱离所属派系',
+    severity: 3,
+    guidance: '某议员因理念分歧、利益冲突或权力斗争脱离原有派系。可能引发连锁反应，削弱派系影响力。场景在议员办公室或派系集会，气氛紧张。',
+  },
 };
 
 /** 党派汉字简称 */

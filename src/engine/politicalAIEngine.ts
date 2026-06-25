@@ -605,6 +605,14 @@ export function generatePoliticalIntent(
     return createChallengeLeaderIntent(mp, state);
   }
 
+  // 优先级 2.5：正式党首挑战（需派阀领袖身份 + 中度忠诚危机）
+  if (mp.factionId && effectiveLoyalty < 30 && mp.ambition > 70 && !mp.isLeader) {
+    const rng = seededRandom(seedFromName(mp.personName) + state.turn * 11);
+    if (rng() < 0.05) {
+      return createLeadershipChallengeIntent(mp, state);
+    }
+  }
+
   // 优先级 3：隐藏目标驱动
   const activeGoal = resolveActiveGoal(mp, state);
   if (activeGoal) {
@@ -955,6 +963,23 @@ function createStressEventIntent(mp: MPPersonality, state: GameState): AIIntent 
       title: '议员失态事件',
       description: `${mp.personName}因长期高压在公开场合失态，引发媒体关注。`,
       supportDelta: { [mp.partyId]: -1 } as Record<string, number>,
+    },
+    turn: state.turn,
+  };
+}
+
+/** 创建正式党首挑战意图（leadership_challenge，区别于 challenge_leader） */
+function createLeadershipChallengeIntent(mp: MPPersonality, state: GameState): AIIntent {
+  const party = state.parties.find(p => p.id === mp.partyId);
+  const currentLeaderKey = `${mp.partyId}:${party?.leader ?? 'unknown'}`;
+  return {
+    id: `political-${Date.now()}-ldr-challenge-${Math.random().toString(36).slice(2, 7)}`,
+    type: 'leadership_challenge',
+    source: `mp://${mp.partyId}:${mp.personName}`,
+    payload: {
+      partyId: mp.partyId,
+      challengerId: mp.id,
+      currentLeaderId: currentLeaderKey,
     },
     turn: state.turn,
   };

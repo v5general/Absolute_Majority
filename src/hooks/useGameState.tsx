@@ -183,7 +183,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode; savedState?: Ga
     }
   }, [state]);
 
-  /** 设置玩家角色，同时为玩家所在党派席位数 +1（玩家来了） */
+  /** 设置玩家角色，玩家为第 200 席（占 1 比例代表席），加入某党时该党 +1 */
   const setPlayerConfig = useCallback((config: PlayerConfig) => {
     setState((prev) => {
       const updatedParties = prev.parties.map(party => {
@@ -193,27 +193,31 @@ export const GameProvider: React.FC<{ children: React.ReactNode; savedState?: Ga
         return party;
       });
 
-      // 同步更新政府选举结果中对应党派的席位
       let updatedGovernment = prev.government;
       if (updatedGovernment) {
-        const updatedPartyResults = updatedGovernment.electionResult.partyResults.map(pr => {
+        const gov = updatedGovernment;
+        const updatedPartyResults = gov.electionResult.partyResults.map(pr => {
           if (pr.partyId === config.partyId) {
             return { ...pr, seats: pr.seats + 1 };
           }
           return pr;
         });
-        const updatedElectionResult = { ...updatedGovernment.electionResult, partyResults: updatedPartyResults };
-        // 重新计算执政联盟席位
-        const newCoalitionSeats = updatedGovernment.rulingCoalition.reduce((sum, pid) => {
+        const updatedElectionResult = {
+          ...gov.electionResult,
+          partyResults: updatedPartyResults,
+          totalSeats: 200,              // 补正：NPC 199 + 玩家 1 = 200
+          majorityThreshold: 101,        // 补正：floor(200/2)+1 = 101
+        };
+        const newCoalitionSeats = gov.rulingCoalition.reduce((sum, pid) => {
           const r = updatedPartyResults.find(er => er.partyId === pid);
           return sum + (r?.seats ?? 0);
         }, 0);
         updatedGovernment = {
-          ...updatedGovernment,
+          ...gov,
           electionResult: updatedElectionResult,
-          stability: updatedGovernment.isMinority && newCoalitionSeats >= prev.metrics.majorityThreshold
-            ? Math.min(100, updatedGovernment.stability + 5)
-            : updatedGovernment.stability,
+          stability: gov.isMinority && newCoalitionSeats >= prev.metrics.majorityThreshold
+            ? Math.min(100, gov.stability + 5)
+            : gov.stability,
           isMinority: newCoalitionSeats < prev.metrics.majorityThreshold,
         };
       }
@@ -221,7 +225,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode; savedState?: Ga
       // 更新大盘领先联盟席位
       const newLeadingSeats = updatedGovernment
         ? updatedGovernment.rulingCoalition.reduce((sum, pid) => {
-            const r = updatedGovernment!.electionResult.partyResults.find(er => er.partyId === pid);
+            const r = updatedGovernment.electionResult.partyResults.find(er => er.partyId === pid);
             return sum + (r?.seats ?? 0);
           }, 0)
         : prev.metrics.leadingCoalitionSeats;

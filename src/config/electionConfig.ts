@@ -28,7 +28,7 @@ export const ELECTION_CONFIG = {
   get directSeatsTotal(): number {
     return DIRECT_SEATS_PER_BLOCK * 11;
   },
-  /** NPC 席位数（兼容旧字段：= directSeatsTotal + proportionalSeatsTotal - 1 玩家席） */
+  /** 选区直接席位数（= 11 × 10 = 110） */
   get constituencySeats(): number {
     return TOTAL_NPC_SEATS;
   },

@@ -250,7 +250,7 @@ ${partyIds}
 
 ## 可用的意图类型（intent_type）
 - coalition_proposal: 向其他政党提出联盟提案（payload需含 proposingPartyId, targetPartyId, offeredPosts）
-- cabinet_reshuffle: 内阁改组（payload需含 stabilityDelta）
+- cabinet_reshuffle: 内阁改组（payload需含 stabilityDelta, scope）
 - opposition_attack: 在野党攻击政府（payload需含 attackPartyId, supportDelta）
 - opposition_coalition: 在野党联盟密会（payload需含 proposingPartyId, targetPartyId）
 - coalition_pressure: 联盟小党向首相施压（payload需含 demandingPartyId, demandedPosts）
@@ -258,6 +258,13 @@ ${partyIds}
 - media_boost: 媒体正面报道（payload需含 targetPartyId, isPositive=true, supportDelta, mediaDelta）
 - media_scandal: 媒体负面爆料（payload需含 targetPartyId, isPositive=false, supportDelta, mediaDelta）
 - lobby_funds: 利益集团政治捐款（payload需含 targetPartyId, fundsDelta, corruptionRisk）
+- coalition_negotiation: 联盟谈判（payload需含 proposerPartyId, targetPartyId, offeredPosts）
+- leadership_challenge: 正式党首挑战（payload需含 partyId, challengerId, currentLeaderId）
+- bill_draft: 起草法案（payload需含 title, proposerPartyId, targetCommitteeId, summary）
+- committee_review: 委员会审查法案（payload需含 committeeId, billId）
+- committee_vote: 委员会表决法案（payload需含 committeeId, billId, voteContext）
+- bill_vote: 全院表决法案（payload需含 billId）
+- policy_announcement: 政策宣示（payload需含 partyId, policyArea, targetAudience）
 - wait: 按兵不动，不采取行动
 
 ## 输出格式（严格JSON）
