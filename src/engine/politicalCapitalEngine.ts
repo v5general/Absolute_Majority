@@ -30,28 +30,23 @@ import { POLITICAL_CAPITAL_RULES } from '../config/gameBalance';
 /**
  * 初始化议员的政治资本。
  *
- * 按出身背景浮动：
- *   - 政治世家（political_dynasty）：+10
- *   - 工会干部（union_cadre）：+5
- *   - 基层（grassroots）：+8
- *   - 其他：无加成
- *
- * 兜底：mp.politicalCapital 已有值时直接保留（避免覆盖存档）。
+ * 规则：
+ *   - 基础值：mp.politicalCapital 已存在则保留，否则使用 POLITICAL_CAPITAL_RULES.initialValue (30)
+ *   - 出身修正（仅在传入 background 时应用）：
+ *     - 政治世家（political_family）：+10
+ *     - 工会干部（union_cadre）：+5
+ *     - 基层活动家 / 工人阶级：+8
+ *   - 最终 clamp 到 [0, 100]
  */
 export function initializeCapital(mp: MPPersonality, background?: MPBackground): number {
-  // 已有值则保留
-  if (mp.politicalCapital !== undefined && mp.politicalCapital !== null) {
-    return clampCapital(mp.politicalCapital);
-  }
+  const base = (mp.politicalCapital !== undefined && mp.politicalCapital !== null)
+    ? mp.politicalCapital
+    : POLITICAL_CAPITAL_RULES.initialValue;
 
-  let value = POLITICAL_CAPITAL_RULES.initialValue;
-
-  // 按出身浮动
+  let value = base;
   if (background) {
-    const bonus = backgroundBonusFromOrigin(background);
-    value += bonus;
+    value += backgroundBonusFromOrigin(background);
   }
-
   return clampCapital(value);
 }
 

@@ -31,15 +31,19 @@ export function initializeCareer(
   if (personName === party.leader) {
     partyRankIndex = PARTY_RANKS.length - 1; // 党首
   } else if (party.members.includes(personName)) {
-    // 核心成员：根据野心/谈判力分流
+    // 核心成员：根据野心/谈判力/忠诚度分流
     if (mp.ambition > 75 && mp.negotiationSkill > 70) {
       partyRankIndex = 5; // 干事长
     } else if (mp.ambition > 60) {
       partyRankIndex = 4; // 副干事长
     } else if (mp.loyalty > 70 && mp.mediaSkill > 60) {
       partyRankIndex = 3; // 政策委员会委员长
-    } else {
+    } else if (mp.mediaSkill > 60 && mp.ambition > 50) {
       partyRankIndex = 2; // 政策委员会委员
+    } else if (mp.loyalty > 70) {
+      partyRankIndex = 1; // 党务干部（忠诚度较高的基础成员）
+    } else {
+      partyRankIndex = 0; // 普通党员（数据偏低）
     }
   } else {
     // 普通党员：根据忠诚度分流

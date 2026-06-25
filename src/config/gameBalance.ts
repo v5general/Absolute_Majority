@@ -131,10 +131,16 @@ export const PROMOTION_THRESHOLDS = {
 // ============================================================================
 
 /**
- * 每回合资金 faucet/sink 平衡型配置（净 ±0）。
+ * 每回合资金 faucet/sink 平衡型配置（净 ±0；有派阀 +10）。
  *
- * Faucet：办公津贴 +30、委员会津贴 +20、派阀贡献 +10 = +60
- * Sink：办公费 -30、员工薪资 -20、活动基金 -10 = -60
+ * Faucet (基础，所有党派)：
+ *   办公津贴 +30、委员会津贴 +20、党员党费 +10 = +60
+ * Sink：
+ *   办公费 -30、员工薪资 -20、活动基金 -10 = -60
+ * 净基础 = 0
+ *
+ * 派阀额外：派阀贡献 +10（仅派阀成员）
+ * 净（派阀成员）= +10
  *
  * 增长靠玩家主动行为：
  *   - 募款活动 +50（消耗 1 行动点）
@@ -143,6 +149,7 @@ export const PROMOTION_THRESHOLDS = {
 export const FUNDS_FAUCET_SINK = {
   officeAllowance: 30,         // 每回合办公津贴（+）
   committeeAllowance: 20,      // 委员会津贴（+）
+  membershipDues: 10,          // 党员党费（基础 +，所有党派）
   factionContribution: 10,     // 派阀贡献（+，仅派阀成员）
   officeCost: -30,             // 办公费（-）
   staffSalary: -20,            // 员工薪资（-）

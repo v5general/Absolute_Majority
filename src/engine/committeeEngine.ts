@@ -728,8 +728,8 @@ export function committee_vote(
   }
 
   return {
-    votesFor: Math.round(votesFor),
-    votesAgainst: Math.round(votesAgainst),
+    votesFor,
+    votesAgainst,
   };
 }
 

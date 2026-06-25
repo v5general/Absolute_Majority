@@ -120,13 +120,15 @@ export function checkLeadershipTriggers(
 
 /**
  * 检查最近事件中是否有针对某党的 media_scandal。
+ *
+ * 规则：仅当事件的 impact 显式包含 partyId（明确针对该党）时才算数。
+ * 空影响事件不算（避免误伤）。
  */
 function hasRecentScandalEvent(state: GameState, partyId: string): boolean {
-  // 检查最近 3 个事件中是否有 media_scandal 影响该党
   const recent = state.events.slice(-3);
   return recent.some(e =>
     (e.title.includes('丑闻') || e.title.includes('scandal') || e.title.includes('媒体曝光')) &&
-    (e.impact[partyId] !== undefined || Object.keys(e.impact).length === 0),
+    e.impact[partyId] !== undefined,
   );
 }
 
@@ -149,6 +151,8 @@ export interface LeadershipVoteResult {
  * 候选人 = 现任党首 + 派阀领袖 + 核心成员（野心 > 60）
  * 投票权重：影响力 + 人气 + 谈判力 + 政治资本 + 派阀背书
  *
+ * 缺失 MP 数据的候选人 votes[key] = 0，不会成为获胜者。
+ *
  * @returns   选举结果（含获胜者 mpKey）
  */
 export function runLeadershipVote(
@@ -165,7 +169,11 @@ export function runLeadershipVote(
 
   for (const candidateKey of candidates) {
     const mp = state.mpPersonalities[candidateKey];
-    if (!mp) continue;
+    if (!mp) {
+      // 缺失数据：votes 记为 0，保留候选位
+      votes[candidateKey] = 0;
+      continue;
+    }
 
     const capital = mp.politicalCapital ?? 30;
     const factionBacking = getFactionBacking(state, party, candidateKey);
@@ -178,11 +186,11 @@ export function runLeadershipVote(
       factionBacking * 0.1;
   }
 
-  // 找出获胜者
+  // 找出获胜者（只在有 MP 数据的候选人中选）
   let winnerKey = candidates[0];
-  let maxVotes = -1;
+  let maxVotes = -Infinity;
   for (const [key, v] of Object.entries(votes)) {
-    if (v > maxVotes) {
+    if (v > maxVotes && state.mpPersonalities[key]) {
       maxVotes = v;
       winnerKey = key;
     }
@@ -259,10 +267,12 @@ export function triggerPartyLeadershipElection(
     }
   }
 
-  const candidateList = Array.from(candidates).filter(k => state.mpPersonalities[k]);
-  if (candidateList.length === 0) return { state, result: null };
+  const candidateList = Array.from(candidates);
+  // 全部候选人都缺 MP 数据时无法选举
+  const hasAnyMP = candidateList.some(k => state.mpPersonalities[k]);
+  if (!hasAnyMP || candidateList.length === 0) return { state, result: null };
 
-  // 执行投票
+  // 执行投票（即使部分候选人缺数据，也能继续）
   const result = runLeadershipVote(state, party, candidateList, reason);
 
   // 生成 leadership_campaign intent

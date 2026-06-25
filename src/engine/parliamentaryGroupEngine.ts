@@ -75,6 +75,7 @@ export interface QuestionTimeAllocation {
  *   1. 每会派初始分配 = totalSeats / Σ(totalSeats) × 180
  *   2. 若分配 < 5 分钟，提升到 5 分钟（最小保障）
  *   3. 从大会派扣除多分配给小会派的时间
+ *   4. 钳制总和到 totalTime（避免四舍五入溢出）
  */
 export function getQuestionTimeAllocation(groups: ParliamentaryGroup[]): QuestionTimeAllocation[] {
   const totalSeats = groups.reduce((s, g) => s + g.totalSeats, 0);
@@ -101,7 +102,6 @@ export function getQuestionTimeAllocation(groups: ParliamentaryGroup[]): Questio
   const overflow = totalAfterMin - totalTime;
 
   if (overflow > 0) {
-    // 从大会派按比例扣除
     const bigGroups = minAllocations.filter(a => a.minutes > minTime);
     const bigTotal = bigGroups.reduce((s, a) => s + a.minutes, 0);
     if (bigTotal > 0) {
@@ -114,13 +114,24 @@ export function getQuestionTimeAllocation(groups: ParliamentaryGroup[]): Questio
     }
   }
 
-  // 转换并计算 share
-  return minAllocations.map(a => ({
+  // 取整并修正：将取整误差从最大会派中扣除/补足，确保 sum(minutes) == totalTime
+  const rounded = minAllocations.map(a => ({
     groupId: a.groupId,
     groupName: a.groupName,
     minutes: Math.round(a.minutes),
     share: totalTime > 0 ? a.minutes / totalTime : 0,
   }));
+
+  const roundedSum = rounded.reduce((s, a) => s + a.minutes, 0);
+  const diff = roundedSum - totalTime;
+  if (diff !== 0 && rounded.length > 0) {
+    // 找到最大会派，从中扣除/补足 diff
+    const maxIdx = rounded.reduce((best, a, i) =>
+      a.minutes > rounded[best].minutes ? i : best, 0);
+    rounded[maxIdx].minutes = Math.max(minTime, rounded[maxIdx].minutes - diff);
+  }
+
+  return rounded;
 }
 
 // ============================================================================

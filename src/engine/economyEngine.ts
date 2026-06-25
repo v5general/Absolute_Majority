@@ -26,8 +26,13 @@ import { FUNDS_FAUCET_SINK } from '../config/gameBalance';
  */
 export function advanceEconomyTurn(state: GameState): GameState {
   const newParties = state.parties.map(party => {
-    // Faucet
-    let delta = FUNDS_FAUCET_SINK.officeAllowance + FUNDS_FAUCET_SINK.committeeAllowance;
+    // Faucet（基础，所有党派）
+    let delta =
+      FUNDS_FAUCET_SINK.officeAllowance +
+      FUNDS_FAUCET_SINK.committeeAllowance +
+      FUNDS_FAUCET_SINK.membershipDues;
+
+    // 派阀额外贡献（仅派阀成员党派）
     if (party.factions && party.factions.length > 0) {
       delta += FUNDS_FAUCET_SINK.factionContribution;
     }
@@ -54,6 +59,7 @@ export function advanceEconomyTurn(state: GameState): GameState {
  * 玩家发起募款活动。
  *
  * 消耗 1 行动点（由调用方追踪），增加党派资金 +50。
+ * 派阀成员额外获得 +20% 加成（即总共 +60）。
  *
  * @returns   { state, intent } — 新的 GameState 和 fundraising intent
  */
@@ -63,21 +69,20 @@ export function runFundraising(
 ): { state: GameState; intent: AIIntent } {
   const mp = state.mpPersonalities[mpKey];
   const partyId = mp?.partyId ?? '';
-  const gain = FUNDS_FAUCET_SINK.fundraisingActionGain;
+  const baseGain = FUNDS_FAUCET_SINK.fundraisingActionGain;
+
+  // 派阀募款加成（如有）：+20%
+  let totalGain = baseGain;
+  if (mp?.factionId) {
+    const bonus = Math.round(baseGain * 0.2);
+    totalGain += bonus;
+  }
 
   // 应用党派资金加成
   const newParties = state.parties.map(p => {
     if (p.id !== partyId) return p;
-    return { ...p, funds: Math.max(0, p.funds + gain) };
+    return { ...p, funds: Math.max(0, p.funds + totalGain) };
   });
-
-  // 派阀募款加成（如有）
-  let totalGain = gain;
-  if (mp?.factionId) {
-    // 派阀成员募款效率 +20%（基于 backgroundEngine.fundraisingBonus）
-    const bonus = Math.round(gain * 0.2);
-    totalGain += bonus;
-  }
 
   // 生成 fundraising intent 供 narrativeEngine 记录事件
   const intent: AIIntent = {
@@ -131,7 +136,7 @@ export function applyDonationEvent(
 // ============================================================================
 
 /**
- * 计算每回合净 faucet/sink（应为 ±0）。
+ * 计算每回合净 faucet/sink（无派阀=0；有派阀=+10）。
  *
  * 用于测试验证平衡性。
  */
@@ -139,6 +144,7 @@ export function getNetFaucetSinkPerTurn(hasFaction: boolean): number {
   let net = 0;
   net += FUNDS_FAUCET_SINK.officeAllowance;
   net += FUNDS_FAUCET_SINK.committeeAllowance;
+  net += FUNDS_FAUCET_SINK.membershipDues;  // 基础
   if (hasFaction) net += FUNDS_FAUCET_SINK.factionContribution;
   net += FUNDS_FAUCET_SINK.officeCost;
   net += FUNDS_FAUCET_SINK.staffSalary;
