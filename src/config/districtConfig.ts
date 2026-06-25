@@ -102,7 +102,7 @@ export const PROPORTIONAL_BLOCKS: ProportionalBlock[] = [
       conservative: 500,
       progressive: 500,
       populist: 470,
-      solidarity: 230,
+      solidarity: 260,
     },
   },
   {
@@ -170,7 +170,7 @@ export const PROPORTIONAL_BLOCKS: ProportionalBlock[] = [
       conservative: 800,
       progressive: 300,
       populist: 300,
-      solidarity: 220,
+      solidarity: 240,
     },
   },
   {
@@ -185,8 +185,8 @@ export const PROPORTIONAL_BLOCKS: ProportionalBlock[] = [
       reform: 850,
       liberty: 590,
       conservative: 300,
-      progressive: 600,
-      populist: 950,
+      progressive: 580,
+      populist: 885,
       solidarity: 340,
     },
   },
@@ -218,7 +218,7 @@ export const PROPORTIONAL_BLOCKS: ProportionalBlock[] = [
     supportByParty: {
       reform: 300,
       liberty: 250,
-      conservative: 670,
+      conservative: 615,
       progressive: 200,
       populist: 100,
       solidarity: 150,

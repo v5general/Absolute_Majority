@@ -17,7 +17,7 @@ import { createInitialDramaState } from '../engine/dramaEngine';
  * 生成初始游戏状态
  *
  * 完整集成所有系统：
- * - 选举 V2（Phase G Q1：110 直接 + 90 全国比例代表 = 200）
+ * - 选举 V2（110 直接 + 89 比例 = 199 NPC 席，玩家为第 200 席）
  * - 派阀初始化（除 ULP 外所有政党）
  * - 背景生成（每个议员）
  * - 职业初始化（双轨制）
@@ -25,6 +25,8 @@ import { createInitialDramaState } from '../engine/dramaEngine';
  *
  * 初始设定：改革民主党单独执政（少数政府）
  * 其余五党均在野，游戏中可拉拢加入执政联盟
+ *
+ * 玩家选择党派后该党席位 +1（见 useGameState.setPlayerConfig）
  */
 export function createInitialState(): GameState {
   const base: GameState = {
@@ -48,12 +50,15 @@ export function createInitialState(): GameState {
     dramaState: createInitialDramaState(),
   };
 
-  // 1. 执行选举 V2（Phase G Q1：110 直接 + 90 全国比例代表 = 200 席）
+  // 1. 执行选举 V2：199 NPC 席（玩家为第 200 席，加入政党时 +1）
+  //    110 直接 + 89 全国比例代表 = 199
+  const npcSeats = base.metrics.totalSeats - 1; // 199
+  const npcMajority = Math.floor(npcSeats / 2) + 1; // 100
   const electionResult = runElectionV2(
     base.parties,
     base.districts,
-    base.metrics.totalSeats,
-    base.metrics.majorityThreshold,
+    npcSeats,
+    npcMajority,
     {}, // 初始无候选人个人支持率，使用默认值
     false,
   );

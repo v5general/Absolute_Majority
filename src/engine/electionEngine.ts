@@ -131,9 +131,10 @@ export function runElectionV2(
     parties, districts, candidatePopularity, isElectionCampaign, deterministicRandom,
   );
 
-  // === 比例层：90 全国 D'Hondt ===
+  // === 比例层：D'Hondt（席位数 = totalSeats - 110 直接席） ===
+  const proportionalSeats = totalSeats - CONSTITUENCY_SEATS;
   const proportionalResults = allocateProportionalSeats(
-    parties, districts, isElectionCampaign, deterministicRandom,
+    parties, districts, isElectionCampaign, deterministicRandom, proportionalSeats,
   );
 
   // === 合并 ===
@@ -176,65 +177,40 @@ export function runElectionV2(
 /**
  * 分配直接层席位。
  *
- * 算法：
- *   1. 每个块内，为每党生成 10 候选人（leader + members + 后排填充）
- *   2. 候选人得分 = 0.4×partySupport + 0.3×candidatePopularity
- *                    + 0.2×districtLeaning + 0.1×random
- *   3. 跨党派合并，取 top 10 → 直接议席
+ * Phase G 修复 #8：直接层从"候选人 top-10 赢者通吃"改为"块内 D'Hondt 比例分配"。
+ * 原算法每个块内得分最高的党独揽全部 10 席，导致席位分布严重偏离目标值。
+ *
+ * 新算法：
+ *   1. 每个块内使用 D'Hondt 按 supportByParty 值分配 10 席
+ *   2. 与比例代表层 D'Hondt 一致，符合复数选区比例分配逻辑
+ *   3. 候选人列表仍生成（buildCandidateListForParty），供后续竞选/排序使用
  */
 function allocateDirectSeats(
   parties: Party[],
   districts: District[],
-  candidatePopularity: Record<string, number>,
-  isElectionCampaign: boolean,
-  rng: () => number,
+  _candidatePopularity: Record<string, number>,
+  _isElectionCampaign: boolean,
+  _rng: () => number,
 ): { totals: Record<string, number>; byBlock: Record<string, Record<string, number>> } {
   const totals: Record<string, number> = {};
   for (const p of parties) totals[p.id] = 0;
 
   const byBlock: Record<string, Record<string, number>> = {};
-  const weights = ELECTION_CONFIG.electionWeights;
 
   for (const district of districts) {
     const directSeats = Math.min(DIRECT_SEATS_PER_BLOCK, district.totalSeats);
-    const candidates: CandidateScore[] = [];
 
+    // 为每党生成候选人列表（保留供后续使用，不影响 D'Hondt 分配）
     for (const party of parties) {
-      const partySupport = district.supportByParty[party.id] ?? 0;
-      // Phase G 修复 #7：districtLeaning 此前 = partySupport，导致 partySupport 被双重计入。
-      // 现改为该党在本块的相对优势：(本块支持 - 党全国平均支持) 的正负号，
-      // 反映"本块是否比全国更偏爱该党"，与 partySupport 解耦，不再重复计权。
-      const partyAvgSupport = party.currentSupport;
-      const districtLeaning = partySupport - partyAvgSupport; // >0 = 本块偏爱该党
-
-      // 为该党在 该块 生成 10 候选人
-      const partyCandidates = buildCandidateListForParty(party, directSeats);
-      for (let i = 0; i < partyCandidates.length; i++) {
-        const candidateName = partyCandidates[i];
-        const basePopularity = candidatePopularity[candidateName]
-          ?? fallbackCandidatePopularity(party, candidateName, i, rng);
-        const candidateScore = applyCampaignCandidateBoost(basePopularity, isElectionCampaign);
-        const randomFactor = rng() * 10;
-
-        const score =
-          partySupport * weights.partySupport +
-          candidateScore * weights.candidateScore +
-          districtLeaning * weights.districtLeaning +
-          randomFactor * weights.randomFactor;
-
-        candidates.push({ partyId: party.id, candidateName, score });
-      }
+      buildCandidateListForParty(party, directSeats);
     }
 
-    // 跨党派合并，取 top 10
-    candidates.sort((a, b) => b.score - a.score);
-    const winners = candidates.slice(0, directSeats);
+    // 块内 D'Hondt：按 supportByParty 分配 directSeats 席
+    const blockResult = dhondt(parties, district.supportByParty, directSeats);
 
-    const blockResult: Record<string, number> = {};
-    for (const p of parties) blockResult[p.id] = 0;
-    for (const w of winners) {
-      blockResult[w.partyId] = (blockResult[w.partyId] ?? 0) + 1;
-      totals[w.partyId] = (totals[w.partyId] ?? 0) + 1;
+    for (const p of parties) {
+      const seats = blockResult[p.id] ?? 0;
+      totals[p.id] = (totals[p.id] ?? 0) + seats;
     }
     byBlock[district.id] = blockResult;
   }
@@ -289,18 +265,19 @@ function applyCampaignCandidateBoost(score: number, isCampaign: boolean): number
 // ============================================================================
 
 /**
- * 分配全国比例代表层 90 席。
+ * 分配全国比例代表层席位。
  *
  * 算法：
  *   1. 全国政党票 = Σ(voterCount[block] × supportByParty[block][party]) for each block
  *   2. 5% 阈值过滤（得票率 < 5% 的政党不参与分配）
- *   3. D'Hondt 法在合格政党之间分 90 席
+ *   3. D'Hondt 法在合格政党之间分 proportionalSeats 席
  */
 function allocateProportionalSeats(
   parties: Party[],
   districts: District[],
   isElectionCampaign: boolean,
   rng: () => number,
+  proportionalSeats: number = PROPORTIONAL_SEATS_TOTAL,
 ): { allocation: Record<string, number> } {
   // 1. 计算全国政党票
   const nationalVotes: Record<string, number> = {};
@@ -329,7 +306,7 @@ function allocateProportionalSeats(
   });
 
   // 3. D'Hondt 分配
-  const allocation = dhondt(qualifiedParties, nationalVotes, PROPORTIONAL_SEATS_TOTAL);
+  const allocation = dhondt(qualifiedParties, nationalVotes, proportionalSeats);
   return { allocation };
 }
 
