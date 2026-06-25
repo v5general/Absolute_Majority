@@ -11,11 +11,12 @@ Every event, line of dialogue, and choice is generated live by an LLM (any OpenA
 ## Features
 
 - **AI-driven narrative** — Events, dialogues, and choices are produced by an LLM in real time, adapting to the current political situation, the congressional season, and your character's background.
-- **Full parliamentary simulation** — A 200-seat House of Representatives, 9 standing committees, no-confidence motions, bill decision chains, and tiered vote thresholds (simple / absolute / supermajority).
+- **Full parliamentary simulation** — A 200-seat House of Representatives (110 direct + 90 proportional D'Hondt, parallel system), 9 standing committees, no-confidence motions, bill decision chains, and tiered vote thresholds (simple / absolute / supermajority).
 - **Faction system** — Internal party factions with loyalty, ambition, and the ability to challenge the party leader. One party (ULP) runs on democratic centralism and forbids factions.
 - **Seasonal congressional calendar** — The year is split into four sessions that change what is possible: a budget battle (Jan–Mar), a legislative push (Apr–Jun), a constituency recess (Jul–Sep), and an extraordinary session (Oct–Dec).
 - **Dual career tracks** — Climb the party ladder and the parliamentary ladder independently; becoming a minister ≠ becoming party leader.
 - **Government formation** — Post-election coalition negotiations, cabinet allocation, and prime-minister designation.
+- **14 procedural intents** — Full intent pipeline with validate + settle: no-confidence proposals, dissolution decisions, bill drafting/voting, committee review/voting, coalition negotiation, cabinet reshuffle, leadership challenge, and policy announcements.
 - **Galgame-style dialog** — Political events unfold as visual-novel-style conversations with choices and consequences, rendered fullscreen with adaptive layouts on phone and desktop.
 - **Character creation** — Define your name, age, gender, party, personality traits, ideology, and background; your background shapes the events you encounter.
 - **Mobile-responsive** — Layout, typography, image format (WebP on mobile, PNG on desktop), and even LLM call concurrency adapt to the screen size. Refresh-safe URL routing keeps you on the same screen (Main Hall vs Situation) across reloads.
@@ -37,7 +38,7 @@ Every event, line of dialogue, and choice is generated live by an LLM (any OpenA
 | First Citizens Front | FCF | Far-right | 24 |
 | United Labor Party | ULP | Left | 14 |
 
-You are the 200th seat — the deciding vote that joins one of these parties and tips the balance.
+The 199 NPC seats are distributed via a deterministic parallel election system. You are the 200th seat — a proportional-representation seat that adds +1 to whichever party you join.
 
 ## Game Flow
 
@@ -99,12 +100,13 @@ Key engines:
 
 - `agentEngine` — AI agents (the PM, party leaders, faction leaders, media, interest groups) perceive the world and generate intents.
 - `narrativeEngine` — Converts intents into playable events (title, dialog, choices, effects).
-- `rulesEngine` — The sole authority for modifying seats, support, funds, and relations; validates every AI intent.
+- `rulesEngine` — The sole authority for modifying seats, support, funds, and relations; validates and settles all 14 procedural AI intents.
+- `electionEngine` — Deterministic parallel election: 110 direct seats (per-block D'Hondt across 11 districts) + 90 proportional seats (national D'Hondt with 5% threshold).
 - `llmBridge` — OpenAI-compatible client with mobile-aware streaming, timeout, retry, and a `debugLLMConfig()` console helper.
 
 ## Status
 
-Personal project, actively iterated. Built for fun and as an experiment in LLM-grounded political simulation.
+Personal project, actively iterated with 419 deterministic unit tests across 11 test files. Built for fun and as an experiment in LLM-grounded political simulation.
 
 ## License
 
