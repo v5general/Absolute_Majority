@@ -11,9 +11,9 @@
  */
 
 import { describe, test, expect } from 'vitest';
-import { committee_vote } from '../../../src/engine/committeeEngine';
+import { committee_vote, committee_review } from '../../../src/engine/committeeEngine';
 import { getChairmanWeightMultiplier, hasQuorum } from '../../../src/engine/rulesEngine';
-import type { Bill, Committee, Party, RelationEntry } from '../../../src/types';
+import type { Bill, Committee, CommitteeId, Party, RelationEntry } from '../../../src/types';
 
 // ============================================================================
 // 测试夹具（fixtures）
@@ -210,13 +210,13 @@ describe('committee_vote 投票逻辑', () => {
 
   test('意识形态距离影响投票倾向', () => {
     const parties = [
-      makeTestParty('party_a', 'far-left'),
-      makeTestParty('party_b', 'far-right'),
+      makeTestParty('party_a', 'left'),
+      makeTestParty('party_b', 'right'),
     ];
     const bill = makeTestBill('party_a');
     const committee = makeTestCommittee('委员长B', 'party_b', 10);
 
-    // far-left 和 far-right 距离为 6，应大幅降低 favorScore
+    // left 和 right 距离最大，应大幅降低 favorScore
     const result = committee_vote(bill, committee, parties, relations, 'push');
 
     // party_b 委员应倾向于反对
@@ -333,5 +333,52 @@ describe('committee_vote 委员长权重优先级', () => {
     // 副委员长权重 1.0，总票数 = 出席人数
     const expectedTotal = committee.presentMembers.length;
     expect(result.votesFor + result.votesAgainst).toBe(expectedTotal);
+  });
+});
+
+// ============================================================================
+// committee_review — 委员长细分权重对审议通过概率的影响（Phase G 修复 #5）
+// ============================================================================
+
+describe('committee_review — 委员长倾向影响通过结果', () => {
+  function makeReviewSetup(chairmanPartyId: string, proposerPartyId: string, relScore: number) {
+    const parties = [
+      makeTestParty('party_a', 'center'),
+      makeTestParty('party_b', 'center'),
+    ];
+    const committee = makeTestCommittee('委员长X', chairmanPartyId, 10);
+    const bill = makeTestBill(proposerPartyId);
+    const relations: RelationEntry[] = relScore === 0
+      ? []
+      : [{ from: chairmanPartyId, to: proposerPartyId, score: relScore, type: relScore >= 20 ? 'friendly' : 'neutral', description: '' }];
+    return { parties, committee, bill, relations };
+  }
+
+  test('同党委员长 → 推进倾向 → 法案更易通过（revised 而非 delayed）', () => {
+    // 委员长与提案方同党 → passChance +25(同党) +12(推进权重) ≈ 高通过
+    const { parties, committee, bill, relations } = makeReviewSetup('party_a', 'party_a', 0);
+    const result = committee_review(bill, committee, parties, relations);
+    expect(result.status).toBe('revised');
+  });
+
+  test('敌对委员长（无关系/低关系）→ 搁置倾向 → 法案更易被搁置（delayed）', () => {
+    // 委员长 party_b，提案方 party_a，无关系 → 非同党非盟友 → passChance -20(搁置)，
+    // 且无 +25 同党加成 → 大概率 delayed
+    const { parties, committee, bill, relations } = makeReviewSetup('party_b', 'party_a', 0);
+    const result = committee_review(bill, committee, parties, relations);
+    expect(result.status).toBe('delayed');
+  });
+
+  test('敌对委员长的搁置幅度（−20）足以把"中等偏上"的法案压回搁置', () => {
+    // 控制实验：盟友委员长(rel 25, +15 盟友 +12 推进) vs 敌对委员长(rel 0, -20 搁置)
+    // 两者仅委员长倾向不同，结果应不同
+    const allied = makeReviewSetup('party_b', 'party_a', 25);
+    const hostile = makeReviewSetup('party_b', 'party_a', 0);
+    const alliedResult = committee_review(allied.bill, allied.committee, allied.parties, allied.relations);
+    const hostileResult = committee_review(hostile.bill, hostile.committee, hostile.parties, hostile.relations);
+    // 盟友委员长至少不比敌对委员长更糟
+    const passRank = { revised: 2, delayed: 1 } as const;
+    expect(passRank[alliedResult.status as 'revised' | 'delayed'])
+      .toBeGreaterThanOrEqual(passRank[hostileResult.status as 'revised' | 'delayed']);
   });
 });

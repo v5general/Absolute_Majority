@@ -1,4 +1,5 @@
 import type { GameState } from '../types/game';
+import { POLITICAL_CAPITAL_RULES } from '../config/gameBalance';
 
 /** 解散众议院 */
 export function dissolveLowerHouse(
@@ -27,11 +28,28 @@ export function dissolveLowerHouse(
     isCaretaker: true,
   };
 
+  // Phase G 修复 #4：提前解散消耗首相政治资本 -15
+  // 此前该 discrete sink 仅在 config 定义，从未在事件路径触发。
+  const pmKey = `${state.government.primeMinisterPartyId}:${state.government.primeMinisterName}`;
+  const newPersonalities = { ...state.mpPersonalities };
+  const pmMP = newPersonalities[pmKey];
+  if (pmMP) {
+    const oldValue = pmMP.politicalCapital ?? POLITICAL_CAPITAL_RULES.initialValue;
+    newPersonalities[pmKey] = {
+      ...pmMP,
+      politicalCapital: Math.max(
+        POLITICAL_CAPITAL_RULES.minValue,
+        oldValue + POLITICAL_CAPITAL_RULES.earlyDissolution,
+      ),
+    };
+  }
+
   return {
     ...state,
     bills: withdrawnBills,
     committees: stoppedCommittees,
     government: caretakerGovernment,
+    mpPersonalities: newPersonalities,
     isElectionCampaign: true,
     turnsUntilElection: 0,
   };

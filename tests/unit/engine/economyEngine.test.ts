@@ -20,10 +20,28 @@ import {
 } from '../../../src/engine/economyEngine';
 import { FUNDS_FAUCET_SINK } from '../../../src/config/gameBalance';
 import type { GameState, Party } from '../../../src/types';
+import type { Faction } from '../../../src/types/faction';
+import { makeTestMP } from '../../helpers/fixtures';
 
 // ============================================================================
 // 测试夹具（fixtures）
 // ============================================================================
+
+function makeTestFaction(id: string, partyId: string): Faction {
+  return {
+    id,
+    name: `${partyId}派阀`,
+    leader: `${partyId}:党首${partyId}`,
+    members: [],
+    ideology: 'mainstream',
+    loyalty: 60,
+    influence: 50,
+    funding: 100,
+    ambition: 50,
+    demands: ['cabinet_post'],
+    partyId,
+  };
+}
 
 function makeTestParty(id: string, funds = 100, hasFactions = false): Party {
   return {
@@ -41,7 +59,7 @@ function makeTestParty(id: string, funds = 100, hasFactions = false): Party {
     funds,
     organization: 50,
     charisma: 50,
-    factions: hasFactions ? [{ id: 'faction1', name: '派阀1', leaderId: 'mp1' }] : undefined,
+    factions: hasFactions ? [makeTestFaction('faction1', id)] : undefined,
   };
 }
 
@@ -72,9 +90,9 @@ function makeTestState(parties?: Party[]): GameState {
     bills: [],
     pendingIntents: [],
     mpPersonalities: {
-      mp1: { name: '议员1', partyId: 'reform', loyalty: 50, ambition: 50, politicalCapital: 30 },
-      mp2: { name: '议员2', partyId: 'liberty', loyalty: 60, ambition: 40, politicalCapital: 25 },
-      mp3: { name: '议员3', partyId: 'reform', loyalty: 70, ambition: 60, politicalCapital: 40, factionId: 'faction1' },
+      mp1: makeTestMP('mp1', { partyId: 'reform', loyalty: 50, ambition: 50, politicalCapital: 30 }),
+      mp2: makeTestMP('mp2', { partyId: 'liberty', loyalty: 60, ambition: 40, politicalCapital: 25 }),
+      mp3: makeTestMP('mp3', { partyId: 'reform', loyalty: 70, ambition: 60, politicalCapital: 40, factionId: 'faction1' }),
     },
     playerConfig: null,
     currentAIEvents: [],

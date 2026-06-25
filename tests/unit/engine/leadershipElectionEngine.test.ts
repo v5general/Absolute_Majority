@@ -17,11 +17,13 @@ import {
   triggerPartyLeadershipElection,
   type LeadershipTriggerReason,
 } from '../../../src/engine/leadershipElectionEngine';
+import { settleIntents } from '../../../src/engine/rulesEngine';
 import type {
   GameState,
   Party,
   ElectionResult,
   MPPersonality,
+  AIIntent,
 } from '../../../src/types';
 
 // ============================================================================
@@ -49,17 +51,25 @@ function makeTestParty(id: string, support = 25, seats = 30): Party {
 
 function makeTestMP(key: string, partyId: string, name: string): MPPersonality {
   return {
-    personKey: key,
+    id: key,
     personName: name,
     partyId,
     age: 45,
+    gender: 'male',
     popularity: 50,
     loyalty: 70,
     ambition: 60,
     negotiationSkill: 55,
     politicalCapital: 40,
+    corruption: 20,
     mediaSkill: 50,
-    committeeSkill: 50,
+    personalityTraits: ['pragmatic'],
+    politicalIdeology: { primary: 'liberalism', economicAxis: 0, socialAxis: 0 },
+    stress: 20,
+    health: 80,
+    hiddenGoals: [],
+    isLeader: false,
+    isMinister: false,
     isCommitteeChairman: false,
   };
 }
@@ -127,11 +137,10 @@ describe('checkLeadershipTriggers — 触发条件检测', () => {
     // 注入丑闻事件
     state.events.push({
       id: 'scandal-1',
+      day: 1,
       title: '媒体曝光：改革党财务丑闻',
       description: '详细内容',
       impact: { reform: -10 },
-      turn: 1,
-      category: 'political_crisis',
     });
 
     const triggers = checkLeadershipTriggers(state);
@@ -145,11 +154,10 @@ describe('checkLeadershipTriggers — 触发条件检测', () => {
     const state = makeTestState();
     state.events.push({
       id: 'scandal-1',
+      day: 1,
       title: '媒体曝光：改革党丑闻',
       description: '详细内容',
       impact: {},
-      turn: 1,
-      category: 'political_crisis',
     });
 
     const triggers = checkLeadershipTriggers(state);
@@ -162,13 +170,14 @@ describe('checkLeadershipTriggers — 触发条件检测', () => {
     defeatedParty.projectedSeats = 20;
 
     const electionResult: ElectionResult = {
-      turn: 1,
-      totalSeats: 200,
       partyResults: [
-        { partyId: 'reform', seats: 60, votes: 3000000 }, // 从 60 席跌到 20 席
+        { partyId: 'reform', seats: 60, supportPercent: 25 }, // 从 60 席跌到 20 席
       ],
-      turnout: 60,
-      swing: 5,
+      hasMajority: false,
+      majorityPartyId: null,
+      totalSeats: 200,
+      majorityThreshold: 101,
+      districtResults: {},
     };
 
     const triggers = checkLeadershipTriggers(state, electionResult);
@@ -184,13 +193,14 @@ describe('checkLeadershipTriggers — 触发条件检测', () => {
     party.projectedSeats = 50;
 
     const electionResult: ElectionResult = {
-      turn: 1,
-      totalSeats: 200,
       partyResults: [
-        { partyId: 'reform', seats: 100, votes: 3000000 }, // 从 100 席跌到 50 席（恰好 50%）
+        { partyId: 'reform', seats: 100, supportPercent: 25 }, // 从 100 席跌到 50 席（恰好 50%）
       ],
-      turnout: 60,
-      swing: 5,
+      hasMajority: false,
+      majorityPartyId: null,
+      totalSeats: 200,
+      majorityThreshold: 101,
+      districtResults: {},
     };
 
     const triggers = checkLeadershipTriggers(state, electionResult);
@@ -199,7 +209,12 @@ describe('checkLeadershipTriggers — 触发条件检测', () => {
 
   test('连续低支持率：玩家党连续 6 回合 < 25% → 返回 prolonged_low_support', () => {
     const state = makeTestState();
-    state.playerConfig = { partyId: 'reform', mpKey: 'reform:党员reform-1' };
+    state.playerConfig = {
+      lastName: '测试', firstName: '议员', age: 35, gender: 'male',
+      partyId: 'reform', background: '基层',
+      personalityTraits: ['pragmatic'], politicalIdeology: 'liberalism',
+      economicAxis: 0, socialAxis: 0, politicalGoal: '为民服务',
+    };
     state.consecutiveLowSupportTurns = 6;
 
     const triggers = checkLeadershipTriggers(state);
@@ -225,10 +240,15 @@ describe('checkLeadershipTriggers — 触发条件检测', () => {
       {
         id: 'faction-a',
         name: '派阀A',
-        ideology: 'center',
+        leader: 'reform:党员reform-1',
         members: ['reform:党员reform-1', 'reform:党员reform-2'],
+        ideology: 'mainstream',
         loyalty: 80,
-        leaderKey: 'reform:党员reform-1',
+        influence: 50,
+        funding: 100,
+        ambition: 50,
+        demands: ['cabinet_post'],
+        partyId: 'reform',
       },
     ];
 
@@ -250,10 +270,10 @@ describe('checkLeadershipTriggers — 触发条件检测', () => {
 
     state.events.push({
       id: 'scandal-1',
+      day: 1,
       title: '丑闻曝光',
       description: '详细',
       impact: { reform: -10 },
-      turn: 1,
     });
 
     const electionResult: ElectionResult = {
@@ -321,10 +341,15 @@ describe('runLeadershipVote — 党首选举投票', () => {
       {
         id: 'faction-a',
         name: '派阀A',
-        ideology: 'center',
+        leader: 'reform:党员reform-1',
         members: ['reform:党员reform-1', 'reform:党员reform-2'],
+        ideology: 'mainstream',
         loyalty: 80,
-        leaderKey: 'reform:党员reform-1',
+        influence: 50,
+        funding: 100,
+        ambition: 50,
+        demands: ['cabinet_post'],
+        partyId: 'reform',
       },
     ];
 
@@ -403,10 +428,15 @@ describe('triggerPartyLeadershipElection — 完整流程', () => {
       {
         id: 'faction-a',
         name: '派阀A',
-        ideology: 'center',
+        leader: 'reform:党员reform-2',
         members: ['reform:党员reform-2'],
+        ideology: 'mainstream',
         loyalty: 70,
-        leaderKey: 'reform:党员reform-2',
+        influence: 50,
+        funding: 100,
+        ambition: 50,
+        demands: ['cabinet_post'],
+        partyId: 'reform',
       },
     ];
 
@@ -522,17 +552,65 @@ describe('边界情况与错误处理', () => {
   test('选举结果缺失对应党 → 不触发 election_defeat', () => {
     const state = makeTestState();
     const electionResult: ElectionResult = {
-      turn: 1,
-      totalSeats: 200,
       partyResults: [
-        { partyId: 'liberty', seats: 50, votes: 2000000 }, // 不包含 reform
+        { partyId: 'liberty', seats: 50, supportPercent: 20 }, // 不包含 reform
       ],
-      turnout: 60,
-      swing: 5,
+      hasMajority: false,
+      majorityPartyId: null,
+      totalSeats: 200,
+      majorityThreshold: 101,
+      districtResults: {},
     };
 
     const triggers = checkLeadershipTriggers(state, electionResult);
     const defeatTrigger = triggers.find(t => t.reason === 'election_defeat' && t.partyId === 'reform');
     expect(defeatTrigger).toBeUndefined();
+  });
+});
+
+// ============================================================================
+// 4. leadership_campaign intent 结算 — 获胜者实际就任（Phase G 修复 #1）
+// ============================================================================
+
+describe('leadership_campaign 结算 — 获胜者就任', () => {
+  test('结算 leadership_campaign intent 后 party.leader 更新为获胜者', () => {
+    const state = makeTestState();
+    // 让挑战者（党员reform-1）权重远高于现任党首，并确保其进入候选池（野心 > 60）
+    const challenger = state.mpPersonalities['reform:党员reform-1'];
+    challenger.popularity = 90;
+    challenger.negotiationSkill = 90;
+    challenger.politicalCapital = 80;
+    challenger.ambition = 70; // 进入候选池
+
+    const { state: stateWithIntent } = triggerPartyLeadershipElection(state, 'reform', 'major_scandal');
+    const intent = stateWithIntent.pendingIntents.find(i => i.type === 'leadership_campaign') as AIIntent;
+    expect(intent).toBeDefined();
+    // 获胜者应为挑战者
+    expect(intent.payload.challengerId).toBe('reform:党员reform-1');
+
+    // 结算该 intent
+    const settled = settleIntents(stateWithIntent, [intent]);
+    const party = settled.parties.find(p => p.id === 'reform');
+
+    // party.leader 应已更新为获胜者的 personName（而非仍是旧党首）
+    expect(party?.leader).toBe('党员reform-1');
+    // 新党首的 isLeader 标记应为 true
+    expect(settled.mpPersonalities['reform:党员reform-1'].isLeader).toBe(true);
+    // 旧党首的 isLeader 应被清除
+    expect(settled.mpPersonalities['reform:党首reform'].isLeader).toBe(false);
+  });
+
+  test('获胜者 == 现任党首时，party.leader 不变（无实际更迭）', () => {
+    const state = makeTestState();
+    // 现任党首权重最高（不设置挑战者优势）
+    state.mpPersonalities['reform:党首reform'].popularity = 95;
+    state.mpPersonalities['reform:党首reform'].negotiationSkill = 95;
+
+    const { state: stateWithIntent } = triggerPartyLeadershipElection(state, 'reform', 'major_scandal');
+    const intent = stateWithIntent.pendingIntents.find(i => i.type === 'leadership_campaign') as AIIntent;
+    const settled = settleIntents(stateWithIntent, [intent]);
+    const party = settled.parties.find(p => p.id === 'reform');
+
+    expect(party?.leader).toBe('党首reform'); // 未变
   });
 });

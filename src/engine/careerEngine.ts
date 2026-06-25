@@ -262,6 +262,69 @@ export function runPromotionReview(state: import('../types').GameState): Promoti
   return results;
 }
 
+/**
+ * 实际应用晋升结果到 GameState。
+ *
+ * Phase G 修复 #3：此前 runPromotionReview 结果仅被 console.log。
+ * 党内路线：将 partyRankIndex 提升 1（上限为党首前一级，不得越过实际党首）。
+ * 国会路线：保留职位驱动语义（委员长/大臣等由实际任命决定），不在此自动晋升，
+ *          但若已在普通议员区且满足资历，则升为委员会理事（index 1）以反映资历。
+ *
+ * 返回新的 GameState（不可变）。
+ */
+export function applyPromotions(
+  state: import('../types').GameState,
+  results: PromotionReviewResult[],
+): import('../types').GameState {
+  if (results.length === 0) return state;
+
+  const newPersonalities = { ...state.mpPersonalities };
+  const events = [...state.events];
+
+  for (const r of results) {
+    const mp = newPersonalities[r.mpKey];
+    if (!mp || !mp.career) continue;
+
+    let changed = false;
+
+    // 党内晋升：+1 级，上限 PARTY_RANKS.length - 2（不得自动升党首，党首由选举决定）
+    if (r.partyPromotion.eligible && r.partyPromotion.nextRank) {
+      const maxIndex = PARTY_RANKS.length - 2;
+      const newIndex = Math.min(maxIndex, mp.career.partyRankIndex + 1);
+      if (newIndex > mp.career.partyRankIndex) {
+        mp.career = {
+          ...mp.career,
+          partyRank: PARTY_RANKS[newIndex],
+          partyRankIndex: newIndex,
+        };
+        changed = true;
+      }
+    }
+
+    // 国会晋升：仅当仍在 index 0（普通议员）且满足资历时，升为委员会理事（index 1）
+    if (r.parliamentPromotion.eligible && mp.career.parliamentRankIndex === 0) {
+      mp.career = {
+        ...mp.career,
+        parliamentRank: PARLIAMENT_RANKS[1],
+        parliamentRankIndex: 1,
+      };
+      changed = true;
+    }
+
+    if (changed) {
+      events.push({
+        id: `evt-promo-${r.mpKey}-${Date.now()}`,
+        day: state.currentDay,
+        title: '议员晋升',
+        description: `${mp.personName} 晋升为${mp.career.partyRank}。`,
+        impact: {},
+      });
+    }
+  }
+
+  return { ...state, mpPersonalities: newPersonalities, events };
+}
+
 // ============================================================================
 // 党首选举（保留原接口，扩展由 leadershipElectionEngine 处理）
 // ============================================================================

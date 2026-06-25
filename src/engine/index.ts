@@ -189,6 +189,7 @@ export {
   getCapital,
   getCapitalSuccessRate,
   advanceCapitalTurn,
+  applyCabinetFormationPenalty,
 } from './politicalCapitalEngine';
 export type { CapitalChangeEvent } from './politicalCapitalEngine';
 // Phase G Q4 — Rules engine additions (already exported above; just collecting new symbols)
@@ -225,6 +226,7 @@ export type {
 // Phase G 第十章 — Promotion review
 export {
   runPromotionReview,
+  applyPromotions,
   getPartyRankDisplayName,
 } from './careerEngine';
 export type { PromotionReviewResult } from './careerEngine';

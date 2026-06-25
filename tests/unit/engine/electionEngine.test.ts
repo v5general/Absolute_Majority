@@ -146,6 +146,8 @@ describe('runElectionV2 基本流程', () => {
 
     expect(result.nationalProportionalResults).toBeDefined();
     expect(typeof result.nationalProportionalResults).toBe('object');
+    const prop = result.nationalProportionalResults!;
+    expect(prop).toBeDefined();
   });
 
   test('所有政党都有结果记录', () => {
@@ -208,7 +210,7 @@ describe('席位守恒（110 直接 + 90 比例 = 200）', () => {
       const directSeats = Object.values(result.districtResults).reduce((sum, block) => {
         return sum + (block[partyResult.partyId] ?? 0);
       }, 0);
-      const proportionalSeats = result.nationalProportionalResults[partyResult.partyId] ?? 0;
+      const proportionalSeats = result.nationalProportionalResults?.[partyResult.partyId] ?? 0;
 
       expect(partyResult.seats).toBe(directSeats + proportionalSeats);
     }
@@ -228,7 +230,7 @@ describe('席位守恒（110 直接 + 90 比例 = 200）', () => {
 
     const result = runElectionV2(parties, districts, 200, 101, candidatePopularity, false);
 
-    const totalProportionalSeats = Object.values(result.nationalProportionalResults)
+    const totalProportionalSeats = Object.values(result.nationalProportionalResults ?? {})
       .reduce((sum, seats) => sum + seats, 0);
 
     expect(totalProportionalSeats).toBe(90);
@@ -338,7 +340,7 @@ describe('5% 阈值过滤', () => {
     const result = runElectionV2(parties, adjustedDistricts, 200, 101, candidatePopularity, false);
 
     // tiny 党应获得 0 比例席
-    const tinyProportionalSeats = result.nationalProportionalResults['tiny'] ?? 0;
+    const tinyProportionalSeats = result.nationalProportionalResults?.['tiny'] ?? 0;
     expect(tinyProportionalSeats).toBe(0);
   });
 
@@ -366,7 +368,7 @@ describe('5% 阈值过滤', () => {
     const result = runElectionV2(parties, adjustedDistricts, 200, 101, candidatePopularity, false);
 
     // threshold 党应获得至少 1 比例席（90 席分给 2 党）
-    const thresholdProportionalSeats = result.nationalProportionalResults['threshold'] ?? 0;
+    const thresholdProportionalSeats = result.nationalProportionalResults?.['threshold'] ?? 0;
     expect(thresholdProportionalSeats).toBeGreaterThan(0);
   });
 
@@ -396,11 +398,11 @@ describe('5% 阈值过滤', () => {
     const result = runElectionV2(parties, adjustedDistricts, 200, 101, candidatePopularity, false);
 
     // tiny 党应获得 0 比例席
-    expect(result.nationalProportionalResults['tiny1'] ?? 0).toBe(0);
-    expect(result.nationalProportionalResults['tiny2'] ?? 0).toBe(0);
+    expect(result.nationalProportionalResults?.['tiny1'] ?? 0).toBe(0);
+    expect(result.nationalProportionalResults?.['tiny2'] ?? 0).toBe(0);
 
     // dominant 党应获得全部或大部分比例席
-    const dominantProportionalSeats = result.nationalProportionalResults['dominant'] ?? 0;
+    const dominantProportionalSeats = result.nationalProportionalResults?.['dominant'] ?? 0;
     expect(dominantProportionalSeats).toBeGreaterThan(0);
   });
 });

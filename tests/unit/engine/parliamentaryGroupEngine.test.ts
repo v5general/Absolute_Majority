@@ -53,8 +53,10 @@ function makeTestElectionResult(partyResults: { partyId: string; seats: number }
   const totalSeats = partyResults.reduce((sum, r) => sum + r.seats, 0);
   const majorityThreshold = Math.floor(totalSeats / 2) + 1;
 
+  const fullResults = partyResults.map(r => ({ ...r, supportPercent: 0 }));
+
   return {
-    partyResults,
+    partyResults: fullResults,
     hasMajority: partyResults.some(r => r.seats >= majorityThreshold),
     majorityPartyId: partyResults.find(r => r.seats >= majorityThreshold)?.partyId ?? null,
     totalSeats,

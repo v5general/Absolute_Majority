@@ -22,7 +22,8 @@ import {
   getRelationNetworkStats,
 } from '../../../src/engine/relationEngine';
 import { RELATION_CAP } from '../../../src/config/gameBalance';
-import type { GameState, RelationEntry } from '../../../src/types';
+import type { GameState, RelationEntry, RelationType } from '../../../src/types';
+import { makeTestMP, makeTestState as makeBaseState } from '../../helpers/fixtures';
 
 // ============================================================================
 // 测试夹具（fixtures）
@@ -32,7 +33,7 @@ function makeTestRelation(
   from: string,
   to: string,
   score: number,
-  type = 'friendly',
+  type: RelationType = 'friendly',
 ): RelationEntry {
   return {
     from,
@@ -44,42 +45,18 @@ function makeTestRelation(
 }
 
 function makeTestState(relations?: RelationEntry[]): GameState {
-  const base: GameState = {
+  return {
+    ...makeBaseState(),
     parties: [],
     relations: relations ?? [],
-    metrics: {
-      totalVoters: 100000000,
-      turnoutRate: 60,
-      swingVoterRatio: 20,
-      daysToElection: 1440,
-      totalSeats: 200,
-      majorityThreshold: 101,
-      leadingCoalitionSeats: 100,
-      economicIndex: 50,
-      socialStabilityIndex: 60,
-      mediaAttention: 50,
-    },
-    districts: [],
-    events: [],
-    government: null,
-    committees: [],
-    bills: [],
-    pendingIntents: [],
     mpPersonalities: {
-      mp1: { name: '议员1', partyId: 'reform', loyalty: 50, ambition: 50, politicalCapital: 30 },
-      mp2: { name: '议员2', partyId: 'liberty', loyalty: 60, ambition: 40, politicalCapital: 25 },
-      mp3: { name: '议员3', partyId: 'conservative', loyalty: 70, ambition: 60, politicalCapital: 40 },
-      mp4: { name: '议员4', partyId: 'progressive', loyalty: 80, ambition: 30, politicalCapital: 35 },
-      mp5: { name: '议员5', partyId: 'populist', loyalty: 40, ambition: 70, politicalCapital: 45 },
+      mp1: makeTestMP('mp1', { partyId: 'reform', loyalty: 50, ambition: 50, politicalCapital: 30 }),
+      mp2: makeTestMP('mp2', { partyId: 'liberty', loyalty: 60, ambition: 40, politicalCapital: 25 }),
+      mp3: makeTestMP('mp3', { partyId: 'conservative', loyalty: 70, ambition: 60, politicalCapital: 40 }),
+      mp4: makeTestMP('mp4', { partyId: 'progressive', loyalty: 80, ambition: 30, politicalCapital: 35 }),
+      mp5: makeTestMP('mp5', { partyId: 'populist', loyalty: 40, ambition: 70, politicalCapital: 45 }),
     },
-    playerConfig: null,
-    currentAIEvents: [],
-    currentDay: 1,
-    turn: 1,
-    turnsUntilElection: 48,
-    isElectionCampaign: false,
   };
-  return base;
 }
 
 // ============================================================================

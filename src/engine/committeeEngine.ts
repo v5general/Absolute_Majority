@@ -605,6 +605,17 @@ export function committee_review(
     passChance += 15;
   }
 
+  // Phase G 修复 #5：委员长细分权重应用到审议通过概率（Q4）。
+  // committee_vote 的 voteContext 权重在运行时路径中从未被调用，故在此（实际审议入口）
+  // 应用委员长倾向：同党/盟友委员长 → 推进倾向（push ×1.3，passChance +12）；
+  // 敌对委员长 → 搁置倾向（shelve ×1.5，passChance −20）。搁置幅度 > 推进幅度，
+  // 反映委员长阻挠议程的不对称权力。
+  const chairmanLeaning = isSameParty || isAllied ? 'push' : 'shelve';
+  const chairmanWeight = getChairmanWeightMultiplier(chairmanLeaning); // push=1.3 / shelve=1.5
+  // sign × (weight−1) × 40：推进 +0.3×40=+12；搁置 −0.5×40=−20。
+  const chairmanDelta = (isSameParty || isAllied ? 1 : -1) * (chairmanWeight - 1) * 40;
+  passChance += chairmanDelta;
+
   if (passChance >= 65) {
     return {
       status: 'revised',

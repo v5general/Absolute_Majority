@@ -21,6 +21,7 @@ import {
   advanceCapitalTurn,
   initializeAllCapital,
   getCapital,
+  applyCabinetFormationPenalty,
   type CapitalChangeEvent,
 } from '../../../src/engine/politicalCapitalEngine';
 import { POLITICAL_CAPITAL_RULES } from '../../../src/config/gameBalance';
@@ -45,13 +46,14 @@ function makeTestMP(id: string, overrides?: Partial<MPPersonality>): MPPersonali
     popularity: 50,
     mediaSkill: 50,
     negotiationSkill: 50,
-    politicalCapital: undefined,
     personalityTraits: [],
-    politicalIdeology: { primary: 'centrist', secondary: [] },
-    factionId: null,
-    deceased: false,
-    committeeAssignments: [],
+    politicalIdeology: { primary: 'liberalism', economicAxis: 0, socialAxis: 0 },
+    stress: 20,
+    health: 80,
+    hiddenGoals: [],
     isLeader: false,
+    isMinister: false,
+    isCommitteeChairman: false,
     ...overrides,
   };
 }
@@ -62,12 +64,21 @@ function makeTestBackground(
 ): MPBackground {
   return {
     familyOrigin,
-    education: 'university',
+    education: 'national_university',
     career: '测试职业',
     socialClass: socialClass ?? 'middle',
     hometown: '东京',
     connections: [],
-    modifiers: { loyalty: 0, ambition: 0, corruption: 0, popularity: 0 },
+    modifiers: {
+      factionAcceptanceBonus: 0,
+      recommendationBonus: 0,
+      mediaAttentionBonus: 0,
+      fundraisingBonus: 0,
+      scandalRiskModifier: 0,
+      populistAppealBonus: 0,
+      grassrootsSupportBonus: 0,
+      factionBuildingSpeed: 1,
+    },
   };
 }
 
@@ -192,7 +203,7 @@ describe('initializeCapital', () => {
 
   test('工人阶级背景 +8', () => {
     const mp = makeTestMP('test');
-    const background = makeTestBackground('middle_class', 'working');
+    const background = makeTestBackground('salaryman', 'working');
     const capital = initializeCapital(mp, background);
     expect(capital).toBe(38); // 30 + 8
   });
@@ -205,7 +216,9 @@ describe('initializeCapital', () => {
   });
 
   test('null 值视为未初始化，应用默认值', () => {
-    const mp = makeTestMP('test', { politicalCapital: null });
+    const mp = makeTestMP('test');
+    // 模拟旧存档未初始化：移除 politicalCapital 字段
+    delete (mp as { politicalCapital?: number }).politicalCapital;
     const capital = initializeCapital(mp);
     expect(capital).toBe(30);
   });
@@ -525,7 +538,8 @@ describe('initializeAllCapital', () => {
 
   test('迁移 null 值的议员 → 应用默认值 30', () => {
     const state = makeTestState();
-    state.mpPersonalities['test_party:议员1'].politicalCapital = null;
+    // 模拟旧存档未初始化：移除 politicalCapital 字段
+    delete (state.mpPersonalities['test_party:议员1'] as { politicalCapital?: number }).politicalCapital;
 
     const newState = initializeAllCapital(state);
 
@@ -625,7 +639,9 @@ describe('getCapital', () => {
   });
 
   test('null 时返回默认值 30', () => {
-    const mp = makeTestMP('test', { politicalCapital: null });
+    const mp = makeTestMP('test');
+    // 模拟未初始化：移除 politicalCapital 字段
+    delete (mp as { politicalCapital?: number }).politicalCapital;
     const capital = getCapital(mp);
     expect(capital).toBe(30);
   });
@@ -737,5 +753,47 @@ describe('综合场景', () => {
     for (const mp of Object.values(newState.mpPersonalities)) {
       expect(mp.politicalCapital).toBe(38);
     }
+  });
+});
+
+// ============================================================================
+// applyCabinetFormationPenalty — 组阁/改组 discrete sink（Phase G 修复 #4 完整化）
+// ============================================================================
+
+describe('applyCabinetFormationPenalty — 组阁政治资本消耗', () => {
+  test('对每位受影响议员 -20（cabinetFormation）', () => {
+    const state = makeTestState({
+      mpPersonalities: {
+        'reform:大臣A': makeTestMP('大臣A', { politicalCapital: 60 }),
+        'reform:大臣B': makeTestMP('大臣B', { politicalCapital: 50 }),
+      },
+    });
+    const newState = applyCabinetFormationPenalty(state, ['reform:大臣A', 'reform:大臣B']);
+    expect(newState.mpPersonalities['reform:大臣A'].politicalCapital).toBe(40); // 60 - 20
+    expect(newState.mpPersonalities['reform:大臣B'].politicalCapital).toBe(30); // 50 - 20
+  });
+
+  test('资本不足 20 时钳制到 0（不会变负）', () => {
+    const state = makeTestState({
+      mpPersonalities: { 'reform:大臣C': makeTestMP('大臣C', { politicalCapital: 15 }) },
+    });
+    const newState = applyCabinetFormationPenalty(state, ['reform:大臣C']);
+    expect(newState.mpPersonalities['reform:大臣C'].politicalCapital).toBe(0); // max(0, 15-20)
+  });
+
+  test('空 minister 列表 → 状态不变', () => {
+    const state = makeTestState();
+    const newState = applyCabinetFormationPenalty(state, []);
+    expect(newState).toBe(state);
+  });
+
+  test('经济反应验证：组阁后 getCapitalSuccessRate 在低资本时降为 0.7', () => {
+    // 大臣资本 35 → 组阁 -20 → 15 (<20) → 成功率折扣 0.7
+    const state = makeTestState({
+      mpPersonalities: { 'reform:大臣D': makeTestMP('大臣D', { politicalCapital: 35 }) },
+    });
+    expect(getCapitalSuccessRate(state, 'reform:大臣D')).toBe(1.0); // 组阁前正常
+    const newState = applyCabinetFormationPenalty(state, ['reform:大臣D']);
+    expect(getCapitalSuccessRate(newState, 'reform:大臣D')).toBe(0.7); // 组阁后低资本惩罚
   });
 });

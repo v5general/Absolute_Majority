@@ -23,6 +23,7 @@ import {
 import type { ChairmanVoteContext } from '../config/gameBalance';
 // 延迟导入 triggerArc 以避免循环依赖（dramaEngine 不依赖 rulesEngine，安全）
 import { triggerArc } from './dramaEngine';
+import { PARTY_RANKS } from '../types/career';
 
 /**
  * 规则引擎 — 全局约束校验与核心数值结算
@@ -701,15 +702,40 @@ export function settleIntent(state: GameState, intent: AIIntent): GameState {
     }
     case 'leadership_campaign': {
       const partyId = intent.payload.partyId as string;
-      const challengerId = intent.payload.challengerId as string;
+      const challengerId = intent.payload.challengerId as string; // 即获胜者 MP key
       const currentLeaderId = intent.payload.currentLeaderId as string;
       const party = newState.parties.find(p => p.id === partyId);
-      const challenger = newState.mpPersonalities[challengerId];
+      const winnerMP = newState.mpPersonalities[challengerId];
+      const winnerName = winnerMP?.personName ?? challengerId.split(':').pop() ?? challengerId;
+
+      // Phase G 修复 #1：实际安装获胜者为新党首（此前仅记录事件，党首永不变更）
+      const changedLeader = party && winnerName !== party.leader;
+      if (changedLeader) {
+        // 清除旧党首的 isLeader 标记
+        const oldLeaderMP = newState.mpPersonalities[currentLeaderId];
+        if (oldLeaderMP) oldLeaderMP.isLeader = false;
+        // 安装新党首
+        party!.leader = winnerName;
+        if (winnerMP) {
+          winnerMP.isLeader = true;
+          // 同步党内职业路线到党首
+          if (winnerMP.career) {
+            winnerMP.career = {
+              ...winnerMP.career,
+              partyRank: PARTY_RANKS[PARTY_RANKS.length - 1],
+              partyRankIndex: PARTY_RANKS.length - 1,
+            };
+          }
+        }
+      }
+
       newState.events.push({
         id: `evt-${Date.now()}-leadership`,
         day: newState.currentDay,
-        title: '党首选举活动',
-        description: `${party?.name ?? partyId} 启动党首选举：${challenger?.personName ?? challengerId} 挑战现任 ${currentLeaderId}。`,
+        title: changedLeader ? '党首选举：新党首就任' : '党首选举活动',
+        description: changedLeader
+          ? `${party!.name} 党首选举结束：${winnerName} 当选新党首（前任 ${currentLeaderId.split(':').pop() ?? currentLeaderId}）。`
+          : `${party?.name ?? partyId} 启动党首选举：${winnerName} 挑战现任 ${currentLeaderId}。`,
         impact: {},
       });
       break;

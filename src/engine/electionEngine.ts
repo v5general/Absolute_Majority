@@ -201,7 +201,11 @@ function allocateDirectSeats(
 
     for (const party of parties) {
       const partySupport = district.supportByParty[party.id] ?? 0;
-      const districtLeaning = district.supportByParty[party.id] ?? partySupport;
+      // Phase G 修复 #7：districtLeaning 此前 = partySupport，导致 partySupport 被双重计入。
+      // 现改为该党在本块的相对优势：(本块支持 - 党全国平均支持) 的正负号，
+      // 反映"本块是否比全国更偏爱该党"，与 partySupport 解耦，不再重复计权。
+      const partyAvgSupport = party.currentSupport;
+      const districtLeaning = partySupport - partyAvgSupport; // >0 = 本块偏爱该党
 
       // 为该党在 该块 生成 10 候选人
       const partyCandidates = buildCandidateListForParty(party, directSeats);

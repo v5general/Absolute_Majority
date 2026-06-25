@@ -180,6 +180,52 @@ export function getCapitalSuccessRate(state: GameState, mpKey: string): number {
 }
 
 // ============================================================================
+// 组阁/改组 discrete sink（Phase G 修复 #4 完整化）
+// ============================================================================
+
+/**
+ * 应用"组阁/改组"政治资本消耗（-20）。
+ *
+ * Phase G Q3 discrete sink。当发生内阁改组（minister 名单变化）时，
+ * 首相及新任大臣每人 -20 politicalCapital。
+ *
+ * 此前该 sink 仅在 config 定义、无任何 runtime 触发路径（nextTurn 中无改组流程）。
+ * 现作为纯函数导出，供 useGameState 在检测到 minister 名单变化时调用，
+ * 亦可被集成测试直接调用以验证经济反应。
+ *
+ * @param state        当前 GameState（不被修改）
+ * @param ministerKeys 受影响议员 MP key 列表（"partyId:personName"）
+ * @param amount       消耗量（默认 cabinetFormation = -20）
+ * @returns            新的 GameState
+ */
+export function applyCabinetFormationPenalty(
+  state: GameState,
+  ministerKeys: string[],
+  amount: number = POLITICAL_CAPITAL_RULES.cabinetFormation,
+): GameState {
+  if (ministerKeys.length === 0) return state;
+
+  const newPersonalities = { ...state.mpPersonalities };
+  let changed = false;
+
+  for (const key of ministerKeys) {
+    const mp = newPersonalities[key];
+    if (!mp) continue;
+    const oldValue = mp.politicalCapital ?? POLITICAL_CAPITAL_RULES.initialValue;
+    const newValue = Math.max(
+      POLITICAL_CAPITAL_RULES.minValue,
+      oldValue + amount, // amount 为负数
+    );
+    if (newValue !== oldValue) {
+      newPersonalities[key] = { ...mp, politicalCapital: newValue };
+      changed = true;
+    }
+  }
+
+  return changed ? { ...state, mpPersonalities: newPersonalities } : state;
+}
+
+// ============================================================================
 // 每回合推进
 // ============================================================================
 

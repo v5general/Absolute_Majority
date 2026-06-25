@@ -6,6 +6,7 @@ import { applyChoice } from '../engine/eventEngine';
 import { createInitialMemory } from '../engine/worldMemory';
 import { createInitialDramaState, advanceDramaTurn } from '../engine/dramaEngine';
 import { initializeAllCapital, advanceCapitalTurn } from '../engine/politicalCapitalEngine';
+import { POLITICAL_CAPITAL_RULES } from '../config/gameBalance';
 import { saveGame as saveToStorage } from '../components/MainMenu';
 import {
   runAgentTurn,
@@ -33,6 +34,8 @@ import {
   checkLeadershipTriggers,
   triggerPartyLeadershipElection,
   runPromotionReview,
+  applyPromotions,
+  applyCabinetFormationPenalty,
 } from '../engine';
 import type { AIBillDraft } from '../engine';
 
@@ -277,6 +280,14 @@ export const GameProvider: React.FC<{ children: React.ReactNode; savedState?: Ga
           // 0. 回合开始：推进法案决策链、处理过期法案
           let turnState = { ...oldState };
 
+          // Phase G 修复 #6：选举竞选期持续 1 回合（CONSTITUTION 规则）。
+          // 上回合若处于竞选期（dissolveLowerHouse 触发），本回合开始即结束竞选
+          // （选举已举行）。此前 isElectionCampaign 一旦置 true 便永不复位，
+          // 导致竞选倍率（support×1.5 / media×2.0）永久生效。
+          if (turnState.isElectionCampaign) {
+            turnState = { ...turnState, isElectionCampaign: false };
+          }
+
           // 0.0 推进戏剧曲线（每回合 +5 tension，会期调整）
           turnState.dramaState = advanceDramaTurn(
             turnState.dramaState ?? createInitialDramaState(),
@@ -325,9 +336,24 @@ export const GameProvider: React.FC<{ children: React.ReactNode; savedState?: Ga
           // 0.0e Phase G Q5：本月辩论事件触发（每月至少一次）
           try {
             if (!hasDebateThisMonth(turnState)) {
-              // 标记已生成 — 实际事件由 narrativeEngine 在 agent intents 中生成
-              // 如未生成，强制注入一个 parliament_questioning intent 让 LLM 生成
+              // 标记本月已生成，并强制注入一个 parliament_questioning（党首辩论）intent
+              // 让 narrativeEngine / agent 生成实际的辩论事件。此前仅标记 flag 而无事件生成。
               turnState = markDebateGenerated(turnState);
+              const debateParty = turnState.parties[0];
+              if (debateParty && turnState.playerConfig) {
+                turnState.pendingIntents.push({
+                  id: `intent-debate-${turnState.turn}-${Date.now()}`,
+                  type: 'parliament_questioning',
+                  source: 'monthly-debate',
+                  payload: {
+                    questionerPartyId: debateParty.id,
+                    targetMinisterName: turnState.government?.primeMinisterName ?? '内阁',
+                    topic: '党首辩论（每月例行）',
+                    questionTime: 30,
+                  },
+                  turn: turnState.turn,
+                });
+              }
             }
           } catch (err) {
             console.error('[Game] Debate marking failed:', err);
@@ -356,6 +382,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode; savedState?: Ga
 
           // 推进未过期法案的决策链
           try {
+            // 记录推进前状态，用于检测本回合新通过的法案
+            const beforeStatus = new Map(turnState.bills.map(b => [b.id, b.status]));
             turnState.bills = turnState.bills.map(bill => {
               if (bill.status === 'passed' || bill.status === 'rejected' || bill.status === 'implemented' || bill.status === 'withdrawn') {
                 return bill;
@@ -366,12 +394,38 @@ export const GameProvider: React.FC<{ children: React.ReactNode; savedState?: Ga
               }
               return bill;
             });
+
+            // Phase G 修复 #4：法案通过 → 提案人政治资本变化（此前该 discrete faucet/sink 仅在 config 定义）
+            //   - 普通法案通过：提案人 +5（faucet）
+            //   - 修宪法案通过：提案人 -25（constitutionalAmendment sink，远大于普通 +5）
+            const newlyPassed = turnState.bills.filter(
+              b => b.status === 'passed' && beforeStatus.get(b.id) !== 'passed',
+            );
+            if (newlyPassed.length > 0) {
+              const capitalDelta: Record<string, number> = {};
+              for (const b of newlyPassed) {
+                const mpKey = `${b.proposerPartyId}:${b.proposerName}`;
+                const delta = b.isConstitutionalAmendment ? POLITICAL_CAPITAL_RULES.constitutionalAmendment : POLITICAL_CAPITAL_RULES.billPassed;
+                capitalDelta[mpKey] = (capitalDelta[mpKey] ?? 0) + delta;
+              }
+              turnState = settleIntents(turnState, [{
+                id: `intent-billpassed-${turnState.turn}-${Date.now()}`,
+                type: 'political_capital_change',
+                source: 'bill-passed',
+                payload: { capitalDelta },
+                turn: turnState.turn,
+              }]);
+            }
           } catch (err) {
             console.error('[Game] Bill chain advancement failed:', err);
           }
 
           // 1. Agent 推演：收集所有 Agent 意图（会调用 LLM）
           console.log('[Game] Running agent turn...');
+          // 记录本回合 agent turn 前的内阁名单，用于检测改组（Phase G cabinetFormation -20 触发）
+          const beforeMinisterNames = new Set(
+            (turnState.government?.ministers ?? []).map(m => `${m.partyId}:${m.personName}`),
+          );
           let agentResult;
           try {
             agentResult = await runAgentTurn(turnState);
@@ -400,18 +454,46 @@ export const GameProvider: React.FC<{ children: React.ReactNode; savedState?: Ga
             ? politicalIntents.filter(i => i.type !== 'propose_bill')
             : politicalIntents;
 
+          // Phase G 修复：先结算本回合注入的 pendingIntents（党首选举 winner、月度辩论事件等）
+          // 此前 pendingIntents 被注入但从未结算，回合末被清空 → 党首永不变更、辩论永无事件
+          try {
+            if (turnState.pendingIntents.length > 0) {
+              turnState = settleIntents(turnState, turnState.pendingIntents);
+              // 结算后立即清空，避免被后续 politicalAI 结算重复触发
+              turnState = { ...turnState, pendingIntents: [] };
+            }
+          } catch (err) {
+            console.error('[Game] Pending intents settlement failed:', err);
+          }
+
           // 结算政治 AI 意图
           turnState = settleIntents(turnState, filteredPoliticalIntents);
 
-          // Phase G 第十章：每回合运行晋升审查（仅记录结果，不直接晋升）
+          // Phase G 第十章：每回合运行晋升审查并实际应用晋升（此前仅 console.log）
           try {
             const promotionResults = runPromotionReview(turnState);
             if (promotionResults.length > 0) {
-              console.log(`[Game] ${promotionResults.length} MPs eligible for promotion`);
-              // 实际晋升由后续 UI / 规则引擎处理；此处仅日志
+              turnState = applyPromotions(turnState, promotionResults);
+              console.log(`[Game] Applied ${promotionResults.length} promotions`);
             }
           } catch (err) {
             console.error('[Game] Promotion review failed:', err);
+          }
+
+          // Phase G 修复 #4 完整化：内阁改组 → 首相及新大臣政治资本 -20（cabinetFormation sink）。
+          // 检测 agent turn 是否改动了 minister 名单（cabinet_reshuffle intent 等路径）。
+          // 此前该 sink 无任何 runtime 触发；现在与 minister 名单变化绑定，真实可触发。
+          try {
+            const afterMinisters = turnState.government?.ministers ?? [];
+            const changedMinisterKeys = afterMinisters
+              .map(m => `${m.partyId}:${m.personName}`)
+              .filter(key => !beforeMinisterNames.has(key));
+            if (changedMinisterKeys.length > 0) {
+              turnState = applyCabinetFormationPenalty(turnState, changedMinisterKeys);
+              console.log(`[Game] Cabinet reshuffle: applied -20 capital to ${changedMinisterKeys.length} minister(s)`);
+            }
+          } catch (err) {
+            console.error('[Game] Cabinet formation penalty failed:', err);
           }
 
           // 加入 LLM 生成的法案（去重标题）

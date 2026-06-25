@@ -20,10 +20,11 @@ import {
   checkPartyPromotion,
   checkParliamentPromotion,
   runPromotionReview,
+  applyPromotions,
   calculatePromotionScore,
   syncCareerWithPositions,
 } from '../../../src/engine/careerEngine';
-import type { GameState, Party, Government, Committee, CabinetPost } from '../../../src/types';
+import type { GameState, Party, Government, Committee, CommitteeId, CabinetPost } from '../../../src/types';
 import type { MPPersonality } from '../../../src/types/mp';
 
 // ============================================================================
@@ -51,23 +52,31 @@ function makeTestParty(id: string, leader = `党首${id}`): Party {
 
 function makeTestMP(key: string, partyId: string, name: string, overrides?: Partial<MPPersonality>): MPPersonality {
   const base: MPPersonality = {
-    personKey: key,
+    id: key,
     personName: name,
     partyId,
     age: 45,
+    gender: 'male',
     popularity: 50,
     loyalty: 70,
     ambition: 60,
     negotiationSkill: 55,
     politicalCapital: 40,
+    corruption: 20,
     mediaSkill: 50,
-    committeeSkill: 50,
+    personalityTraits: ['pragmatic'],
+    politicalIdeology: { primary: 'liberalism', economicAxis: 0, socialAxis: 0 },
+    stress: 20,
+    health: 80,
+    hiddenGoals: [],
+    isLeader: false,
+    isMinister: false,
     isCommitteeChairman: false,
   };
   return { ...base, ...overrides };
 }
 
-function makeTestCommittee(id: string, chairmanName: string): Committee {
+function makeTestCommittee(id: CommitteeId, chairmanName: string): Committee {
   return {
     id,
     chairman: { personName: chairmanName, partyId: 'reform' },
@@ -85,12 +94,24 @@ function makeTestCommittee(id: string, chairmanName: string): Committee {
 
 function makeTestGovernment(primeMinister: string, ministers: Array<{ name: string; post: CabinetPost }>): Government {
   return {
+    primeMinisterPartyId: 'reform',
     primeMinisterName: primeMinister,
+    rulingCoalition: ['reform'],
+    opposition: [],
     ministers: ministers.map(m => ({ personName: m.name, post: m.post, partyId: 'reform' })),
+    stability: 50,
+    isMinority: false,
+    electionResult: {
+      partyResults: [],
+      hasMajority: false,
+      majorityPartyId: null,
+      totalSeats: 200,
+      majorityThreshold: 101,
+      districtResults: {},
+    },
+    coalitionOffers: [],
     coalitionAgreements: [],
-    supportRate: 50,
-    approvalRating: 50,
-    turn: 1,
+    noConfidenceMotions: [],
   };
 }
 
@@ -693,7 +714,68 @@ describe('runPromotionReview — 统一晋升审查', () => {
 });
 
 // ============================================================================
-// 9. syncCareerWithPositions — 职位同步
+// 9. applyPromotions — 实际应用晋升（Phase G 修复 #3）
+// ============================================================================
+
+describe('applyPromotions — 实际应用晋升结果', () => {
+  test('党内晋升：partyRankIndex +1（满足阈值）', () => {
+    // 构造一个满足党内晋升阈值的议员：loyalty 75 + capital 40 + 高年龄(党龄足)
+    const mp = makeTestMP('reform:党员1', 'reform', '党员1', {
+      loyalty: 80,
+      ambition: 55,
+      politicalCapital: 45,
+      age: 60, // 党龄 = (60-25)/3 = 11 > 6
+    });
+    mp.career = {
+      partyRank: '普通党员',
+      partyRankIndex: 0,
+      parliamentRank: '普通议员',
+      parliamentRankIndex: 0,
+    };
+    const party = makeTestParty('reform');
+    const state = makeTestState({ 'reform:党员1': mp });
+    state.parties = [party];
+
+    const results = runPromotionReview(state);
+    expect(results.length).toBeGreaterThan(0);
+
+    const newState = applyPromotions(state, results);
+    const promoted = newState.mpPersonalities['reform:党员1'];
+    expect(promoted.career?.partyRankIndex).toBe(1); // 0 → 1
+  });
+
+  test('applyPromotions 不越过党首（上限 index = length-2）', () => {
+    // 已经在 index 6（副党首）的议员，晋升后不得成为党首
+    const mp = makeTestMP('reform:副党首', 'reform', '副党首', {
+      loyalty: 95, politicalCapital: 90, age: 70,
+    });
+    mp.career = {
+      partyRank: '副党首',
+      partyRankIndex: 6,
+      parliamentRank: '普通议员',
+      parliamentRankIndex: 0,
+    };
+    const party = makeTestParty('reform');
+    const state = makeTestState({ 'reform:副党首': mp });
+    state.parties = [party];
+
+    const results = runPromotionReview(state);
+    const newState = applyPromotions(state, results);
+    const promoted = newState.mpPersonalities['reform:副党首'];
+    // 即使有资格，也不得自动升到党首（index 7）
+    expect(promoted.career?.partyRankIndex).toBeLessThanOrEqual(PARTY_RANKS.length - 2);
+  });
+
+  test('空结果 → 状态不变', () => {
+    const state = makeTestState();
+    const newState = applyPromotions(state, []);
+    // 引用不同但内容相同
+    expect(newState.parties).toEqual(state.parties);
+  });
+});
+
+// ============================================================================
+// 10. syncCareerWithPositions — 职位同步
 // ============================================================================
 
 describe('syncCareerWithPositions — 职位同步', () => {
