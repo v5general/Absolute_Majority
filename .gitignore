@@ -1,0 +1,74 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Claude Code settings
+.claude/
+CLAUDE.md
+AGENTS.md
+
+# Codex CLI settings
+.codex/
+.agents/
+
+# Build output
+dist/
+build/
+*.local
+
+# Logs
+npm-debug.log*
+npm-err.log*
+npm-out.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+pnpm-debug.log*
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Testing
+coverage/
+.nyc_output/
+
+# Misc
+*.log
+.cache/
+.parcel-cache/
+.eslintcache
+
+# Project rules (internal)
+rules.txt
+
+# Generated audit and simulation reports (local analysis output)
+docs/consistency-report-*
+docs/balance-check-*
+docs/content-audit-*
+docs/simulate-report-*
+
+# Review-loop process output (AUTO_REVIEW logs, state, dossiers)
+review-stage/
+
+# Self — don't track .gitignore itself
+.gitignore
