@@ -198,6 +198,6 @@ This project is licensed under the [GNU General Public License v3.0](LICENSE).
 
 <div align="center">
 
-*One rookie MP. 48 turns. 200 seats. Every month, a new move on the parliamentary chessboard — and every move changes the game.*
+*48 turns. 200 seats. Your move.*
 
 </div>
